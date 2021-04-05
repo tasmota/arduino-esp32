@@ -5,6 +5,7 @@
  *      Author: kolban
  */
 
+#ifdef __cplusplus
 #ifndef MAIN_FREERTOS_H_
 #define MAIN_FREERTOS_H_
 #include <stdint.h>
@@ -60,7 +61,11 @@ public:
  */
 class Ringbuffer {
 public:
-	Ringbuffer(size_t length, ringbuf_type_t type = RINGBUF_TYPE_NOSPLIT);
+#ifdef ESP_IDF_VERSION_MAJOR
+  Ringbuffer(size_t length, RingbufferType_t type = RINGBUF_TYPE_NOSPLIT);
+#else
+  Ringbuffer(size_t length, ringbuf_type_t type = RINGBUF_TYPE_NOSPLIT);
+#endif
 	~Ringbuffer();
 
 	void*    receive(size_t* size, TickType_t wait = portMAX_DELAY);
@@ -71,3 +76,6 @@ private:
 };
 
 #endif /* MAIN_FREERTOS_H_ */
+#else
+#include "freertos/FreeRTOS.h"
+#endif
