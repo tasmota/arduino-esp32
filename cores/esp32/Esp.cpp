@@ -196,6 +196,8 @@ String EspClass::getSketchMD5()
         md5.add(buf.get(), readBytes);
         lengthLeft -= readBytes;
         offset += readBytes;
+
+        delay(1);  // Fix solo WDT
     }
     md5.calculate();
     result = md5.toString();
