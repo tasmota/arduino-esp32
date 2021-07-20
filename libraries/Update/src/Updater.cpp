@@ -64,6 +64,7 @@ UpdateClass::UpdateClass()
 , _size(0)
 , _progress_callback(NULL)
 , _progress(0)
+, _paroffset(0)
 , _command(U_FLASH)
 , _partition(NULL)
 {
@@ -133,9 +134,14 @@ bool UpdateClass::begin(size_t size, int command, int ledPin, uint8_t ledOn, con
     }
     else if (command == U_SPIFFS) {
         _partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_SPIFFS, label);
+        _paroffset = 0;
         if(!_partition){
-            _error = UPDATE_ERROR_NO_PARTITION;
-            return false;
+            _partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_FAT, NULL);
+            _paroffset = 0x1000;  //Offset for ffat, assuming size is already corrected
+            if(!_partition){
+               _error = UPDATE_ERROR_NO_PARTITION;
+               return false;
+            }
         }
     }
     else {
@@ -346,7 +352,7 @@ size_t UpdateClass::writeStream(Stream &data) {
             bytesToRead = remaining();
         }
 
-        /* 
+        /*
         Init read&timeout counters and try to read, if read failed, increase counter,
         wait 100ms and try to read again. If counter > 300 (30 sec), give up/abort
         */
@@ -371,6 +377,8 @@ size_t UpdateClass::writeStream(Stream &data) {
         if((_bufferLen == remaining() || _bufferLen == SPI_FLASH_SEC_SIZE) && !_writeBuffer())
             return written;
         written += toRead;
+
+        delay(1);  // Fix solo WDT
     }
     return written;
 }
