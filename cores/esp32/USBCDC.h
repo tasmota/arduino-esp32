@@ -54,7 +54,6 @@ class USBCDC: public Stream
 {
 public:
     USBCDC(uint8_t itf=0);
-    ~USBCDC();
 
     void onEvent(esp_event_handler_t callback);
     void onEvent(arduino_usb_cdc_event_t event, esp_event_handler_t callback);
@@ -130,7 +129,7 @@ protected:
     
 };
 
-#if ARDUINO_USB_CDC_ON_BOOT //Serial used for USB CDC
+#if ARDUINO_SERIAL_PORT //Serial used for USB CDC
 extern USBCDC Serial;
 #endif
 

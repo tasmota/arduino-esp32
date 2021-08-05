@@ -23,7 +23,6 @@
 #include <lwip/netdb.h>
 #include <errno.h>
 
-#define WIFI_CLIENT_DEF_CONN_TIMEOUT  (3)
 #define WIFI_CLIENT_MAX_WRITE_RETRY   (10)
 #define WIFI_CLIENT_SELECT_TIMEOUT_US (1000000)
 #define WIFI_CLIENT_FLUSH_BUFFER_SIZE (1024)
@@ -208,7 +207,7 @@ void WiFiClient::stop()
 
 int WiFiClient::connect(IPAddress ip, uint16_t port)
 {
-    return connect(ip,port,WIFI_CLIENT_DEF_CONN_TIMEOUT);
+    return connect(ip,port,-1);
 }
 int WiFiClient::connect(IPAddress ip, uint16_t port, int32_t timeout)
 {
@@ -279,7 +278,7 @@ int WiFiClient::connect(IPAddress ip, uint16_t port, int32_t timeout)
 
 int WiFiClient::connect(const char *host, uint16_t port)
 {
-    return connect(host,port,WIFI_CLIENT_DEF_CONN_TIMEOUT);
+    return connect(host,port,-1);
 }
 int WiFiClient::connect(const char *host, uint16_t port, int32_t timeout)
 {

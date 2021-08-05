@@ -17,11 +17,13 @@
 //#include <limits.h>
 #include "wiring_private.h"
 #include "pins_arduino.h"
-#include <hal/cpu_hal.h>
+
+
+extern uint32_t xthal_get_ccount();
 
 #define WAIT_FOR_PIN_STATE(state) \
     while (digitalRead(pin) != (state)) { \
-        if (cpu_hal_get_cycle_count() - start_cycle_count > timeout_cycles) { \
+        if (xthal_get_ccount() - start_cycle_count > timeout_cycles) { \
             return 0; \
         } \
     }
@@ -34,12 +36,12 @@ unsigned long pulseIn(uint8_t pin, uint8_t state, unsigned long timeout)
         timeout = max_timeout_us;
     }
     const uint32_t timeout_cycles = microsecondsToClockCycles(timeout);
-    const uint32_t start_cycle_count = cpu_hal_get_cycle_count();
+    const uint32_t start_cycle_count = xthal_get_ccount();
     WAIT_FOR_PIN_STATE(!state);
     WAIT_FOR_PIN_STATE(state);
-    const uint32_t pulse_start_cycle_count = cpu_hal_get_cycle_count();
+    const uint32_t pulse_start_cycle_count = xthal_get_ccount();
     WAIT_FOR_PIN_STATE(!state);
-    return clockCyclesToMicroseconds(cpu_hal_get_cycle_count() - pulse_start_cycle_count);
+    return clockCyclesToMicroseconds(xthal_get_ccount() - pulse_start_cycle_count);
 }
 
 unsigned long pulseInLong(uint8_t pin, uint8_t state, unsigned long timeout)
