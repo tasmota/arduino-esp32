@@ -51,7 +51,7 @@
 #define U32_TO_U8S_BE(u32)    TU_U32_BYTE3(u32), TU_U32_BYTE2(u32), TU_U32_BYTE1(u32), TU_U32_BYTE0(u32)
 #define U32_TO_U8S_LE(u32)    TU_U32_BYTE0(u32), TU_U32_BYTE1(u32), TU_U32_BYTE2(u32), TU_U32_BYTE3(u32)
 
-#define TU_BIT(n)             (1U << (n))
+#define TU_BIT(n)             (1UL << (n))
 
 //--------------------------------------------------------------------+
 // Includes
@@ -73,6 +73,23 @@
 #include "tusb_error.h"   // TODO remove
 #include "tusb_timeout.h" // TODO remove
 
+//--------------------------------------------------------------------+
+// Internal Helper used by Host and Device Stack
+//--------------------------------------------------------------------+
+
+// Check if endpoint descriptor is valid per USB specs
+bool tu_edpt_validate(tusb_desc_endpoint_t const * desc_ep, tusb_speed_t speed);
+
+// Bind all endpoint of a interface descriptor to class driver
+void tu_edpt_bind_driver(uint8_t ep2drv[][2], tusb_desc_interface_t const* p_desc, uint16_t desc_len, uint8_t driver_id);
+
+// Calculate total length of n interfaces (depending on IAD)
+uint16_t tu_desc_get_interface_total_len(tusb_desc_interface_t const* desc_itf, uint8_t itf_count, uint16_t max_len);
+
+//--------------------------------------------------------------------+
+// Internal Inline Functions
+//--------------------------------------------------------------------+
+
 //------------- Mem -------------//
 #define tu_memclr(buffer, size)  memset((buffer), 0, (size))
 #define tu_varclr(_var)          tu_memclr(_var, sizeof(*(_var)))
@@ -92,6 +109,9 @@ TU_ATTR_ALWAYS_INLINE static inline uint8_t tu_u32_byte3(uint32_t u32) { return 
 TU_ATTR_ALWAYS_INLINE static inline uint8_t tu_u32_byte2(uint32_t u32) { return TU_U32_BYTE2(u32); }
 TU_ATTR_ALWAYS_INLINE static inline uint8_t tu_u32_byte1(uint32_t u32) { return TU_U32_BYTE1(u32); }
 TU_ATTR_ALWAYS_INLINE static inline uint8_t tu_u32_byte0(uint32_t u32) { return TU_U32_BYTE0(u32); }
+
+TU_ATTR_ALWAYS_INLINE static inline uint16_t tu_u32_high16(uint32_t u32) { return (uint16_t) (u32 >> 16); }
+TU_ATTR_ALWAYS_INLINE static inline uint16_t tu_u32_low16 (uint32_t u32) { return (uint16_t) (u32 & 0x0000ffffu); }
 
 TU_ATTR_ALWAYS_INLINE static inline uint8_t tu_u16_high(uint16_t u16) { return TU_U16_HIGH(u16); }
 TU_ATTR_ALWAYS_INLINE static inline uint8_t tu_u16_low (uint16_t u16) { return TU_U16_LOW(u16); }
@@ -123,7 +143,7 @@ TU_ATTR_ALWAYS_INLINE static inline uint32_t tu_align4k (uint32_t value) { retur
 TU_ATTR_ALWAYS_INLINE static inline uint32_t tu_offset4k(uint32_t value) { return (value & 0xFFFUL); }
 
 //------------- Mathematics -------------//
-TU_ATTR_ALWAYS_INLINE static inline uint32_t tu_abs(int32_t value) { return (uint32_t)((value < 0) ? (-value) : value); }
+TU_ATTR_ALWAYS_INLINE static inline uint32_t tu_div_ceil(uint32_t v, uint32_t d) { return (v + d -1)/d; }
 
 /// inclusive range checking TODO remove
 TU_ATTR_ALWAYS_INLINE static inline bool tu_within(uint32_t lower, uint32_t value, uint32_t upper)
@@ -305,11 +325,11 @@ void tu_print_var(uint8_t const* buf, uint32_t bufsize)
 }
 
 // Log with Level
-#define TU_LOG(n, ...)        TU_LOG##n(__VA_ARGS__)
-#define TU_LOG_MEM(n, ...)    TU_LOG##n##_MEM(__VA_ARGS__)
-#define TU_LOG_VAR(n, ...)    TU_LOG##n##_VAR(__VA_ARGS__)
-#define TU_LOG_INT(n, ...)    TU_LOG##n##_INT(__VA_ARGS__)
-#define TU_LOG_HEX(n, ...)    TU_LOG##n##_HEX(__VA_ARGS__)
+#define TU_LOG(n, ...)        TU_XSTRCAT(TU_LOG, n)(__VA_ARGS__)
+#define TU_LOG_MEM(n, ...)    TU_XSTRCAT3(TU_LOG, n, _MEM)(__VA_ARGS__)
+#define TU_LOG_VAR(n, ...)    TU_XSTRCAT3(TU_LOG, n, _VAR)(__VA_ARGS__)
+#define TU_LOG_INT(n, ...)    TU_XSTRCAT3(TU_LOG, n, _INT)(__VA_ARGS__)
+#define TU_LOG_HEX(n, ...)    TU_XSTRCAT3(TU_LOG, n, _HEX)(__VA_ARGS__)
 #define TU_LOG_LOCATION()     tu_printf("%s: %d:\r\n", __PRETTY_FUNCTION__, __LINE__)
 #define TU_LOG_FAILED()       tu_printf("%s: %d: Failed\r\n", __PRETTY_FUNCTION__, __LINE__)
 
@@ -317,8 +337,8 @@ void tu_print_var(uint8_t const* buf, uint32_t bufsize)
 #define TU_LOG1               tu_printf
 #define TU_LOG1_MEM           tu_print_mem
 #define TU_LOG1_VAR(_x)       tu_print_var((uint8_t const*)(_x), sizeof(*(_x)))
-#define TU_LOG1_INT(_x)       tu_printf(#_x " = %ld\n", (uint32_t) (_x) )
-#define TU_LOG1_HEX(_x)       tu_printf(#_x " = %lX\n", (uint32_t) (_x) )
+#define TU_LOG1_INT(_x)       tu_printf(#_x " = %ld\r\n", (uint32_t) (_x) )
+#define TU_LOG1_HEX(_x)       tu_printf(#_x " = %lX\r\n", (uint32_t) (_x) )
 
 // Log Level 2: Warn
 #if CFG_TUSB_DEBUG >= 2
@@ -352,12 +372,17 @@ typedef struct
 
 static inline const char* tu_lookup_find(tu_lookup_table_t const* p_table, uint32_t key)
 {
+  static char not_found[10];
+
   for(uint16_t i=0; i<p_table->count; i++)
   {
     if (p_table->items[i].key == key) return p_table->items[i].data;
   }
 
-  return NULL;
+  // not found return the key value in hex
+  sprintf(not_found, "0x%08lX", key);
+
+  return not_found;
 }
 
 #endif // CFG_TUSB_DEBUG
@@ -373,6 +398,14 @@ static inline const char* tu_lookup_find(tu_lookup_table_t const* p_table, uint3
 #endif
 
 // TODO replace all TU_LOGn with TU_LOG(n)
+
+#define TU_LOG0(...)
+#define TU_LOG0_MEM(...)
+#define TU_LOG0_VAR(...)
+#define TU_LOG0_INT(...)
+#define TU_LOG0_HEX(...)
+
+
 #ifndef TU_LOG1
   #define TU_LOG1(...)
   #define TU_LOG1_MEM(...)
