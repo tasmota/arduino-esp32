@@ -237,12 +237,6 @@ bool ETHClass::begin(uint8_t phy_addr, int power, int mdc, int mdio, eth_phy_typ
     esp_netif_config_t cfg = ESP_NETIF_DEFAULT_ETH();
     esp_netif_t *eth_netif = esp_netif_new(&cfg);
 
-    if(esp_eth_set_default_handlers(eth_netif) != ESP_OK){
-        log_e("esp_eth_set_default_handlers failed");
-        return false;
-    }
-    
-    
     esp_eth_mac_t *eth_mac = NULL;
 #if CONFIG_ETH_SPI_ETHERNET_DM9051
     if(type == ETH_PHY_DM9051){
@@ -288,7 +282,12 @@ bool ETHClass::begin(uint8_t phy_addr, int power, int mdc, int mdio, eth_phy_typ
             break;
 #endif
         case ETH_PHY_KSZ8081:
+#if ESP_IDF_VERSION > ESP_IDF_VERSION_VAL(4,3,0)
             eth_phy = esp_eth_phy_new_ksz8081(&phy_config);
+#else
+            log_e("unsupported ethernet type 'ETH_PHY_KSZ8081'");
+#endif
+            break;
         default:
             break;
     }
