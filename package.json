@@ -1,6 +1,6 @@
 {
     "name": "framework-arduinoespressif32",
     "description": "Arduino Wiring-based Framework (ESP32 Core) for Tasmota",
-    "version": "2.0.1+rc1",
+    "version": "2.0.1+rc2",
     "url": "https://github.com/tasmota/arduino-esp32"
 }
