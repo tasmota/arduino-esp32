@@ -318,7 +318,7 @@ env.Append(
         "UNITY_INCLUDE_CONFIG_H",
         "WITH_POSIX",
         "_GNU_SOURCE",
-        ("IDF_VER", '\\"v4.4-dev-3591-g432c3c78c\\"'),
+        ("IDF_VER", '\\"v4.4-dev-3631-g7033e3b57\\"'),
         "ESP_PLATFORM",
         "NDEBUG",
         "ARDUINO_ARCH_ESP32",
@@ -326,7 +326,8 @@ env.Append(
         ("F_CPU", "$BOARD_F_CPU"),
         ("ARDUINO", 10812),
         ("ARDUINO_VARIANT", '\\"%s\\"' % env.BoardConfig().get("build.variant").replace('"', "")),
-        ("ARDUINO_BOARD", '\\"%s\\"' % env.BoardConfig().get("name").replace('"', ""))
+        ("ARDUINO_BOARD", '\\"%s\\"' % env.BoardConfig().get("name").replace('"', "")),
+        "ARDUINO_PARTITION_%s" % env.BoardConfig().get("build.partitions", "default.csv").replace(".csv", "")
     ],
 
     LIBSOURCE_DIRS=[
