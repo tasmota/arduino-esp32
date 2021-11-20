@@ -27,8 +27,10 @@
 #ifndef _TUSB_OPTION_H_
 #define _TUSB_OPTION_H_
 
+#include "common/tusb_compiler.h"
+
 #define TUSB_VERSION_MAJOR     0
-#define TUSB_VERSION_MINOR     11
+#define TUSB_VERSION_MINOR     12
 #define TUSB_VERSION_REVISION  0
 #define TUSB_VERSION_STRING    TU_STRING(TUSB_VERSION_MAJOR) "." TU_STRING(TUSB_VERSION_MINOR) "." TU_STRING(TUSB_VERSION_REVISION)
 
@@ -36,7 +38,6 @@
 // Supported MCUs
 // CFG_TUSB_MCU must be defined to one of following value
 //--------------------------------------------------------------------+
-#define TU_CHECK_MCU(_m)            (CFG_TUSB_MCU == OPT_MCU_##_m)
 
 #define OPT_MCU_NONE                0
 
@@ -112,8 +113,6 @@
 
 // Silabs
 #define OPT_MCU_EFM32GG          1300 ///< Silabs EFM32GG
-#define OPT_MCU_EFM32GG11        1301 ///< Silabs EFM32GG11
-#define OPT_MCU_EFM32GG12        1302 ///< Silabs EFM32GG12
 
 // Renesas RX
 #define OPT_MCU_RX63X            1400 ///< Renesas RX63N/631
@@ -125,6 +124,14 @@
 
 // GigaDevice
 #define OPT_MCU_GD32VF103        1600 ///< GigaDevice GD32VF103
+
+// Broadcom
+#define OPT_MCU_BCM2711          1700 ///< Broadcom BCM2711
+
+// Helper to check if configured MCU is one of listed
+// Apply _TU_CHECK_MCU with || as separator to list of input
+#define _TU_CHECK_MCU(_m)   (CFG_TUSB_MCU == _m)
+#define TU_CHECK_MCU(...)   (TU_ARGS_APPLY(_TU_CHECK_MCU, ||, __VA_ARGS__))
 
 //--------------------------------------------------------------------+
 // Supported OS
@@ -203,12 +210,18 @@
   #define CFG_TUSB_MEM_SECTION
 #endif
 
+// alignment requirement of buffer used for endpoint transferring
 #ifndef CFG_TUSB_MEM_ALIGN
   #define CFG_TUSB_MEM_ALIGN      TU_ATTR_ALIGNED(4)
 #endif
 
+// OS selection
 #ifndef CFG_TUSB_OS
   #define CFG_TUSB_OS             OPT_OS_NONE
+#endif
+
+#ifndef CFG_TUSB_OS_INC_PATH
+  #define CFG_TUSB_OS_INC_PATH
 #endif
 
 //--------------------------------------------------------------------
@@ -235,6 +248,10 @@
   #define CFG_TUD_AUDIO           0
 #endif
 
+#ifndef CFG_TUD_VIDEO
+  #define CFG_TUD_VIDEO           0
+#endif
+
 #ifndef CFG_TUD_MIDI
   #define CFG_TUD_MIDI            0
 #endif
@@ -255,12 +272,21 @@
   #define CFG_TUD_DFU             0
 #endif
 
-#ifndef CFG_TUD_NET
-  #define CFG_TUD_NET             0
-#endif
-
 #ifndef CFG_TUD_BTH
   #define CFG_TUD_BTH             0
+#endif
+
+#ifndef CFG_TUD_ECM_RNDIS
+  #ifdef CFG_TUD_NET
+    #warning "CFG_TUD_NET is renamed to CFG_TUD_ECM_RNDIS"
+    #define CFG_TUD_ECM_RNDIS   CFG_TUD_NET
+  #else
+    #define CFG_TUD_ECM_RNDIS   0
+  #endif
+#endif
+
+#ifndef CFG_TUD_NCM
+  #define CFG_TUD_NCM         0
 #endif
 
 //--------------------------------------------------------------------
@@ -274,9 +300,33 @@
   #ifndef CFG_TUH_ENUMERATION_BUFSIZE
     #define CFG_TUH_ENUMERATION_BUFSIZE 256
   #endif
-
-  //------------- CLASS -------------//
 #endif // TUSB_OPT_HOST_ENABLED
+
+//------------- CLASS -------------//
+
+#ifndef CFG_TUH_HUB
+#define CFG_TUH_HUB    0
+#endif
+
+#ifndef CFG_TUH_CDC
+#define CFG_TUH_CDC    0
+#endif
+
+#ifndef CFG_TUH_HID
+#define CFG_TUH_HID    0
+#endif
+
+#ifndef CFG_TUH_MIDI
+#define CFG_TUH_MIDI   0
+#endif
+
+#ifndef CFG_TUH_MSC
+#define CFG_TUH_MSC    0
+#endif
+
+#ifndef CFG_TUH_VENDOR
+#define CFG_TUH_VENDOR 0
+#endif
 
 //--------------------------------------------------------------------+
 // Port Specific

@@ -1,6 +1,12 @@
 /* Automatically generated file; DO NOT EDIT */
 /* Espressif IoT Development Framework Linker Script */
-/* Generated from: /home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/esp-idf/components/esp_system/ld/esp32s2/sections.ld.in */
+/* Generated from: /Users/ficeto/Desktop/ESP32/ESP32S2/esp-idf-public/components/esp_system/ld/esp32s2/sections.ld.in */
+
+/*
+ * SPDX-FileCopyrightText: 2021 Espressif Systems (Shanghai) CO LTD
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 /*  Default entry point:  */
 ENTRY(call_start_cpu0);
@@ -199,7 +205,7 @@ SECTIONS
     *libesp_system.a:ubsan.*(.literal .literal.* .text .text.*)
     *libfreertos.a:(EXCLUDE_FILE(*libfreertos.a:port.* *libfreertos.a:port_common.*) .literal EXCLUDE_FILE(*libfreertos.a:port.* *libfreertos.a:port_common.*) .literal.* EXCLUDE_FILE(*libfreertos.a:port.* *libfreertos.a:port_common.*) .text EXCLUDE_FILE(*libfreertos.a:port.* *libfreertos.a:port_common.*) .text.*)
     *libfreertos.a:port.*(.literal.pxPortInitialiseStack .literal.unlikely.vPortEndScheduler .literal.vApplicationStackOverflowHook .literal.vPortAssertIfInISR .literal.vPortEnterCritical .literal.vPortExitCritical .literal.vPortSetStackWatchpoint .literal.vPortYieldOtherCore .literal.xPortInIsrContext .literal.xPortStartScheduler .text .text.pxPortInitialiseStack .text.unlikely.vPortEndScheduler .text.vApplicationStackOverflowHook .text.vPortAssertIfInISR .text.vPortEnterCritical .text.vPortExitCritical .text.vPortSetStackWatchpoint .text.vPortYieldOtherCore .text.xPortGetTickRateHz .text.xPortInIsrContext .text.xPortStartScheduler)
-    *libfreertos.a:port_common.*(.literal.esp_startup_start_app_common .text .text.esp_startup_start_app_common)
+    *libfreertos.a:port_common.*(.literal.esp_startup_start_app_common .literal.xPortCheckValidTCBMem .literal.xPortcheckValidStackMem .text .text.esp_startup_start_app_common .text.xPortCheckValidTCBMem .text.xPortcheckValidStackMem)
     *libgcc.a:_divsf3.*(.literal .literal.* .text .text.*)
     *libgcc.a:lib2funcs.*(.literal .literal.* .text .text.*)
     *libgcov.a:(.literal .literal.* .text .text.*)
@@ -246,7 +252,7 @@ SECTIONS
     _coredump_iram_end = 0;
 
     /* align + add 16B for CPU dummy speculative instr. fetch */
-    . = ALIGN(4) + 16;
+    . = ALIGN(_esp_memprot_align_size) + _esp_memprot_prefetch_pad_size;
     /* iram_end_test section exists for use by memprot unit tests only */
     *(.iram_end_test)
     _iram_text_end = ABSOLUTE(.);
@@ -515,7 +521,7 @@ SECTIONS
       * safe access to up to 16 bytes after the last real instruction, add
       * dummy bytes to ensure this
       */
-    . += 16;
+    . += _esp_flash_mmap_prefetch_pad_size;
 
     _text_end = ABSOLUTE(.);
     _instruction_reserved_end = ABSOLUTE(.);
