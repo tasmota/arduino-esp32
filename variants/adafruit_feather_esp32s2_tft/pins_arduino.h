@@ -26,15 +26,16 @@
 #define NEOPIXEL_POWER      34    // power pin
 #define NEOPIXEL_POWER_ON   HIGH  // power pin state when on
 
-#define TFT_CS         42
-#define TFT_RST        41
-#define TFT_DC         40
+#define TFT_I2C_POWER  21
+#define TFT_CS          7
+#define TFT_RST        40
+#define TFT_DC         39
 #define TFT_BACKLITE   45
 
 static const uint8_t SDA = 42;
 static const uint8_t SCL = 41;
 
-static const uint8_t SS    = 21;
+static const uint8_t SS    = 7;
 static const uint8_t MOSI  = 35;
 static const uint8_t SCK   = 36;
 static const uint8_t MISO  = 37;
