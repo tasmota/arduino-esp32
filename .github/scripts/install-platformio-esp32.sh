@@ -1,11 +1,11 @@
 #!/bin/bash
 
 export PLATFORMIO_ESP32_PATH="$HOME/.platformio/packages/framework-arduinoespressif32"
-PLATFORMIO_ESP32_URL="https://github.com/platformio/platform-espressif32.git#feature/arduino-idf-master"
+PLATFORMIO_ESP32_URL="https://github.com/tasmota/platform-espressif32/releases/download/v2.0.2.1/platform-tasmota-espressif32-2.0.2.1.zip"
 
-XTENSA32_TOOLCHAIN_VERSION="8.4.0+2021r1"
-XTENSA32S2_TOOLCHAIN_VERSION="8.4.0+2021r1"
-RISCV_TOOLCHAIN_VERSION="8.4.0+2021r1"
+XTENSA32_TOOLCHAIN_VERSION="8.4.0+2021r2-patch2"
+XTENSA32S2_TOOLCHAIN_VERSION="8.4.0+2021r2-patch2"
+RISCV_TOOLCHAIN_VERSION="8.4.0+2021r2-patch2"
 ESPTOOLPY_VERSION="~1.30100.0"
 ESPRESSIF_ORGANIZATION_NAME="espressif"
 
