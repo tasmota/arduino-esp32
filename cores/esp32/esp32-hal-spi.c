@@ -55,6 +55,7 @@
 #include "esp_intr.h"
 #endif
 
+#ifndef CONFIG_IDF_TARGET_ESP32S3
 
 struct spi_struct_t {
     spi_dev_t * dev;
@@ -1504,3 +1505,4 @@ uint32_t spiFrequencyToClockDiv(uint32_t freq)
     }
     return bestReg.value;
 }
+#endif /* ifndef CONFIG_IDF_TARGET_ESP32S3 */
