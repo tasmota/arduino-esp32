@@ -18,7 +18,6 @@
  */
 
 #include "Arduino.h"
-#include "sdkconfig.h"
 #include "Esp.h"
 #include "esp_sleep.h"
 #include "esp_spi_flash.h"
