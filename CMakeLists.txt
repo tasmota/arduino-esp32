@@ -86,7 +86,6 @@ set(LIBRARY_SRCS
   libraries/HTTPClient/src/HTTPClient.cpp
   libraries/HTTPUpdate/src/HTTPUpdate.cpp
   libraries/LittleFS/src/LittleFS.cpp
-  libraries/I2S/src/I2S.cpp
   libraries/NetBIOS/src/NetBIOS.cpp
   libraries/Preferences/src/Preferences.cpp
   libraries/SD_MMC/src/SD_MMC.cpp
@@ -158,6 +157,7 @@ set(BLE_SRCS
   libraries/BLE/src/GeneralUtils.cpp
   )
 
+
 set(includedirs
   variants/${IDF_TARGET}/
   cores/esp32/
@@ -174,7 +174,6 @@ set(includedirs
   libraries/HTTPClient/src
   libraries/HTTPUpdate/src
   libraries/LittleFS/src
-  libraries/I2S/src
   libraries/NetBIOS/src
   libraries/Preferences/src
   libraries/SD_MMC/src
@@ -228,8 +227,6 @@ function(maybe_add_component component_name)
         target_link_libraries(${COMPONENT_LIB} PUBLIC ${lib_name})
     endif()
 endfunction()
-
-#maybe_add_component(esp-dsp)
 
 if(IDF_TARGET MATCHES "esp32s2|esp32s3" AND CONFIG_TINYUSB_ENABLED)
     maybe_add_component(arduino_tinyusb)
