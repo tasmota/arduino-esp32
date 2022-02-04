@@ -229,7 +229,7 @@ function(maybe_add_component component_name)
     endif()
 endfunction()
 
-maybe_add_component(esp-dsp)
+#maybe_add_component(esp-dsp)
 
 if(IDF_TARGET MATCHES "esp32s2|esp32s3" AND CONFIG_TINYUSB_ENABLED)
     maybe_add_component(arduino_tinyusb)
