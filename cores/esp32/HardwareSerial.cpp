@@ -163,10 +163,10 @@ void HardwareSerial::begin(unsigned long baud, uint32_t config, int8_t rxPin, in
     }
 }
 
-void HardwareSerial::onReceive(void(*function)(void))
-{
-    uartOnReceive(_uart, function);
-}
+//void HardwareSerial::onReceive(void(*function)(void))
+//{
+//    uartOnReceive(_uart, function);
+//}
 
 void HardwareSerial::updateBaudRate(unsigned long baud)
 {
