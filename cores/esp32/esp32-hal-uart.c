@@ -93,25 +93,33 @@ bool uartIsDriverInstalled(uart_t* uart)
     return false;
 }
 
-void uartSetPins(uart_t* uart, uint8_t rxPin, uint8_t txPin)
+// Valid pin UART_PIN_NO_CHANGE is defined to (-1)
+// Negative Pin Number will keep it unmodified, thus this function can set individual pins
+void uartSetPins(uart_t* uart, int8_t rxPin, int8_t txPin, int8_t ctsPin, int8_t rtsPin)
 {
-    if(uart == NULL || rxPin >= SOC_GPIO_PIN_COUNT || txPin >= SOC_GPIO_PIN_COUNT) {
+    if(uart == NULL) {
         return;
     }
     UART_MUTEX_LOCK();
-    ESP_ERROR_CHECK(uart_set_pin(uart->num, txPin, rxPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
-    UART_MUTEX_UNLOCK();
+    // IDF uart_set_pin() will issue necessary Error Message and take care of all GPIO Number validation.
+    uart_set_pin(uart->num, txPin, rxPin, ctsPin, rtsPin); 
+    UART_MUTEX_UNLOCK();  
+}
 
+// 
+void uartSetHwFlowCtrlMode(uart_t *uart, uint8_t mode, uint8_t threshold) {
+    if(uart == NULL) {
+        return;
+    }
+    // IDF will issue corresponding error message when mode or threshold are wrong and prevent crashing
+    // IDF will check (mode > HW_FLOWCTRL_CTS_RTS || threshold >= SOC_UART_FIFO_LEN)
+    uart_set_hw_flow_ctrl(uart->num, (uart_hw_flowcontrol_t) mode, threshold);
 }
 
 
 uart_t* uartBegin(uint8_t uart_nr, uint32_t baudrate, uint32_t config, int8_t rxPin, int8_t txPin, uint16_t queueLen, bool inverted, uint8_t rxfifo_full_thrhd)
 {
     if(uart_nr >= SOC_UART_NUM) {
-        return NULL;
-    }
-
-    if(rxPin == -1 && txPin == -1) {
         return NULL;
     }
 
@@ -175,13 +183,13 @@ void uartSetRxInvert(uart_t* uart, bool invert)
     if (uart == NULL)
         return;
 #if 0
-    // POTENTIAL ISSUE :: original code only set/reset rxd_inv bit
+    // POTENTIAL ISSUE :: original code only set/reset rxd_inv bit 
     // IDF or LL set/reset the whole inv_mask!
     if (invert)
         ESP_ERROR_CHECK(uart_set_line_inverse(uart->num, UART_SIGNAL_RXD_INV));
     else
         ESP_ERROR_CHECK(uart_set_line_inverse(uart->num, UART_SIGNAL_INV_DISABLE));
-
+    
 #else
     // this implementation is better over IDF API because it only affects RXD
     // this is supported in ESP32, ESP32-S2 and ESP32-C3
@@ -466,7 +474,6 @@ void log_print_buf(const uint8_t *b, size_t len){
  */
 unsigned long uartBaudrateDetect(uart_t *uart, bool flg)
 {
-#ifndef CONFIG_IDF_TARGET_ESP32S3
     if(uart == NULL) {
         return 0;
     }
@@ -484,9 +491,6 @@ unsigned long uartBaudrateDetect(uart_t *uart, bool flg)
     UART_MUTEX_UNLOCK();
 
     return ret;
-#else
-    return 0;
-#endif
 }
 
 
@@ -494,22 +498,22 @@ unsigned long uartBaudrateDetect(uart_t *uart, bool flg)
  * To start detection of baud rate with the uart the auto_baud.en bit needs to be cleared and set. The bit period is 
  * detected calling uartBadrateDetect(). The raw baudrate is computed using the UART_CLK_FREQ. The raw baudrate is 
  * rounded to the closed real baudrate.
- *
+ * 
  * ESP32-C3 reports wrong baud rate detection as shown below:
- *
+ * 
  * This will help in a future recall for the C3.
  * Baud Sent:          Baud Read:
  *  300        -->       19536
  * 2400        -->       19536
- * 4800        -->       19536
- * 9600        -->       28818
+ * 4800        -->       19536 
+ * 9600        -->       28818 
  * 19200       -->       57678
  * 38400       -->       115440
  * 57600       -->       173535
  * 115200      -->       347826
  * 230400      -->       701754
- *
- *
+ * 
+ * 
 */
 void uartStartDetectBaudrate(uart_t *uart) {
     if(uart == NULL) {
@@ -531,7 +535,7 @@ void uartStartDetectBaudrate(uart_t *uart) {
     //hw->rx_filt.glitch_filt_en = 1;
     //hw->conf0.autobaud_en = 0;
     //hw->conf0.autobaud_en = 1;
-#elif CONFIG_IDF_TARGET_ESP32S3
+
 #else
     hw->auto_baud.glitch_filt = 0x08;
     hw->auto_baud.en = 0;
@@ -568,7 +572,6 @@ uartDetectBaudrate(uart_t *uart)
 
 #ifdef CONFIG_IDF_TARGET_ESP32C3
     //hw->conf0.autobaud_en = 0;
-#elif CONFIG_IDF_TARGET_ESP32S3
 #else
     hw->auto_baud.en = 0;
 #endif
