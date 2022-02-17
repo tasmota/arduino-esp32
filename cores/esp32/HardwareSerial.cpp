@@ -6,6 +6,7 @@
 #include "pins_arduino.h"
 #include "HardwareSerial.h"
 #include "soc/soc_caps.h"
+#include "driver/uart.h"
 
 #ifndef SOC_RX0
 #if CONFIG_IDF_TARGET_ESP32
@@ -35,7 +36,7 @@ void serialEvent(void) {}
 #ifndef RX1
 #if CONFIG_IDF_TARGET_ESP32
 #define RX1 9
-#elif CONFIG_IDF_TARGET_ESP32S2
+#elif CONFIG_IDF_TARGET_ESP32S2 
 #define RX1 18
 #elif CONFIG_IDF_TARGET_ESP32C3
 #define RX1 18
@@ -84,6 +85,8 @@ void serialEvent2(void) {}
 #if !defined(NO_GLOBAL_INSTANCES) && !defined(NO_GLOBAL_SERIAL)
 #if ARDUINO_USB_CDC_ON_BOOT //Serial used for USB CDC
 HardwareSerial Serial0(0);
+#elif ARDUINO_HW_CDC_ON_BOOT
+HardwareSerial Serial0(0);
 #else
 HardwareSerial Serial(0);
 #endif
@@ -98,6 +101,8 @@ void serialEventRun(void)
 {
 #if ARDUINO_USB_CDC_ON_BOOT //Serial used for USB CDC
     if(Serial0.available()) serialEvent();
+#elif ARDUINO_HW_CDC_ON_BOOT
+    if(Serial0.available()) serialEvent();
 #else
     if(Serial.available()) serialEvent();
 #endif
@@ -110,7 +115,6 @@ void serialEventRun(void)
 }
 #endif
 
-
 HardwareSerial::HardwareSerial(int uart_nr) : _uart_nr(uart_nr), _uart(NULL), _rxBufferSize(256) {}
 
 void HardwareSerial::begin(unsigned long baud, uint32_t config, int8_t rxPin, int8_t txPin, bool invert, unsigned long timeout_ms, uint8_t rxfifo_full_thrhd)
@@ -119,28 +123,39 @@ void HardwareSerial::begin(unsigned long baud, uint32_t config, int8_t rxPin, in
         log_e("Serial number is invalid, please use numers from 0 to %u", SOC_UART_NUM - 1);
         return;
     }
+
+    // First Time or after end() --> set default Pins
+    if (!uartIsDriverInstalled(_uart)) {
+        switch (_uart_nr) {
+            case UART_NUM_0:
+                rxPin = rxPin < 0 ? SOC_RX0 : rxPin;
+                txPin = txPin < 0 ? SOC_TX0 : txPin;
+            break;
+#if SOC_UART_NUM > 1                   // may save some flash bytes...
+            case UART_NUM_1:
+                rxPin = rxPin < 0 ? RX1 : rxPin;
+                txPin = txPin < 0 ? TX1 : txPin;
+            break;
+#endif
+#if SOC_UART_NUM > 2                   // may save some flash bytes...
+            case UART_NUM_2:
+                rxPin = rxPin < 0 ? RX2 : rxPin;
+                txPin = txPin < 0 ? TX2 : txPin;
+            break;
+#endif
+            default:
+                log_e("Bad UART Number");
+                return;
+        }
+    }
+
     if(_uart) {
         // in this case it is a begin() over a previous begin() - maybe to change baud rate
         // thus do not disable debug output
         end(false);
     }
-    if(_uart_nr == 0 && rxPin < 0 && txPin < 0) {
-        rxPin = SOC_RX0;
-        txPin = SOC_TX0;
-    }
-#if SOC_UART_NUM > 1
-    if(_uart_nr == 1 && rxPin < 0 && txPin < 0) {
-        rxPin = RX1;
-        txPin = TX1;
-    }
-#endif
-#if SOC_UART_NUM > 2
-    if(_uart_nr == 2 && rxPin < 0 && txPin < 0) {
-        rxPin = RX2;
-        txPin = TX2;
-    }
-#endif
 
+    // IDF UART driver keeps Pin setting on restarting. Negative Pin number will keep it unmodified.
     _uart = uartBegin(_uart_nr, baud ? baud : 9600, config, rxPin, txPin, _rxBufferSize, invert, rxfifo_full_thrhd);
     if (!baud) {
         // using baud rate as zero, forces it to try to detect the current baud rate in place
@@ -276,9 +291,16 @@ void HardwareSerial::setRxInvert(bool invert)
     uartSetRxInvert(_uart, invert);
 }
 
-void HardwareSerial::setPins(uint8_t rxPin, uint8_t txPin)
+// negative Pin value will keep it unmodified
+void HardwareSerial::setPins(int8_t rxPin, int8_t txPin, int8_t ctsPin, int8_t rtsPin)
 {
-    uartSetPins(_uart, rxPin, txPin);
+    uartSetPins(_uart, rxPin, txPin, ctsPin, rtsPin);
+}
+
+// Enables or disables Hardware Flow Control using RTS and/or CTS pins (must use setAllPins() before)
+void HardwareSerial::setHwFlowCtrlMode(uint8_t mode, uint8_t threshold)
+{
+    uartSetHwFlowCtrlMode(_uart, mode, threshold);
 }
 
 size_t HardwareSerial::setRxBufferSize(size_t new_size) {
