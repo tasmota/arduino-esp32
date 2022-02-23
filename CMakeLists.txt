@@ -169,6 +169,7 @@ set(includedirs
   libraries/EEPROM/src
   libraries/ESP32/src
   libraries/ESPmDNS/src
+  libraries/Ethernet/src
   libraries/FFat/src
   libraries/FS/src
   libraries/HTTPClient/src
