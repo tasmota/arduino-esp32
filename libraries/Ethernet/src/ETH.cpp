@@ -233,7 +233,7 @@ bool ETHClass::begin(uint8_t phy_addr, int power, int mdc, int mdio, eth_phy_typ
     tcpipInit();
 
     tcpip_adapter_set_default_eth_handlers();
-
+    
     esp_netif_config_t cfg = ESP_NETIF_DEFAULT_ETH();
     esp_netif_t *eth_netif = esp_netif_new(&cfg);
 
@@ -245,12 +245,8 @@ bool ETHClass::begin(uint8_t phy_addr, int power, int mdc, int mdio, eth_phy_typ
 #endif
 #if CONFIG_ETH_USE_ESP32_EMAC
         eth_mac_config_t mac_config = ETH_MAC_DEFAULT_CONFIG();
-
-// Theo - core 2.0.2.3 start of fix 1 of 2
         mac_config.clock_config.rmii.clock_mode = (eth_clock_mode) ? EMAC_CLK_OUT : EMAC_CLK_EXT_IN;
         mac_config.clock_config.rmii.clock_gpio = (1 == eth_clock_mode) ? EMAC_APPL_CLK_OUT_GPIO : (2 == eth_clock_mode) ? EMAC_CLK_OUT_GPIO : (3 == eth_clock_mode) ? EMAC_CLK_OUT_180_GPIO : EMAC_CLK_IN_GPIO;
-// Theo - core 2.0.2.3 end of fix 1 of 2
-
         mac_config.smi_mdc_gpio_num = mdc;
         mac_config.smi_mdio_gpio_num = mdio;
         mac_config.sw_reset_timeout_ms = 1000;
@@ -311,17 +307,13 @@ bool ETHClass::begin(uint8_t phy_addr, int power, int mdc, int mdio, eth_phy_typ
 
     eth_handle = NULL;
     esp_eth_config_t eth_config = ETH_DEFAULT_CONFIG(eth_mac, eth_phy);
-
-// Theo - core 2.0.2.3 start of fix 2 of 2
-//    eth_config.on_lowlevel_init_done = on_lowlevel_init_done;
-// Theo - core 2.0.2.3 end of fix 2 of 2
-
+    //eth_config.on_lowlevel_init_done = on_lowlevel_init_done;
     //eth_config.on_lowlevel_deinit_done = on_lowlevel_deinit_done;
     if(esp_eth_driver_install(&eth_config, &eth_handle) != ESP_OK || eth_handle == NULL){
         log_e("esp_eth_driver_install failed");
         return false;
     }
-
+    
     /* attach Ethernet driver to TCP/IP stack */
     if(esp_netif_attach(eth_netif, esp_eth_new_netif_glue(eth_handle)) != ESP_OK){
         log_e("esp_netif_attach failed");
@@ -418,7 +410,7 @@ bool ETHClass::config(IPAddress local_ip, IPAddress gateway, IPAddress subnet, I
         log_e("STA IP could not be configured! Error: %d", err);
         return false;
     }
-
+    
     if(info.ip.addr){
         staticIP = true;
     } else {
