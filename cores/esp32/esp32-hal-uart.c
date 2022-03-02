@@ -71,7 +71,7 @@ static uart_t _uart_bus_array[] = {
 
 // solves issue https://github.com/espressif/arduino-esp32/issues/6032
 // baudrate must be multiplied when CPU Frequency is lower than APB 80MHz
-uint32_t _get_effective_baudrate(uint32_t baudrate)
+uint32_t _get_effective_baudrate(uint32_t baudrate) 
 {
     uint32_t Freq = getApbFrequency()/1000000;
     if (Freq < 80) {
@@ -167,7 +167,7 @@ uart_t* uartBegin(uint8_t uart_nr, uint32_t baudrate, uint32_t config, int8_t rx
     ESP_ERROR_CHECK(uart_param_config(uart_nr, &uart_config));
     ESP_ERROR_CHECK(uart_set_pin(uart_nr, txPin, rxPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 
-    // Is it right or the idea is to swap rx and tx pins?
+    // Is it right or the idea is to swap rx and tx pins? 
     if (inverted) {
         // invert signal for both Rx and Tx
         ESP_ERROR_CHECK(uart_set_line_inverse(uart_nr, UART_SIGNAL_TXD_INV | UART_SIGNAL_RXD_INV));    
@@ -184,7 +184,7 @@ void uartEnd(uart_t* uart)
     if(uart == NULL) {
         return;
     }
-
+   
     UART_MUTEX_LOCK();
     uart_driver_delete(uart->num);
     UART_MUTEX_UNLOCK();
@@ -421,11 +421,12 @@ int log_printf(const char *format, ...)
     va_list copy;
     va_start(arg, format);
     va_copy(copy, arg);
-    len = vsnprintf(NULL, 0, format, arg);
+    len = vsnprintf(NULL, 0, format, copy);
     va_end(copy);
     if(len >= sizeof(loc_buf)){
         temp = (char*)malloc(len+1);
         if(temp == NULL) {
+            va_end(arg);
             return 0;
         }
     }
@@ -553,7 +554,6 @@ void uartStartDetectBaudrate(uart_t *uart) {
     //hw->conf0.autobaud_en = 0;
     //hw->conf0.autobaud_en = 1;
 #elif CONFIG_IDF_TARGET_ESP32S3
-
 #else
     hw->auto_baud.glitch_filt = 0x08;
     hw->auto_baud.en = 0;
