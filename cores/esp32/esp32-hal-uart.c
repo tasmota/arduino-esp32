@@ -34,6 +34,7 @@ struct uart_struct_t {
     uint8_t num;
     bool has_peek;
     uint8_t peek_byte;
+    QueueHandle_t uart_event_queue;   // export it by some uartGetEventQueue() function
 };
 
 #if CONFIG_DISABLE_HAL_LOCKS
@@ -42,12 +43,12 @@ struct uart_struct_t {
 #define UART_MUTEX_UNLOCK()
 
 static uart_t _uart_bus_array[] = {
-    {0, false, 0},
+    {0, false, 0, NULL},
 #if SOC_UART_NUM > 1
-    {1, false, 0},
+    {1, false, 0, NULL},
 #endif
 #if SOC_UART_NUM > 2
-    {2, false, 0},
+    {2, false, 0, NULL},
 #endif
 };
 
@@ -57,12 +58,12 @@ static uart_t _uart_bus_array[] = {
 #define UART_MUTEX_UNLOCK()  xSemaphoreGive(uart->lock)
 
 static uart_t _uart_bus_array[] = {
-    {NULL, 0, false, 0},
+    {NULL, 0, false, 0, NULL},
 #if SOC_UART_NUM > 1
-    {NULL, 1, false, 0},
+    {NULL, 1, false, 0, NULL},
 #endif
 #if SOC_UART_NUM > 2
-    {NULL, 2, false, 0},
+    {NULL, 2, false, 0, NULL},
 #endif
 };
 
@@ -81,10 +82,25 @@ uint32_t _get_effective_baudrate(uint32_t baudrate)
     }
 }
 
+// Routines that take care of UART events will be in the HardwareSerial Class code
+void uartGetEventQueue(uart_t* uart, QueueHandle_t *q)
+{
+    // passing back NULL for the Queue pointer when UART is not initialized yet
+    *q = NULL;
+    if(uart == NULL) {
+        return;
+    }
+    // MUTEX will lock for the case that another task is executing begin() on the same UART and has not finished
+    //UART_MUTEX_LOCK();
+    *q = uart->uart_event_queue;
+    //UART_MUTEX_UNLOCK();
+    return;
+}
+
 bool uartIsDriverInstalled(uart_t* uart) 
 {
     if(uart == NULL) {
-        return 0;
+        return false;
     }
 
     if (uart_is_driver_installed(uart->num)) {
@@ -150,7 +166,7 @@ uart_t* uartBegin(uint8_t uart_nr, uint32_t baudrate, uint32_t config, int8_t rx
     uart_config.source_clk = UART_SCLK_APB;
 
 
-    ESP_ERROR_CHECK(uart_driver_install(uart_nr, 2*queueLen, 0, 0, NULL, 0));
+    ESP_ERROR_CHECK(uart_driver_install(uart_nr, 2*queueLen, 0, 20, &(uart->uart_event_queue), 0));
     ESP_ERROR_CHECK(uart_param_config(uart_nr, &uart_config));
     ESP_ERROR_CHECK(uart_set_pin(uart_nr, txPin, rxPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 
