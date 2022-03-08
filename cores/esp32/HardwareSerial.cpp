@@ -37,7 +37,7 @@ void serialEvent(void) {}
 #ifndef RX1
 #if CONFIG_IDF_TARGET_ESP32
 #define RX1 9
-#elif CONFIG_IDF_TARGET_ESP32S2
+#elif CONFIG_IDF_TARGET_ESP32S2 
 #define RX1 18
 #elif CONFIG_IDF_TARGET_ESP32C3
 #define RX1 18
@@ -86,6 +86,8 @@ void serialEvent2(void) {}
 #if !defined(NO_GLOBAL_INSTANCES) && !defined(NO_GLOBAL_SERIAL)
 #if ARDUINO_USB_CDC_ON_BOOT //Serial used for USB CDC
 HardwareSerial Serial0(0);
+#elif ARDUINO_HW_CDC_ON_BOOT
+HardwareSerial Serial0(0);
 #else
 HardwareSerial Serial(0);
 #endif
@@ -99,6 +101,8 @@ HardwareSerial Serial2(2);
 void serialEventRun(void)
 {
 #if ARDUINO_USB_CDC_ON_BOOT //Serial used for USB CDC
+    if(Serial0.available()) serialEvent();
+#elif ARDUINO_HW_CDC_ON_BOOT
     if(Serial0.available()) serialEvent();
 #else
     if(Serial.available()) serialEvent();
@@ -257,19 +261,25 @@ void HardwareSerial::begin(unsigned long baud, uint32_t config, int8_t rxPin, in
     if (!uartIsDriverInstalled(_uart)) {
         switch (_uart_nr) {
             case UART_NUM_0:
-                rxPin = rxPin < 0 ? SOC_RX0 : rxPin;
-                txPin = txPin < 0 ? SOC_TX0 : txPin;
+                if (rxPin < 0 && txPin < 0) {
+                    rxPin = SOC_RX0;
+                    txPin = SOC_TX0;
+                }
             break;
 #if SOC_UART_NUM > 1                   // may save some flash bytes...
             case UART_NUM_1:
-                rxPin = rxPin < 0 ? RX1 : rxPin;
-                txPin = txPin < 0 ? TX1 : txPin;
+               if (rxPin < 0 && txPin < 0) {
+                    rxPin = RX1;
+                    txPin = TX1;
+                }
             break;
 #endif
 #if SOC_UART_NUM > 2                   // may save some flash bytes...
             case UART_NUM_2:
-                rxPin = rxPin < 0 ? RX2 : rxPin;
-                txPin = txPin < 0 ? TX2 : txPin;
+               if (rxPin < 0 && txPin < 0) {
+                    rxPin = RX2;
+                    txPin = TX2;
+                }
             break;
 #endif
             default:
