@@ -114,11 +114,14 @@ void USBCDC::onEvent(arduino_usb_cdc_event_t event, esp_event_handler_t callback
 }
 
 size_t USBCDC::setRxBufferSize(size_t rx_queue_len){
-    if(rx_queue){
-        if(!rx_queue_len){
+    size_t currentQueueSize = rx_queue ? 
+            uxQueueSpacesAvailable(rx_queue) + uxQueueMessagesWaiting(rx_queue) : 0;
+
+    if (rx_queue && (!rx_queue_len || rx_queue_len != currentQueueSize)) {
             vQueueDelete(rx_queue);
             rx_queue = NULL;
-        }
+    }
+    if(!rx_queue_len || rx_queue_len == currentQueueSize){
         return 0;
     }
     rx_queue = xQueueCreate(rx_queue_len, sizeof(uint8_t));
@@ -133,7 +136,8 @@ void USBCDC::begin(unsigned long baud)
     if(tx_lock == NULL) {
         tx_lock = xSemaphoreCreateMutex();
     }
-    setRxBufferSize(256);//default if not preset
+    // if rx_queue was set before begin(), keep it
+    if (!rx_queue) setRxBufferSize(256); //default if not preset
     devices[itf] = this;
 }
 
@@ -144,6 +148,7 @@ void USBCDC::end()
     setRxBufferSize(0);
     if(tx_lock != NULL) {
         vSemaphoreDelete(tx_lock);
+        tx_lock = NULL;
     }
 }
 
@@ -246,14 +251,27 @@ void USBCDC::_onLineCoding(uint32_t _bit_rate, uint8_t _stop_bits, uint8_t _pari
 void USBCDC::_onRX(){
     uint8_t buf[CONFIG_TINYUSB_CDC_RX_BUFSIZE+1];
     uint32_t count = tud_cdc_n_read(itf, buf, CONFIG_TINYUSB_CDC_RX_BUFSIZE);
+
+    if(rx_queue == NULL) {
+        return;
+    }
+    if (uxQueueSpacesAvailable(rx_queue) < count) {
+        //this VTaskDelay gives, to Arduino's task, time to the CPU do its processing
+        //without it, data may be lost when the number of bytes received is higher than CDC buffer size
+        vTaskDelay(10);
+    }
     for(uint32_t i=0; i<count; i++){
-        if(rx_queue == NULL || !xQueueSend(rx_queue, buf+i, 0)){
-            return;
+        if(!xQueueSend(rx_queue, buf+i, 0)){
+            // rx_queue overflow - data will be lost
+            count = i;
+            break;
         }
     }
-    arduino_usb_cdc_event_data_t p;
-    p.rx.len = count;
-    arduino_usb_event_post(ARDUINO_USB_CDC_EVENTS, ARDUINO_USB_CDC_RX_EVENT, &p, sizeof(arduino_usb_cdc_event_data_t), portMAX_DELAY);
+    if (count) {
+        arduino_usb_cdc_event_data_t p;
+        p.rx.len = count;
+        arduino_usb_event_post(ARDUINO_USB_CDC_EVENTS, ARDUINO_USB_CDC_RX_EVENT, &p, sizeof(arduino_usb_cdc_event_data_t), portMAX_DELAY);
+    }
 }
 
 void USBCDC::_onTX(){
