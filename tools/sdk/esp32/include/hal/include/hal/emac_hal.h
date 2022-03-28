@@ -225,11 +225,7 @@ void emac_hal_start(emac_hal_context_t *hal);
  * @param hal EMAC HAL context infostructure
  * @return
  *     - ESP_OK: succeed
-<<<<<<< HEAD
-  *    - ESP_ERR_INVALID_STATE: previous frame transmission is not completed. When this error occurs,
-=======
   *    - ESP_ERR_INVALID_STATE: previous frame transmission/reception is not completed. When this error occurs,
->>>>>>> orig_master_espressif
   *      wait and reapeat the EMAC stop again.
  */
 esp_err_t emac_hal_stop(emac_hal_context_t *hal);

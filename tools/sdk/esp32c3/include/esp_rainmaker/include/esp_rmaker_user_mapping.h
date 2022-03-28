@@ -19,8 +19,6 @@ extern "C"
 {
 #endif
 
-<<<<<<< HEAD
-=======
 /** User-Node Mapping states */
 typedef enum {
     /** Mapping does not exist or is not initialized */
@@ -40,7 +38,6 @@ typedef enum {
  */
 esp_rmaker_user_mapping_state_t esp_rmaker_user_node_mapping_get_state(void);
 
->>>>>>> orig_master_espressif
 /**
  * Create User Mapping Endpoint
  *

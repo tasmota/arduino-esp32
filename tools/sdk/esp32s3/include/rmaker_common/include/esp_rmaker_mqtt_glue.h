@@ -52,11 +52,7 @@ typedef esp_rmaker_mqtt_conn_params_t *(*esp_rmaker_mqtt_get_conn_params_t)(void
  * @param[in] priv_data The private data passed during subscription
  */
 typedef void (*esp_rmaker_mqtt_subscribe_cb_t)(const char *topic, void *payload, size_t payload_len, void *priv_data);
-<<<<<<< HEAD
-   
-=======
 
->>>>>>> orig_master_espressif
 /** MQTT Init function prototype
  *
  * @param[in] conn_params The MQTT connection parameters. If NULL is passed, it should internally use the
@@ -67,15 +63,12 @@ typedef void (*esp_rmaker_mqtt_subscribe_cb_t)(const char *topic, void *payload,
  */
 typedef esp_err_t (*esp_rmaker_mqtt_init_t)(esp_rmaker_mqtt_conn_params_t *conn_params);
 
-<<<<<<< HEAD
-=======
 /** MQTT Deinit function prototype
  *
  * Call this function after MQTT has disconnected.
  */
 typedef void (*esp_rmaker_mqtt_deinit_t)(void);
 
->>>>>>> orig_master_espressif
 /** MQTT Connect function prototype
  *
  * Starts the connection attempts to the MQTT broker.
@@ -137,11 +130,8 @@ typedef struct {
     esp_rmaker_mqtt_get_conn_params_t get_conn_params;
     /** Pointer to MQTT Init function. */
     esp_rmaker_mqtt_init_t init;
-<<<<<<< HEAD
-=======
     /** Pointer to MQTT Deinit function. */
     esp_rmaker_mqtt_deinit_t deinit;
->>>>>>> orig_master_espressif
     /** Pointer to MQTT Connect function. */
     esp_rmaker_mqtt_connect_t connect;
     /** Pointer to MQTQ Disconnect function */

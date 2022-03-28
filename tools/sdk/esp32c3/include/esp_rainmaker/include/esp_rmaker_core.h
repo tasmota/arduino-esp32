@@ -49,14 +49,8 @@ typedef enum {
     RMAKER_EVENT_USER_NODE_MAPPING_DONE,
     /** Local control started. Associated data is the NULL terminated Service Name */
     RMAKER_EVENT_LOCAL_CTRL_STARTED,
-<<<<<<< HEAD
-=======
-<<<<<<<< HEAD:tools/sdk/esp32c3/include/esp_rainmaker/include/esp_rmaker_core.h
     /* User reset request successfully sent to ESP RainMaker Cloud */
     RMAKER_EVENT_USER_NODE_MAPPING_RESET,
-========
->>>>>>>> orig_master_espressif:tools/sdk/esp32/include/esp_rainmaker/include/esp_rmaker_core.h
->>>>>>> orig_master_espressif
 } esp_rmaker_event_t;
 
 /** ESP RainMaker Node information */

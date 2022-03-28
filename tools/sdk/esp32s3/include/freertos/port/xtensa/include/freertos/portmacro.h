@@ -558,22 +558,14 @@ static inline void __attribute__((always_inline)) uxPortCompareSetExtram(volatil
 
 // --------------------- Interrupts ------------------------
 
-<<<<<<< HEAD
-static inline UBaseType_t xPortSetInterruptMaskFromISR(void)
-=======
 static inline UBaseType_t __attribute__((always_inline)) xPortSetInterruptMaskFromISR(void)
->>>>>>> orig_master_espressif
 {
     UBaseType_t prev_int_level = XTOS_SET_INTLEVEL(XCHAL_EXCM_LEVEL);
     portbenchmarkINTERRUPT_DISABLE();
     return prev_int_level;
 }
 
-<<<<<<< HEAD
-static inline void vPortClearInterruptMaskFromISR(UBaseType_t prev_level)
-=======
 static inline void __attribute__((always_inline)) vPortClearInterruptMaskFromISR(UBaseType_t prev_level)
->>>>>>> orig_master_espressif
 {
     portbenchmarkINTERRUPT_RESTORE(prev_level);
     XTOS_RESTORE_JUST_INTLEVEL(prev_level);

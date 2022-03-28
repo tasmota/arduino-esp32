@@ -117,11 +117,6 @@
 //--------------------------------------------------------------------+
 // APPLICATION API
 //--------------------------------------------------------------------+
-<<<<<<< HEAD
-/** \ingroup group_application_api
- *  @{ */
-=======
->>>>>>> orig_master_espressif
 
 // Initialize device/host stack
 // Note: when using with RTOS, this should be called after scheduler/kernel is started.
@@ -134,11 +129,6 @@ bool tusb_inited(void);
 // TODO
 // bool tusb_teardown(void);
 
-<<<<<<< HEAD
-/** @} */
-
-=======
->>>>>>> orig_master_espressif
 #ifdef __cplusplus
  }
 #endif

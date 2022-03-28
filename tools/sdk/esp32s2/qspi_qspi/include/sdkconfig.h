@@ -52,10 +52,7 @@
 #define CONFIG_LIB_BUILDER_FLASHMODE "qio"
 #define CONFIG_LIB_BUILDER_FLASHFREQ "80m"
 #define CONFIG_ESP_RMAKER_SELF_CLAIM 1
-<<<<<<< HEAD:tools/sdk/esp32s2/qspi_qspi/include/sdkconfig.h
-=======
 #define CONFIG_ESP_RMAKER_CLAIM_TYPE 1
->>>>>>> orig_master_espressif:tools/sdk/esp32s2/include/config/sdkconfig.h
 #define CONFIG_ESP_RMAKER_CLAIM_SERVICE_BASE_URL "https://esp-claiming.rainmaker.espressif.com"
 #define CONFIG_ESP_RMAKER_MQTT_HOST "a1p72mufdu6064-ats.iot.us-east-1.amazonaws.com"
 #define CONFIG_ESP_RMAKER_MAX_PARAM_DATA_SIZE 1024

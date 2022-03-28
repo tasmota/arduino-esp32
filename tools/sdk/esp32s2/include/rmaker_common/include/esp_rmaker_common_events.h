@@ -35,11 +35,6 @@ typedef enum {
     RMAKER_MQTT_EVENT_CONNECTED,
     /** Disconnected from MQTT Broker */
     RMAKER_MQTT_EVENT_DISCONNECTED,
-<<<<<<< HEAD
-    /** MQTT message published successfully */
-    RMAKER_MQTT_EVENT_PUBLISHED,
-} esp_rmaker_mqtt_event_t;
-=======
     /** MQTT message published successfully.
      * Event data will contain the message ID (integer) of published message.
      */
@@ -60,7 +55,6 @@ typedef enum {
      */
     RMAKER_MQTT_EVENT_MSG_DELETED,
 } esp_rmaker_common_event_t;
->>>>>>> orig_master_espressif
 #ifdef __cplusplus
 }
 #endif
