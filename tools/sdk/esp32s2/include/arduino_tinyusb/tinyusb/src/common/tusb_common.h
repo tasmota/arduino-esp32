@@ -71,22 +71,9 @@
 #include "tusb_compiler.h"
 #include "tusb_verify.h"
 #include "tusb_types.h"
+#include "tusb_debug.h"
 
-#include "tusb_error.h"   // TODO remove
 #include "tusb_timeout.h" // TODO remove
-
-//--------------------------------------------------------------------+
-// Internal Helper used by Host and Device Stack
-//--------------------------------------------------------------------+
-
-// Check if endpoint descriptor is valid per USB specs
-bool tu_edpt_validate(tusb_desc_endpoint_t const * desc_ep, tusb_speed_t speed);
-
-// Bind all endpoint of a interface descriptor to class driver
-void tu_edpt_bind_driver(uint8_t ep2drv[][2], tusb_desc_interface_t const* p_desc, uint16_t desc_len, uint8_t driver_id);
-
-// Calculate total length of n interfaces (depending on IAD)
-uint16_t tu_desc_get_interface_total_len(tusb_desc_interface_t const* desc_itf, uint8_t itf_count, uint16_t max_len);
 
 //--------------------------------------------------------------------+
 // Internal Inline Functions
@@ -268,6 +255,7 @@ TU_ATTR_ALWAYS_INLINE static inline void     tu_unaligned_write16 (void* mem, ui
             + TU_BIN8(dlsb))
 #endif
 
+<<<<<<< HEAD
 //--------------------------------------------------------------------+
 // Debug Function
 //--------------------------------------------------------------------+
@@ -400,6 +388,8 @@ static inline const char* tu_lookup_find(tu_lookup_table_t const* p_table, uint3
   #define TU_LOG3_HEX(...)
 #endif
 
+=======
+>>>>>>> orig_master_espressif
 #ifdef __cplusplus
  }
 #endif

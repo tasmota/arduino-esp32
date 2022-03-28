@@ -19,6 +19,28 @@ extern "C"
 {
 #endif
 
+<<<<<<< HEAD
+=======
+/** User-Node Mapping states */
+typedef enum {
+    /** Mapping does not exist or is not initialized */
+    ESP_RMAKER_USER_MAPPING_RESET = 0,
+    /** Mapping has started */
+    ESP_RMAKER_USER_MAPPING_STARTED,
+    /** Mapping is done */
+    ESP_RMAKER_USER_MAPPING_DONE,
+} esp_rmaker_user_mapping_state_t;
+
+/**
+ * Get User-Node mapping state
+ *
+ * This returns the current user-node mapping state.
+ *
+ * @return user mapping state
+ */
+esp_rmaker_user_mapping_state_t esp_rmaker_user_node_mapping_get_state(void);
+
+>>>>>>> orig_master_espressif
 /**
  * Create User Mapping Endpoint
  *

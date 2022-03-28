@@ -225,6 +225,7 @@
 #else
   #define TUD_OPT_HIGH_SPEED  0
 #endif
+<<<<<<< HEAD
 
 //------------- Roothub as Host -------------//
 
@@ -253,6 +254,36 @@
 #if TUD_OPT_HIGH_SPEED && (CFG_TUSB_MCU == OPT_MCU_LPC54XXX || CFG_TUSB_MCU == OPT_MCU_LPC55XX)
   #define TUP_MCU_STRICT_ALIGN   1
 #else
+=======
+
+//------------- Roothub as Host -------------//
+
+#if (CFG_TUSB_RHPORT0_MODE) & OPT_MODE_HOST
+  #define TUH_RHPORT_MODE  (CFG_TUSB_RHPORT0_MODE)
+  #define TUH_OPT_RHPORT   0
+#elif (CFG_TUSB_RHPORT1_MODE) & OPT_MODE_HOST
+  #define TUH_RHPORT_MODE  (CFG_TUSB_RHPORT1_MODE)
+  #define TUH_OPT_RHPORT   1
+#else
+  #define TUH_RHPORT_MODE   OPT_MODE_NONE
+  #define TUH_OPT_RHPORT   -1
+#endif
+
+#define CFG_TUH_ENABLED     ( TUH_RHPORT_MODE & OPT_MODE_HOST )
+
+// For backward compatible
+#define TUSB_OPT_DEVICE_ENABLED CFG_TUD_ENABLED
+#define TUSB_OPT_HOST_ENABLED   CFG_TUH_ENABLED
+
+// TODO move later
+// TUP_MCU_STRICT_ALIGN will overwrite TUP_ARCH_STRICT_ALIGN.
+// In case TUP_MCU_STRICT_ALIGN = 1 and TUP_ARCH_STRICT_ALIGN =0, we will not reply on compiler
+// to generate unaligned access code.
+// LPC_IP3511 Highspeed cannot access unaligned memory on USB_RAM
+#if TUD_OPT_HIGH_SPEED && (CFG_TUSB_MCU == OPT_MCU_LPC54XXX || CFG_TUSB_MCU == OPT_MCU_LPC55XX)
+  #define TUP_MCU_STRICT_ALIGN   1
+#else
+>>>>>>> orig_master_espressif
   #define TUP_MCU_STRICT_ALIGN   0
 #endif
 
@@ -284,6 +315,9 @@
 #ifndef CFG_TUSB_OS_INC_PATH
   #define CFG_TUSB_OS_INC_PATH
 #endif
+
+// mutex is only needed for RTOS TODO also required with multiple core MCUs
+#define TUSB_OPT_MUTEX    (CFG_TUSB_OS != OPT_OS_NONE)
 
 //--------------------------------------------------------------------
 // DEVICE OPTIONS

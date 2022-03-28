@@ -285,6 +285,12 @@
   #define CFG_TUSB_OS_INC_PATH
 #endif
 
+<<<<<<< HEAD
+=======
+// mutex is only needed for RTOS TODO also required with multiple core MCUs
+#define TUSB_OPT_MUTEX    (CFG_TUSB_OS != OPT_OS_NONE)
+
+>>>>>>> orig_master_espressif
 //--------------------------------------------------------------------
 // DEVICE OPTIONS
 //--------------------------------------------------------------------

@@ -74,10 +74,15 @@
 
 #if CFG_TUSB_DEBUG
   #include <stdio.h>
+<<<<<<< HEAD
   #define _MESS_ERR(_err)   tu_printf("%s %d: failed, error = %s\r\n", __func__, __LINE__, tusb_strerr[_err])
   #define _MESS_FAILED()    tu_printf("%s %d: ASSERT FAILED\r\n", __func__, __LINE__)
 #else
   #define _MESS_ERR(_err) do {} while (0)
+=======
+  #define _MESS_FAILED()    tu_printf("%s %d: ASSERT FAILED\r\n", __func__, __LINE__)
+#else
+>>>>>>> orig_master_espressif
   #define _MESS_FAILED() do {} while (0)
 #endif
 
@@ -144,6 +149,7 @@
 #define TU_ASSERT(...)             GET_3RD_ARG(__VA_ARGS__, ASSERT_2ARGS, ASSERT_1ARGS,UNUSED)(__VA_ARGS__)
 #endif
 
+<<<<<<< HEAD
 // TODO remove TU_ASSERT_ERR() later
 
 /*------------- Generator for TU_VERIFY_ERR and TU_VERIFY_ERR_HDLR -------------*/
@@ -170,6 +176,8 @@
 #define TU_ASSERT_ERR(...)         GET_3RD_ARG(__VA_ARGS__, ASSERT_ERR_2ARGS, ASSERT_ERR_1ARGS,UNUSED)(__VA_ARGS__)
 #endif
 
+=======
+>>>>>>> orig_master_espressif
 /*------------------------------------------------------------------*/
 /* ASSERT HDLR
  *------------------------------------------------------------------*/

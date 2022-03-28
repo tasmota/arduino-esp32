@@ -94,7 +94,12 @@ typedef struct
 
 } hcd_event_t;
 
+<<<<<<< HEAD
 typedef struct {
+=======
+typedef struct
+{
+>>>>>>> orig_master_espressif
   uint8_t rhport;
   uint8_t hub_addr;
   uint8_t hub_port;

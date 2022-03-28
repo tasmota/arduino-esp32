@@ -51,6 +51,10 @@
 #define CONFIG_LIB_BUILDER_FLASHMODE "qio"
 #define CONFIG_LIB_BUILDER_FLASHFREQ "80m"
 #define CONFIG_ESP_RMAKER_ASSISTED_CLAIM 1
+<<<<<<< HEAD:tools/sdk/esp32c3/qspi_qspi/include/sdkconfig.h
+=======
+#define CONFIG_ESP_RMAKER_CLAIM_TYPE 2
+>>>>>>> orig_master_espressif:tools/sdk/esp32c3/include/config/sdkconfig.h
 #define CONFIG_ESP_RMAKER_MQTT_HOST "a1p72mufdu6064-ats.iot.us-east-1.amazonaws.com"
 #define CONFIG_ESP_RMAKER_MAX_PARAM_DATA_SIZE 1024
 #define CONFIG_ESP_RMAKER_CONSOLE_UART_NUM_0 1
