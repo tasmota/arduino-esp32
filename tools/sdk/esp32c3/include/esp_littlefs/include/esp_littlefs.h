@@ -1,9 +1,24 @@
 #ifndef ESP_LITTLEFS_H__
 #define ESP_LITTLEFS_H__
 
+#include <stdint.h>
+#include <stddef.h>
+#include <stdarg.h>
+#include <unistd.h>
+#include <utime.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 #include "esp_err.h"
-#include "littlefs/lfs.h"
+#include <sys/types.h>
+#include <sys/reent.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/poll.h>
+#include <sys/dirent.h>
+#include <string.h>
 #include "sdkconfig.h"
+
+#include "littlefs/lfs.h"
 
 #ifdef __cplusplus
 extern "C" {
