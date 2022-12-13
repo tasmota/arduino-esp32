@@ -5,6 +5,7 @@ PLATFORMIO_ESP32_URL="https://github.com/tasmota/platform-espressif32.git"
 
 TOOLCHAIN_VERSION="8.4.0+2021r2-patch5"
 ESPTOOLPY_VERSION="1.40400.0"
+
 ESPRESSIF_ORGANIZATION_NAME="espressif"
 
 echo "Installing Python Wheel ..."
