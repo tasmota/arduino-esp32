@@ -246,13 +246,14 @@ size_t WiFiUDP::write(const uint8_t *buffer, size_t size){
 int WiFiUDP::parsePacket(){
   if(rx_buffer)
     return 0;
-  struct sockaddr_in si_other;
-  int slen = sizeof(si_other) , len;
+  struct sockaddr_storage si_other_storage;   // enough storage for v4 and v6
+  socklen_t slen = sizeof(sockaddr_storage);
+  int len;
   char * buf = new char[1460];
   if(!buf){
     return 0;
   }
-  if ((len = recvfrom(udp_server, buf, 1460, MSG_DONTWAIT, (struct sockaddr *) &si_other, (socklen_t *)&slen)) == -1){
+  if ((len = recvfrom(udp_server, buf, 1460, MSG_DONTWAIT, (struct sockaddr *) &si_other_storage, (socklen_t *)&slen)) == -1){
     delete[] buf;
     if(errno == EWOULDBLOCK){
       return 0;
@@ -260,8 +261,28 @@ int WiFiUDP::parsePacket(){
     log_e("could not receive data: %d", errno);
     return 0;
   }
-  remote_ip = IPAddress(si_other.sin_addr.s_addr);
-  remote_port = ntohs(si_other.sin_port);
+  if (si_other_storage.ss_family == AF_INET) {
+    struct sockaddr_in &si_other = (sockaddr_in&) si_other_storage;
+    remote_ip = IPAddress(si_other.sin_addr.s_addr);
+    remote_port = ntohs(si_other.sin_port);
+  }
+#if LWIP_IPV6 
+  else if (si_other_storage.ss_family == AF_INET6) {
+    struct sockaddr_in6 &si_other = (sockaddr_in6&) si_other_storage;
+    remote_ip = IPAddress(IPv6, (uint8_t*)&si_other.sin6_addr);   // force IPv6
+    ip_addr_t *ip_addr = (ip_addr_t*) remote_ip;
+    /* Dual-stack: Unmap IPv4 mapped IPv6 addresses */
+    if (IP_IS_V6_VAL(*ip_addr) && ip6_addr_isipv4mappedipv6(ip_2_ip6(ip_addr))) {
+      unmap_ipv4_mapped_ipv6(ip_2_ip4(ip_addr), ip_2_ip6(ip_addr));
+      IP_SET_TYPE_VAL(*ip_addr, IPADDR_TYPE_V4);
+    }
+    remote_port = ntohs(si_other.sin6_port);
+  }
+#endif // LWIP_IPV6=1
+  else {
+    remote_ip = *IP_ADDR_ANY;
+    remote_port = 0;
+  }
   if (len > 0) {
     rx_buffer = new cbuf(len);
     rx_buffer->write(buf, len);
