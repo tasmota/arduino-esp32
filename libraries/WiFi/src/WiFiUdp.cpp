@@ -69,11 +69,11 @@ uint8_t WiFiUDP::begin(IPAddress address, uint16_t port){
 #if LWIP_IPV6
   if (address.isV6()) {
     struct sockaddr_in6 *tmpaddr = (struct sockaddr_in6 *)&serveraddr;
+    ip_addr_t * ip_addr = (ip_addr_t*) address;
     memset((char *) tmpaddr, 0, sizeof(struct sockaddr_in));
     tmpaddr->sin6_family = AF_INET6;
     tmpaddr->sin6_port = htons(server_port);
-    // memcpy(tmpaddr->sin6_addr.un.u8_addr, &ip[0], 16); // TODO
-    tmpaddr->sin6_addr = in6addr_any;
+    inet6_addr_from_ip6addr(&tmpaddr->sin6_addr, ip_2_ip6(ip_addr));
     tmpaddr->sin6_flowinfo = 0;
     sock_size = sizeof(sockaddr_in6);
   } else
@@ -86,7 +86,6 @@ uint8_t WiFiUDP::begin(IPAddress address, uint16_t port){
     tmpaddr->sin_addr.s_addr = (in_addr_t)address;
     sock_size = sizeof(sockaddr_in);
   }
-  //AddLog(LOG_LEVEL_DEBUG, "WiFiUDP46::begin udp_server=%p sock_addr=%p sock_size=%i", udp_server, sock_addr, sock_size);
   if(bind(udp_server , (sockaddr*)&serveraddr, sock_size) == -1){
     log_e("could not bind socket: %d", errno);
     stop();
@@ -103,18 +102,42 @@ uint8_t WiFiUDP::begin(uint16_t p){
 
 uint8_t WiFiUDP::beginMulticast(IPAddress a, uint16_t p){
   if(begin(IPAddress(INADDR_ANY), p)){
-    if(!ip_addr_isany((ip_addr_t*)a)){
-      struct ip_mreq mreq;
-      mreq.imr_multiaddr.s_addr = (in_addr_t)a;
-      mreq.imr_interface.s_addr = INADDR_ANY;
-      if (setsockopt(udp_server, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) {
+    ip_addr_t * ip_addr = (ip_addr_t*) a;
+    if (ip_addr_ismulticast(ip_addr)) {
+#if LWIP_IPV6
+      if (IP_IS_V6_VAL(*ip_addr)) {
+        struct ipv6_mreq mreq;
+        bool joined = false;
+        inet6_addr_from_ip6addr(&mreq.ipv6mr_multiaddr, ip_2_ip6(ip_addr));
+
+        // iterate on each interface
+        for (netif* intf = netif_list; intf != nullptr; intf = intf->next) {
+          mreq.ipv6mr_interface = intf->num + 1;
+          if (intf->name[0] != 'l' || intf->name[1] != 'o') {   // skip 'lo' local interface
+            int ret = setsockopt(udp_server, IPPROTO_IPV6, IPV6_JOIN_GROUP, &mreq, sizeof(mreq));
+            if (ret >= 0) { joined = true; }
+          }
+        }
+        if (!joined) {
           log_e("could not join igmp: %d", errno);
           stop();
           return 0;
+        }
+      } else
+#endif
+      if (1) {
+        struct ip_mreq mreq;
+        mreq.imr_multiaddr.s_addr = (in_addr_t)a;
+        mreq.imr_interface.s_addr = INADDR_ANY;
+        if (setsockopt(udp_server, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) {
+            log_e("could not join igmp: %d", errno);
+            stop();
+            return 0;
+        }
       }
       multicast_ip = a;
+      return 1;
     }
-    return 1;
   }
   return 0;
 }
