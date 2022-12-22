@@ -25,7 +25,6 @@ http://arduino.cc/en/Reference/HomePage
 # Extends: https://github.com/platformio/platform-espressif32/blob/develop/builder/main.py
 
 from os.path import abspath, basename, isdir, isfile, join
-from copy import deepcopy
 from SCons.Script import DefaultEnvironment, SConscript
 
 env = DefaultEnvironment()
