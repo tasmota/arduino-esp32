@@ -88,7 +88,6 @@ set(LIBRARY_SRCS
   libraries/HTTPClient/src/HTTPClient.cpp
   libraries/HTTPUpdate/src/HTTPUpdate.cpp
   libraries/LittleFS/src/LittleFS.cpp
-  libraries/Insights/src/Insights.cpp
   libraries/I2S/src/I2S.cpp
   libraries/NetBIOS/src/NetBIOS.cpp
   libraries/Preferences/src/Preferences.cpp
@@ -178,7 +177,6 @@ set(includedirs
   libraries/HTTPClient/src
   libraries/HTTPUpdate/src
   libraries/LittleFS/src
-  libraries/Insights/src
   libraries/I2S/src
   libraries/NetBIOS/src
   libraries/Preferences/src
