@@ -1,4 +1,4 @@
-# Tamota Arduino core for the ESP32, ESP32-S2, ESP32-S3 and ESP32-C3
+# Tasmota Arduino core for the ESP32, ESP32-S2, ESP32-S3 and ESP32-C3
 
 
 ### [![GitHub Releases](https://img.shields.io/github/downloads/tasmota/arduino-esp32/total?label=downloads)](https://github.com/tasmota/arduino-esp32/releases/latest)
