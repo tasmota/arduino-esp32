@@ -21,9 +21,6 @@
 #include <lwip/netdb.h>
 #include <errno.h>
 
-extern void AddLog(uint32_t loglevel, PGM_P formatP, ...);
-enum LoggingLevels {LOG_LEVEL_NONE, LOG_LEVEL_ERROR, LOG_LEVEL_INFO, LOG_LEVEL_DEBUG, LOG_LEVEL_DEBUG_MORE};
-
 #undef write
 #undef read
 
