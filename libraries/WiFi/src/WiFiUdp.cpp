@@ -21,6 +21,9 @@
 #include <lwip/netdb.h>
 #include <errno.h>
 
+extern void AddLog(uint32_t loglevel, PGM_P formatP, ...);
+enum LoggingLevels {LOG_LEVEL_NONE, LOG_LEVEL_ERROR, LOG_LEVEL_INFO, LOG_LEVEL_DEBUG, LOG_LEVEL_DEBUG_MORE};
+
 #undef write
 #undef read
 
@@ -97,11 +100,11 @@ uint8_t WiFiUDP::begin(IPAddress address, uint16_t port){
 }
 
 uint8_t WiFiUDP::begin(uint16_t p){
-  return begin(IPAddress(INADDR_ANY), p);
+  return begin(IPAddress(), p);
 }
 
 uint8_t WiFiUDP::beginMulticast(IPAddress a, uint16_t p){
-  if(begin(IPAddress(INADDR_ANY), p)){
+  if(begin(IPAddress(), p)){
     ip_addr_t * ip_addr = (ip_addr_t*) a;
     if (ip_addr_ismulticast(ip_addr)) {
 #if LWIP_IPV6
@@ -155,23 +158,37 @@ void WiFiUDP::stop(){
   }
   if(udp_server == -1)
     return;
-  if(!ip_addr_isany((ip_addr_t*)multicast_ip)){
-    struct ip_mreq mreq;
-    mreq.imr_multiaddr.s_addr = (in_addr_t)multicast_ip;
-    mreq.imr_interface.s_addr = (in_addr_t)0;
+  ip_addr_t * mcast_addr = (ip_addr_t*) multicast_ip;
+  if (!ip_addr_isany(mcast_addr)) {
 #if LWIP_IPV6
-    setsockopt(udp_server, IPPROTO_IPV6, IP_DROP_MEMBERSHIP, &mreq, sizeof(mreq));
-#else
-    setsockopt(udp_server, IPPROTO_IP, IP_DROP_MEMBERSHIP, &mreq, sizeof(mreq));
+    if (IP_IS_V6(mcast_addr)) {
+      struct ipv6_mreq mreq;
+      inet6_addr_from_ip6addr(&mreq.ipv6mr_multiaddr, ip_2_ip6(mcast_addr));
+
+      // iterate on each interface
+      for (netif* intf = netif_list; intf != nullptr; intf = intf->next) {
+        mreq.ipv6mr_interface = intf->num + 1;
+        if (intf->name[0] != 'l' || intf->name[1] != 'o') {   // skip 'lo' local interface
+          int ret = setsockopt(udp_server, IPPROTO_IPV6, IPV6_LEAVE_GROUP, &mreq, sizeof(mreq));
+        }
+      }
+    } else
 #endif
-    multicast_ip = IPAddress(INADDR_ANY);
+    if (1) {
+      struct ip_mreq mreq;
+      mreq.imr_multiaddr.s_addr = (in_addr_t)multicast_ip;
+      mreq.imr_interface.s_addr = (in_addr_t)0;
+      setsockopt(udp_server, IPPROTO_IP, IP_DROP_MEMBERSHIP, &mreq, sizeof(mreq));
+    }
+    // now common code for v4/v6
+    multicast_ip = IPAddress();
   }
   close(udp_server);
   udp_server = -1;
 }
 
 int WiFiUDP::beginMulticastPacket(){
-  if(!server_port || multicast_ip == IPAddress(INADDR_ANY))
+  if(!server_port || multicast_ip == IPAddress())
     return 0;
   remote_ip = multicast_ip;
   remote_port = server_port;
