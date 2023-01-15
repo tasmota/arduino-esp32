@@ -41,6 +41,7 @@
 #include "lwip/dns.h"
 
 extern void tcpipInit();
+extern void add_esp_interface_netif(esp_interface_t interface, esp_netif_t* esp_netif); /* from WiFiGeneric */
 
 #if ESP_IDF_VERSION_MAJOR > 3
 
@@ -285,6 +286,9 @@ bool ETHClass::begin(uint8_t phy_addr, int power, int mdc, int mdio, eth_phy_typ
         case ETH_PHY_DP83848:
             eth_phy = esp_eth_phy_new_dp83848(&phy_config);
             break;
+        case ETH_PHY_JL1101:
+            eth_phy = esp_eth_phy_new_jl1101(&phy_config);
+            break;            
 #if CONFIG_ETH_SPI_ETHERNET_DM9051
         case ETH_PHY_DM9051:
             eth_phy = esp_eth_phy_new_dm9051(&phy_config);
@@ -326,6 +330,9 @@ bool ETHClass::begin(uint8_t phy_addr, int power, int mdc, int mdio, eth_phy_typ
         log_e("esp_netif_attach failed");
         return false;
     }
+
+    /* attach to WiFiGeneric to receive events */
+    add_esp_interface_netif(ESP_IF_ETH, eth_netif);
 
     if(esp_eth_start(eth_handle) != ESP_OK){
         log_e("esp_eth_start failed");
