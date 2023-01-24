@@ -236,13 +236,3 @@ partition_table = env.Command(
     ),
 )
 env.Depends("$BUILD_DIR/$PROGNAME$PROGSUFFIX", partition_table)
-
-#
-#  Adjust the `esptoolpy` command in the `ElfToBin` builder with firmware checksum offset
-#
-
-action = deepcopy(env["BUILDERS"]["ElfToBin"].action)
-action.cmd_list = env["BUILDERS"]["ElfToBin"].action.cmd_list.replace(
-    "-o", "--elf-sha256-offset 0xb0 -o"
-)
-env["BUILDERS"]["ElfToBin"].action = action
