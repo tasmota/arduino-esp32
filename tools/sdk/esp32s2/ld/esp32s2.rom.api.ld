@@ -34,7 +34,20 @@ PROVIDE ( esp_rom_md5_init   = 0x4000526c );
 PROVIDE ( esp_rom_md5_update = 0x4000528c );
 PROVIDE ( esp_rom_md5_final  = 0x4000530c );
 
+PROVIDE ( esp_rom_software_reset_system = software_reset );
+PROVIDE ( esp_rom_software_reset_cpu    = software_reset_cpu );
+
 PROVIDE ( esp_rom_printf   = ets_printf );
 PROVIDE ( esp_rom_delay_us = ets_delay_us );
 PROVIDE ( esp_rom_install_uart_printf = ets_install_uart_printf );
 PROVIDE ( esp_rom_get_reset_reason = rtc_get_reset_reason );
+PROVIDE ( esp_rom_route_intr_matrix = intr_matrix_set );
+PROVIDE ( esp_rom_get_cpu_ticks_per_us = ets_get_cpu_frequency );
+
+PROVIDE ( esp_rom_spiflash_clear_bp = esp_rom_spiflash_unlock );
+PROVIDE ( esp_rom_spiflash_write_enable = SPI_write_enable);
+
+PROVIDE ( esp_rom_spiflash_fix_dummylen = spi_dummy_len_fix );
+PROVIDE ( esp_rom_spiflash_set_drvs = SetSpiDrvs);
+PROVIDE ( esp_rom_spiflash_select_padsfunc = SelectSpiFunction );
+PROVIDE ( esp_rom_spiflash_common_cmd = SPI_Common_Command );

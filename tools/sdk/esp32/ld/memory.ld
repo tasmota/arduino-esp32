@@ -36,6 +36,7 @@ _esp_flash_mmap_prefetch_pad_size = 16;
 _esp_memprot_prefetch_pad_size = 0;
 /* Memory alignment size for PMS */
 _esp_memprot_align_size = 0;
+_esp_mmu_block_size = (0x10000);
 /* If BT is not built at all */
 MEMORY
 {

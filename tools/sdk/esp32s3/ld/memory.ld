@@ -24,14 +24,15 @@
 /* CPU instruction prefetch padding size for flash mmap scenario */
 _esp_flash_mmap_prefetch_pad_size = 16;
 /* CPU instruction prefetch padding size for memory protection scenario */
-_esp_memprot_prefetch_pad_size = 0;
+_esp_memprot_prefetch_pad_size = 16;
 /* Memory alignment size for PMS */
-_esp_memprot_align_size = 0;
+_esp_memprot_align_size = 256;
+_esp_mmu_block_size = (0x10000);
 /*
  * 40370000 <- IRAM/Icache -> 40378000 <- D/IRAM (I) -> 403E0000
  *                            3FC88000 <- D/IRAM (D) -> 3FCF0000 <- DRAM/DCache -> 3FD00000
  *
- * Startup code uses the IRAM from 0x403BA000 to 0x403E0000, which is not available for static
+ * Startup code uses the IRAM from 0x403B9000 to 0x403E0000, which is not available for static
  * memory, but can only be used after app starts.
  *
  * D cache use the memory from high address, so when it's configured to 16K/32K, the region
@@ -62,27 +63,29 @@ MEMORY
    */
   dram0_0_seg (RW) : org = (0x3FC88000), len = ((0x403CC700 - (0x40378000 - 0x3FC88000)) - 0x3FC88000)
   /* Flash mapped constant data */
-  drom0_0_seg (R) : org = 0x3C000020, len = 0x800000-0x20
+  drom0_0_seg (R) : org = 0x3C000020, len = 0x2000000-0x20
   /* (See iram0_2_seg for meaning of 0x20 offset in the above.) */
   /**
    * RTC fast memory (executable). Persists over deep sleep.
    */
   rtc_iram_seg(RWX) : org = 0x600fe000, len = 0x2000 - (0x10)
   /**
-   * RTC fast memory (same block as above), viewed from data bus
-   */
-  rtc_data_seg(RW) : org = 0x600fe000, len = 0x2000 - (0x10)
-  /**
    * RTC slow memory (data accessible). Persists over deep sleep.
    * Start of RTC slow memory is reserved for ULP co-processor code + data, if enabled.
    */
-  rtc_slow_seg(RW) : org = 0x50000000 + 0,
-                                     len = 0x2000 - 0
+  rtc_slow_seg(RW) : org = 0x50000000 , len = 0x2000
+  /**
+   * `extern_ram_seg` and `drom0_0_seg` share the same bus and the address region.
+   * A dummy section is used to avoid overlap. See `.ext_ram.dummy` in `sections.ld.in`
+   */
+  extern_ram_seg(RWX) : org = 0x3c000020 , len = 0x2000000-0x20
 }
 _static_data_end = _bss_end;
 /* Heap ends at top of dram0_0_seg */
 _heap_end = 0x40000000;
 _data_seg_org = ORIGIN(rtc_data_seg);
+/* RTC fast memory shares the same range for both data and instructions */
+REGION_ALIAS("rtc_data_seg", rtc_iram_seg );
 REGION_ALIAS("rtc_data_location", rtc_slow_seg );
 REGION_ALIAS("default_code_seg", iram0_2_seg);
 REGION_ALIAS("default_rodata_seg", drom0_0_seg);

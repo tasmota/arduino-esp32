@@ -23,7 +23,7 @@
 #include "soc/io_mux_reg.h"
 #include "soc/gpio_sig_map.h"
 #include "soc/rtc.h"
-#include "driver/periph_ctrl.h"
+#include "hal/clk_gate_ll.h"
 
 #include "esp_system.h"
 #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
@@ -729,11 +729,11 @@ spi_t * spiStartBus(uint8_t spi_num, uint32_t clockDiv, uint8_t dataMode, uint8_
     }
 #elif CONFIG_IDF_TARGET_ESP32S3
     if(spi_num == FSPI) {
-        periph_module_reset( PERIPH_SPI2_MODULE );
-        periph_module_enable( PERIPH_SPI2_MODULE );
+        periph_ll_reset( PERIPH_SPI2_MODULE );
+        periph_ll_enable_clk_clear_rst( PERIPH_SPI2_MODULE );
     } else if(spi_num == HSPI) {
-        periph_module_reset( PERIPH_SPI3_MODULE );
-        periph_module_enable( PERIPH_SPI3_MODULE );
+        periph_ll_reset( PERIPH_SPI3_MODULE );
+        periph_ll_enable_clk_clear_rst( PERIPH_SPI3_MODULE );
     }
 #elif CONFIG_IDF_TARGET_ESP32
     if(spi_num == HSPI) {
@@ -747,8 +747,8 @@ spi_t * spiStartBus(uint8_t spi_num, uint32_t clockDiv, uint8_t dataMode, uint8_
         DPORT_CLEAR_PERI_REG_MASK(DPORT_PERIP_RST_EN_REG, DPORT_SPI01_RST);
     }
 #elif CONFIG_IDF_TARGET_ESP32C3
-    periph_module_reset( PERIPH_SPI2_MODULE );
-    periph_module_enable( PERIPH_SPI2_MODULE );
+    periph_ll_reset( PERIPH_SPI2_MODULE );
+    periph_ll_enable_clk_clear_rst( PERIPH_SPI2_MODULE );
 #endif
 
     SPI_MUTEX_LOCK();
@@ -1515,11 +1515,11 @@ uint32_t spiFrequencyToClockDiv(uint32_t freq)
 
     uint8_t calN = 1;
     spiClk_t bestReg = { 0 };
-    int32_t bestFreq = 0;
+    uint32_t bestFreq = 0;
 
     while(calN <= 0x3F) {
         spiClk_t reg = { 0 };
-        int32_t calFreq;
+        uint32_t calFreq;
         int32_t calPre;
         int8_t calPreVari = -2;
 
@@ -1541,11 +1541,11 @@ uint32_t spiFrequencyToClockDiv(uint32_t freq)
             }
             reg.clkcnt_l = ((reg.clkcnt_n + 1) / 2);
             calFreq = ClkRegToFreq(&reg);
-            if(calFreq == (int32_t) freq) {
+            if(calFreq == freq) {
                 memcpy(&bestReg, &reg, sizeof(bestReg));
                 break;
-            } else if(calFreq < (int32_t) freq) {
-                if(abs(freq - calFreq) < abs(freq - bestFreq)) {
+            } else if(calFreq < freq) {
+                if((freq - calFreq) < (freq - bestFreq)) {
                     bestFreq = calFreq;
                     memcpy(&bestReg, &reg, sizeof(bestReg));
                 }

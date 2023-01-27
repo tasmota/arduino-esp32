@@ -16,13 +16,13 @@ public:
 	}
 
 	void ARDUINO_ISR_ATTR isr() {
-		numberKeyPresses += 1;
+		numberKeyPresses = numberKeyPresses + 1;
 		pressed = true;
 	}
 
 	void checkPressed() {
 		if (pressed) {
-			Serial.printf("Button on pin %u has been pressed %u times\n", PIN, numberKeyPresses);
+			Serial.printf("Button on pin %u has been pressed %lu times\n", PIN, numberKeyPresses);
 			pressed = false;
 		}
 	}

@@ -5,8 +5,8 @@
 #   export ARDUINO_SKIP_IDF_VERSION_CHECK=1
 #   idf.py build
 
-set(min_supported_idf_version "4.4.0")
-set(max_supported_idf_version "4.4.99")
+set(min_supported_idf_version "5.1.0")
+set(max_supported_idf_version "5.1.99")
 set(idf_version "${IDF_VERSION_MAJOR}.${IDF_VERSION_MINOR}.${IDF_VERSION_PATCH}")
 
 if ("${idf_version}" AND NOT "$ENV{ARDUINO_SKIP_IDF_VERSION_CHECK}")
@@ -88,17 +88,9 @@ set(LIBRARY_SRCS
   libraries/HTTPClient/src/HTTPClient.cpp
   libraries/HTTPUpdate/src/HTTPUpdate.cpp
   libraries/LittleFS/src/LittleFS.cpp
-  libraries/Insights/src/Insights.cpp
   libraries/I2S/src/I2S.cpp
   libraries/NetBIOS/src/NetBIOS.cpp
   libraries/Preferences/src/Preferences.cpp
-  libraries/RainMaker/src/RMaker.cpp
-  libraries/RainMaker/src/RMakerNode.cpp
-  libraries/RainMaker/src/RMakerParam.cpp
-  libraries/RainMaker/src/RMakerDevice.cpp
-  libraries/RainMaker/src/RMakerType.cpp
-  libraries/RainMaker/src/RMakerQR.cpp
-  libraries/RainMaker/src/RMakerUtils.cpp
   libraries/SD_MMC/src/SD_MMC.cpp
   libraries/SD/src/SD.cpp
   libraries/SD/src/sd_diskio.cpp
@@ -121,7 +113,6 @@ set(LIBRARY_SRCS
   libraries/WebServer/src/Parsing.cpp
   libraries/WebServer/src/detail/mimetable.cpp
   libraries/WiFiClientSecure/src/ssl_client.cpp
-  libraries/WiFiClientSecure/src/esp_crt_bundle.c
   libraries/WiFiClientSecure/src/WiFiClientSecure.cpp
   libraries/WiFi/src/WiFiAP.cpp
   libraries/WiFi/src/WiFiClient.cpp
@@ -185,11 +176,9 @@ set(includedirs
   libraries/HTTPClient/src
   libraries/HTTPUpdate/src
   libraries/LittleFS/src
-  libraries/Insights/src
   libraries/I2S/src
   libraries/NetBIOS/src
   libraries/Preferences/src
-  libraries/RainMaker/src
   libraries/SD_MMC/src
   libraries/SD/src
   libraries/SimpleBLE/src
@@ -207,8 +196,8 @@ set(includedirs
 
 set(srcs ${CORE_SRCS} ${LIBRARY_SRCS} ${BLE_SRCS})
 set(priv_includes cores/esp32/libb64)
-set(requires spi_flash mbedtls mdns esp_adc_cal wifi_provisioning nghttp wpa_supplicant)
-set(priv_requires fatfs nvs_flash app_update spiffs bootloader_support openssl bt esp_ipc esp_hid)
+set(requires spi_flash mbedtls mdns wifi_provisioning wpa_supplicant esp_adc esp_eth http_parser)
+set(priv_requires fatfs nvs_flash app_update spiffs bootloader_support bt esp_hid)
 
 idf_component_register(INCLUDE_DIRS ${includedirs} PRIV_INCLUDE_DIRS ${priv_includes} SRCS ${srcs} REQUIRES ${requires} PRIV_REQUIRES ${priv_requires})
 
@@ -251,10 +240,6 @@ endfunction()
 
 maybe_add_component(esp-dsp)
 
-if(CONFIG_ESP_RMAKER_WORK_QUEUE_TASK_STACK)
-    maybe_add_component(esp_rainmaker)
-    maybe_add_component(qrcode)
-endif()
 if(IDF_TARGET MATCHES "esp32s2|esp32s3" AND CONFIG_TINYUSB_ENABLED)
     maybe_add_component(arduino_tinyusb)
 endif()

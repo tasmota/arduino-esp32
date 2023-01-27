@@ -29,13 +29,14 @@ _esp_flash_mmap_prefetch_pad_size = 16;
 _esp_memprot_prefetch_pad_size = 16;
 /* Memory alignment size for PMS */
 _esp_memprot_align_size = 4;
+_esp_mmu_block_size = (0x10000);
 MEMORY
 {
   /* All these values assume the flash cache is on, and have the blocks this uses subtracted from the length
   of the various regions. The 'data access port' dram/drom regions map to the same iram/irom regions but
   are connected to the data port of the CPU and eg allow bytewise access. */
   /* IRAM for CPU.*/
-  iram0_0_seg (RX) : org = (0x40020000 + 0x2000 + 0x2000), len = 0x3FFE0000 - (0x3FFB0000 + 0x2000 + 0x2000)
+  iram0_0_seg (RX) : org = (0x40020000 + 0x2000 + 0x2000), len = 0x3FFDF000 - (0x3FFB0000 + 0x2000 + 0x2000)
   /* Even though the segment name is iram, it is actually mapped to flash
   */
   iram0_2_seg (RX) : org = 0x40080020, len = 0x780000-0x20
@@ -47,7 +48,7 @@ MEMORY
     constraint that (paddr % 64KB == vaddr % 64KB).)
   */
   /* Shared data RAM, excluding memory reserved for bootloader and ROM bss/data/stack. */
-  dram0_0_seg (RW) : org = (0x3FFB0000 + 0x2000 + 0x2000), len = 0x3FFE0000 - (0x3FFB0000 + 0x2000 + 0x2000) - 0
+  dram0_0_seg (RW) : org = (0x3FFB0000 + 0x2000 + 0x2000), len = 0x3FFDF000 - (0x3FFB0000 + 0x2000 + 0x2000) - 0
   /* Flash mapped constant data */
   drom0_0_seg (R) : org = 0x3F000020, len = 0x3f0000-0x20
   /* (See iram0_2_seg for meaning of 0x20 offset in the above.) */
@@ -58,13 +59,12 @@ MEMORY
 
      Start of RTC slow memory is reserved for ULP co-processor code + data, if enabled.
   */
-  rtc_slow_seg(RW) : org = 0x50000000 + 0,
-                                     len = 0x2000 - 0
+  rtc_slow_seg(RW) : org = 0x50000000, len = 0x2000
   /* RTC fast memory (same block as above), viewed from data bus */
   rtc_data_seg(RW) : org = 0x3ff9e000, len = 0x2000 - (0x10)
   /* external memory, covers the dport, dram0, dram1 cacheable address space */
-  extern_ram_seg(RWX) : org = 0x3F500000,
-                                     len = 0xA80000
+  extern_ram_seg(RWX) : org = 0x3F800000,
+                                     len = 0x780000
 }
 _static_data_end = _bss_end;
 _heap_end = 0x40000000;
