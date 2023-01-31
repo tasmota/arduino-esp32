@@ -296,7 +296,7 @@ bool ETHClass::begin(uint8_t phy_addr, int power, int mdc, int mdio, eth_phy_typ
             break;
         case ETH_PHY_DP83848:
             eth_phy = esp_eth_phy_new_dp83848(&phy_config);
-            break;		    
+            break;
 #if CONFIG_ETH_SPI_ETHERNET_DM9051
         case ETH_PHY_DM9051:
             eth_phy = esp_eth_phy_new_dm9051(&phy_config);
