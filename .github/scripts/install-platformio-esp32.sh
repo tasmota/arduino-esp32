@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export PLATFORMIO_ESP32_PATH="$HOME/.platformio/packages/framework-arduinoespressif32"
-PLATFORMIO_ESP32_URL="https://github.com/tasmota/platform-espressif32.git"
+PLATFORMIO_ESP32_URL="https://github.com/platformio/platform-espressif32.git"
 
 TOOLCHAIN_VERSION="8.4.0+2021r2-patch5"
 ESPTOOLPY_VERSION="1.40400.0"
