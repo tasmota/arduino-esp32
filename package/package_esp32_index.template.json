@@ -64,7 +64,7 @@
             {
               "packager": "esp32",
               "name": "esptool_py",
-              "version": "4.2.1"
+              "version": "4.4"
             },
             {
               "packager": "esp32",
@@ -385,113 +385,106 @@
         },
         {
           "name": "esptool_py",
-          "version": "4.2.1",
+          "version": "4.4",
           "systems": [
             {
-              "host": "i686-mingw32",
-              "url": "https://github.com/espressif/arduino-esp32/releases/download/2.0.4/esptool-4.2.1-windows.zip",
-              "archiveFileName": "esptool-4.2.1-windows.zip",
-              "checksum": "SHA-256:582560067bfbd9895f4862eb5fdf87558ddee5d4d30e7575c9b8bcb0dd60fd94",
-              "size": "6368279"
-            },
-            {
-              "host": "x86_64-mingw32",
-              "url": "https://github.com/espressif/arduino-esp32/releases/download/2.0.4/esptool-4.2.1-windows.zip",
-              "archiveFileName": "esptool-4.2.1-windows.zip",
-              "checksum": "SHA-256:582560067bfbd9895f4862eb5fdf87558ddee5d4d30e7575c9b8bcb0dd60fd94",
-              "size": "6368279"
-            },
-            {
-              "host": "x86_64-apple-darwin",
-              "url": "https://github.com/espressif/arduino-esp32/releases/download/2.0.4/esptool-4.2.1-macos.tar.gz",
-              "archiveFileName": "esptool-4.2.1-macos.tar.gz",
-              "checksum": "SHA-256:a984f7ad8bdb40c42d0d368bf4bb21b69a9587aed46b7b6d7de23ca58a3f150d",
-              "size": "5816598"
-            },
-            {
               "host": "x86_64-pc-linux-gnu",
-              "url": "https://github.com/espressif/arduino-esp32/releases/download/2.0.4/esptool-4.2.1-linux.tar.gz",
-              "archiveFileName": "esptool-4.2.1-linux.tar.gz",
-              "checksum": "SHA-256:5a45fb77eb6574554ec2f45230d0b350f26f9c24ab3b6c13c4031ebdf72a34ab",
-              "size": "90123"
+              "url": "https://github.com/espressif/arduino-esp32/releases/download/2.0.6/esptool-v4.4-src.tar.gz",
+              "archiveFileName": "esptool-v4.4-src.tar.gz",
+              "checksum": "SHA-256:185570792b9518fb5b90b6f9c25f66f07771afbb7e51175366b0e6b89c0a4129",
+              "size": "86666"
             },
             {
               "host": "i686-pc-linux-gnu",
-              "url": "https://github.com/espressif/arduino-esp32/releases/download/2.0.4/esptool-4.2.1-linux.tar.gz",
-              "archiveFileName": "esptool-4.2.1-linux.tar.gz",
-              "checksum": "SHA-256:5a45fb77eb6574554ec2f45230d0b350f26f9c24ab3b6c13c4031ebdf72a34ab",
-              "size": "90123"
-            },
-            {
-              "host": "arm-linux-gnueabihf",
-              "url": "https://github.com/espressif/arduino-esp32/releases/download/2.0.4/esptool-4.2.1-linux.tar.gz",
-              "archiveFileName": "esptool-4.2.1-linux.tar.gz",
-              "checksum": "SHA-256:5a45fb77eb6574554ec2f45230d0b350f26f9c24ab3b6c13c4031ebdf72a34ab",
-              "size": "90123"
+              "url": "https://github.com/espressif/arduino-esp32/releases/download/2.0.6/esptool-v4.4-src.tar.gz",
+              "archiveFileName": "esptool-v4.4-src.tar.gz",
+              "checksum": "SHA-256:185570792b9518fb5b90b6f9c25f66f07771afbb7e51175366b0e6b89c0a4129",
+              "size": "86666"
             },
             {
               "host": "aarch64-linux-gnu",
-              "url": "https://github.com/espressif/arduino-esp32/releases/download/2.0.4/esptool-4.2.1-linux.tar.gz",
-              "archiveFileName": "esptool-4.2.1-linux.tar.gz",
-              "checksum": "SHA-256:5a45fb77eb6574554ec2f45230d0b350f26f9c24ab3b6c13c4031ebdf72a34ab",
-              "size": "90123"
+              "url": "https://github.com/espressif/arduino-esp32/releases/download/2.0.6/esptool-v4.4-src.tar.gz",
+              "archiveFileName": "esptool-v4.4-src.tar.gz",
+              "checksum": "SHA-256:185570792b9518fb5b90b6f9c25f66f07771afbb7e51175366b0e6b89c0a4129",
+              "size": "86666"
+            },
+            {
+              "host": "arm-linux-gnueabihf",
+              "url": "https://github.com/espressif/arduino-esp32/releases/download/2.0.6/esptool-v4.4-src.tar.gz",
+              "archiveFileName": "esptool-v4.4-src.tar.gz",
+              "checksum": "SHA-256:185570792b9518fb5b90b6f9c25f66f07771afbb7e51175366b0e6b89c0a4129",
+              "size": "86666"
+            },
+            {
+              "host": "x86_64-apple-darwin",
+              "url": "https://github.com/espressif/arduino-esp32/releases/download/2.0.6/esptool-v4.4-macos.tar.gz",
+              "archiveFileName": "esptool-v4.4-macos.tar.gz",
+              "checksum": "SHA-256:a719a4207438e79c1c83e8b233019995b17f1311905bad83066fce2917da8fee",
+              "size": "5822370"
+            },
+            {
+              "host": "x86_64-mingw32",
+              "url": "https://github.com/espressif/arduino-esp32/releases/download/2.0.6/esptool-v4.4-win64.zip",
+              "archiveFileName": "esptool-v4.4-win64.zip",
+              "checksum": "SHA-256:83cd533bf2e4716ba861d1c40b4adba7e75032e3eca488c72c05ac128a18e771",
+              "size": "6627040"
             }
           ]
         },
         {
-           "version": "3.0.0-gnu12-dc7f933",
-           "name": "mklittlefs",
-           "systems": [
-              {
-                 "host": "aarch64-linux-gnu",
-                 "url": "https://github.com/earlephilhower/esp-quick-toolchain/releases/download/3.0.0-gnu12/aarch64-linux-gnu.mklittlefs-c41e51a.200706.tar.gz",
-                 "archiveFileName": "aarch64-linux-gnu.mklittlefs-c41e51a.200706.tar.gz",
-                 "checksum": "SHA-256:fc56e389383749e4cf4fab0fcf75cc0ebc41e59383caf6c2eff1c3d9794af200",
-                 "size": "44651"
-              },
-              {
-                 "host": "arm-linux-gnueabihf",
-                 "url": "https://github.com/earlephilhower/esp-quick-toolchain/releases/download/3.0.0-gnu12/arm-linux-gnueabihf.mklittlefs-c41e51a.200706.tar.gz",
-                 "archiveFileName": "arm-linux-gnueabihf.mklittlefs-c41e51a.200706.tar.gz",
-                 "checksum": "SHA-256:52b642dd0545eb3bd8dfb75dde6601df21700e4867763fd2696274be279294c5",
-                 "size": "37211"
-              },
-              {
-                 "host": "i686-pc-linux-gnu",
-                 "url": "https://github.com/earlephilhower/esp-quick-toolchain/releases/download/3.0.0-gnu12/i686-linux-gnu.mklittlefs-c41e51a.200706.tar.gz",
-                 "archiveFileName": "i686-linux-gnu.mklittlefs-c41e51a.200706.tar.gz",
-                 "checksum": "SHA-256:7886051d8ccc54aed0af2e7cdf6ff992bb51638df86f3b545955697720b6d062",
-                 "size": "48033"
-              },
-              {
-                 "host": "i686-mingw32",
-                 "url": "https://github.com/earlephilhower/esp-quick-toolchain/releases/download/3.0.0-gnu12/i686-w64-mingw32.mklittlefs-c41e51a.200706.zip",
-                 "archiveFileName": "i686-w64-mingw32.mklittlefs-c41e51a.200706.zip",
-                 "checksum": "SHA-256:43740db30ce451454f2337331f10ab4ed41bd83dbf0fa0cb4387107388b59f42",
-                 "size": "332655"
-              },
-              {
-                 "host": "x86_64-apple-darwin",
-                 "url": "https://github.com/earlephilhower/esp-quick-toolchain/releases/download/3.0.0-gnu12/x86_64-apple-darwin14.mklittlefs-c41e51a.200706.tar.gz",
-                 "archiveFileName": "x86_64-apple-darwin14.mklittlefs-c41e51a.200706.tar.gz",
-                 "checksum": "SHA-256:e3edd5e05b70db3c7df6b9d626558348ad04804022fe955c799aeb51808c7dc3",
-                 "size": "362608"
-              },
-              {
-                 "host": "x86_64-pc-linux-gnu",
-                 "url": "https://github.com/earlephilhower/esp-quick-toolchain/releases/download/3.0.0-gnu12/x86_64-linux-gnu.mklittlefs-c41e51a.200706.tar.gz",
-                 "archiveFileName": "x86_64-linux-gnu.mklittlefs-c41e51a.200706.tar.gz",
-                 "checksum": "SHA-256:66e84dda0aad747517da3785125e05738a540948aab2b7eaa02855167a1eea53",
-                 "size": "46778"
-              },
-              {
-                 "host": "x86_64-mingw32",
-                 "url": "https://github.com/earlephilhower/esp-quick-toolchain/releases/download/3.0.0-gnu12/x86_64-w64-mingw32.mklittlefs-c41e51a.200706.zip",
-                 "archiveFileName": "x86_64-w64-mingw32.mklittlefs-c41e51a.200706.zip",
-                 "checksum": "SHA-256:2e319077491f8e832e96eb4f2f7a70dd919333cee4b388c394e0e848d031d542",
-                 "size": "345132"
-              }
-           ]
+          "version": "3.0.0-gnu12-dc7f933",
+          "name": "mklittlefs",
+          "systems": [
+            {
+              "host": "aarch64-linux-gnu",
+              "url": "https://github.com/earlephilhower/esp-quick-toolchain/releases/download/3.0.0-gnu12/aarch64-linux-gnu.mklittlefs-c41e51a.200706.tar.gz",
+              "archiveFileName": "aarch64-linux-gnu.mklittlefs-c41e51a.200706.tar.gz",
+              "checksum": "SHA-256:fc56e389383749e4cf4fab0fcf75cc0ebc41e59383caf6c2eff1c3d9794af200",
+              "size": "44651"
+            },
+            {
+              "host": "arm-linux-gnueabihf",
+              "url": "https://github.com/earlephilhower/esp-quick-toolchain/releases/download/3.0.0-gnu12/arm-linux-gnueabihf.mklittlefs-c41e51a.200706.tar.gz",
+              "archiveFileName": "arm-linux-gnueabihf.mklittlefs-c41e51a.200706.tar.gz",
+              "checksum": "SHA-256:52b642dd0545eb3bd8dfb75dde6601df21700e4867763fd2696274be279294c5",
+              "size": "37211"
+            },
+            {
+              "host": "i686-pc-linux-gnu",
+              "url": "https://github.com/earlephilhower/esp-quick-toolchain/releases/download/3.0.0-gnu12/i686-linux-gnu.mklittlefs-c41e51a.200706.tar.gz",
+              "archiveFileName": "i686-linux-gnu.mklittlefs-c41e51a.200706.tar.gz",
+              "checksum": "SHA-256:7886051d8ccc54aed0af2e7cdf6ff992bb51638df86f3b545955697720b6d062",
+              "size": "48033"
+            },
+            {
+              "host": "i686-mingw32",
+              "url": "https://github.com/earlephilhower/esp-quick-toolchain/releases/download/3.0.0-gnu12/i686-w64-mingw32.mklittlefs-c41e51a.200706.zip",
+              "archiveFileName": "i686-w64-mingw32.mklittlefs-c41e51a.200706.zip",
+              "checksum": "SHA-256:43740db30ce451454f2337331f10ab4ed41bd83dbf0fa0cb4387107388b59f42",
+              "size": "332655"
+            },
+            {
+              "host": "x86_64-apple-darwin",
+              "url": "https://github.com/earlephilhower/esp-quick-toolchain/releases/download/3.0.0-gnu12/x86_64-apple-darwin14.mklittlefs-c41e51a.200706.tar.gz",
+              "archiveFileName": "x86_64-apple-darwin14.mklittlefs-c41e51a.200706.tar.gz",
+              "checksum": "SHA-256:e3edd5e05b70db3c7df6b9d626558348ad04804022fe955c799aeb51808c7dc3",
+              "size": "362608"
+            },
+            {
+              "host": "x86_64-pc-linux-gnu",
+              "url": "https://github.com/earlephilhower/esp-quick-toolchain/releases/download/3.0.0-gnu12/x86_64-linux-gnu.mklittlefs-c41e51a.200706.tar.gz",
+              "archiveFileName": "x86_64-linux-gnu.mklittlefs-c41e51a.200706.tar.gz",
+              "checksum": "SHA-256:66e84dda0aad747517da3785125e05738a540948aab2b7eaa02855167a1eea53",
+              "size": "46778"
+            },
+            {
+              "host": "x86_64-mingw32",
+              "url": "https://github.com/earlephilhower/esp-quick-toolchain/releases/download/3.0.0-gnu12/x86_64-w64-mingw32.mklittlefs-c41e51a.200706.zip",
+              "archiveFileName": "x86_64-w64-mingw32.mklittlefs-c41e51a.200706.zip",
+              "checksum": "SHA-256:2e319077491f8e832e96eb4f2f7a70dd919333cee4b388c394e0e848d031d542",
+              "size": "345132"
+            }
+          ]
         },
         {
           "name": "mkspiffs",
