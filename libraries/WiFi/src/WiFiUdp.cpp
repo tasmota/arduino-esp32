@@ -288,12 +288,12 @@ int WiFiUDP::parsePacket(){
   struct sockaddr_storage si_other_storage;   // enough storage for v4 and v6
   socklen_t slen = sizeof(sockaddr_storage);
   int len;
-  char * buf = new char[1460];
-  if(!buf){
+  char *buf = (char *)malloc(1460);
+  if(!buf) {
     return 0;
   }
   if ((len = recvfrom(udp_server, buf, 1460, MSG_DONTWAIT, (struct sockaddr *) &si_other_storage, (socklen_t *)&slen)) == -1){
-    delete[] buf;
+    free(buf);
     if(errno == EWOULDBLOCK){
       return 0;
     }
