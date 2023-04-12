@@ -257,6 +257,7 @@ int WiFiUDP::endPacket(){
     recipient.sin6_addr = *(in6_addr*)(ip_addr_t*)remote_ip;
     recipient.sin6_family = AF_INET6;
     recipient.sin6_port = htons(remote_port);
+    recipient.sin6_scope_id = 0;
     int sent = sendto(udp_server, tx_buffer, tx_buffer_len, 0, (struct sockaddr*) &recipient, sizeof(recipient));
     if(sent < 0){
       log_e("could not send data: %d", errno);
