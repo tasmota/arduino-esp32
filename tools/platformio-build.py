@@ -36,7 +36,7 @@ partitions_name = board_config.get(
 )
 
 FRAMEWORK_DIR = platform.get_package_dir("framework-arduinoespressif32")
-FRAMEWORK_LIBS_DIR = platform.get_package_dir("framework-arduinoespressif32-libs")
+FRAMEWORK_SDK_DIR = join(FRAMEWORK_DIR, "tools", "esp32-arduino-libs")
 assert isdir(FRAMEWORK_DIR)
 
 
