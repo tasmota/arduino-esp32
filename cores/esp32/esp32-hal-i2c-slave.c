@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "soc/soc_caps.h"
+
+#if SOC_I2C_SUPPORT_SLAVE
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -165,7 +168,7 @@ static inline void i2c_ll_stretch_clr(i2c_dev_t *hw)
 
 static inline bool i2c_ll_slave_addressed(i2c_dev_t *hw)
 {
-#if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32S3
+#if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32S3
     return hw->sr.slave_addressed;
 #else
     return hw->status_reg.slave_addressed;
@@ -174,7 +177,7 @@ static inline bool i2c_ll_slave_addressed(i2c_dev_t *hw)
 
 static inline bool i2c_ll_slave_rw(i2c_dev_t *hw)//not exposed by hal_ll
 {
-#if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32S3
+#if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32S3
     return hw->sr.slave_rw;
 #else
     return hw->status_reg.slave_rw;
@@ -874,3 +877,5 @@ static bool i2cSlaveDetachBus(void * bus_i2c_num){
     }
     return true;
 }
+
+#endif /* SOC_I2C_SUPPORT_SLAVE */

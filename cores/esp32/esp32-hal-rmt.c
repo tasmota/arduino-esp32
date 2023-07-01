@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "soc/soc_caps.h"
+
+#if SOC_RMT_SUPPORTED
 #include "esp32-hal.h"
 #include "driver/gpio.h"
 #include "driver/rmt_tx.h"
@@ -478,7 +481,8 @@ bool rmtInit(int pin, rmt_ch_dir_t channel_direction, rmt_reserve_memsize_t mem_
     // TX Channel
     rmt_tx_channel_config_t tx_cfg;
     tx_cfg.gpio_num = pin;
-    tx_cfg.clk_src = RMT_CLK_SRC_APB;
+    // CLK_APB for ESP32|S2|S3|C3 -- CLK_PLL_F80M for C6 -- CLK_XTAL for H2
+    tx_cfg.clk_src = RMT_CLK_SRC_DEFAULT;
     tx_cfg.resolution_hz = frequency_Hz;
     tx_cfg.mem_block_symbols = SOC_RMT_MEM_WORDS_PER_CHANNEL * mem_size;
     tx_cfg.trans_queue_depth = 10;   // maximum allowed
@@ -503,7 +507,8 @@ bool rmtInit(int pin, rmt_ch_dir_t channel_direction, rmt_reserve_memsize_t mem_
     // RX Channel
     rmt_rx_channel_config_t rx_cfg;
     rx_cfg.gpio_num = pin;
-    rx_cfg.clk_src = RMT_CLK_SRC_APB;
+    // CLK_APB for ESP32|S2|S3|C3 -- CLK_PLL_F80M for C6 -- CLK_XTAL for H2
+    rx_cfg.clk_src = RMT_CLK_SRC_DEFAULT;
     rx_cfg.resolution_hz = frequency_Hz;
     rx_cfg.mem_block_symbols = SOC_RMT_MEM_WORDS_PER_CHANNEL * mem_size;
     rx_cfg.flags.invert_in = 0;
@@ -566,3 +571,5 @@ Err:
   _rmtDetachBus((void *)bus);
   return false;
 }
+
+#endif /* SOC_RMT_SUPPORTED */
