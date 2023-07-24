@@ -6,7 +6,7 @@
 
 #define EXTERNAL_NUM_INTERRUPTS 14
 #define NUM_DIGITAL_PINS        14
-#define NUM_ANALOG_INPUTS       4
+#define NUM_ANALOG_INPUTS       5
 
 #define analogInputToDigitalPin(p)  (((p)<NUM_ANALOG_INPUTS)?(analogChannelToDigitalPin(p)):-1)
 #define digitalPinToInterrupt(p)    (((p)<NUM_DIGITAL_PINS)?(p):-1)
