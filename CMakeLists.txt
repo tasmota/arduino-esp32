@@ -97,7 +97,6 @@ set(LIBRARY_SRCS
   libraries/SD/src/SD.cpp
   libraries/SD/src/sd_diskio.cpp
   libraries/SD/src/sd_diskio_crc.c
-  libraries/SimpleBLE/src/SimpleBLE.cpp
   libraries/SPIFFS/src/SPIFFS.cpp
   libraries/SPI/src/SPI.cpp
   libraries/Ticker/src/Ticker.cpp
@@ -150,7 +149,6 @@ set(includedirs
   libraries/Preferences/src
   libraries/SD_MMC/src
   libraries/SD/src
-  libraries/SimpleBLE/src
   libraries/SPIFFS/src
   libraries/SPI/src
   libraries/Ticker/src
