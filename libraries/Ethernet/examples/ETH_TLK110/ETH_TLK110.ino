@@ -67,7 +67,7 @@ void setup()
 {
   Serial.begin(115200);
   WiFi.onEvent(WiFiEvent);
-  ETH.begin(ETH_TYPE, ETH_ADDR, ETH_MDC_PIN, ETH_MDIO_PIN, ETH_POWER_PIN);
+  ETH.begin(ETH_TYPE, ETH_ADDR, ETH_MDC_PIN, ETH_MDIO_PIN, ETH_POWER_PIN, ETH_CLK_MODE);
 }
 
 
