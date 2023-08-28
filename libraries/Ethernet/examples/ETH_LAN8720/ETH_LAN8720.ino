@@ -16,7 +16,7 @@
 
 static bool eth_connected = false;
 
-void WiFiEvent(WiFiEvent_t event)
+void onEvent(arduino_event_id_t event, arduino_event_info_t info)
 {
   switch (event) {
     case ARDUINO_EVENT_ETH_START:
@@ -31,6 +31,10 @@ void WiFiEvent(WiFiEvent_t event)
       Serial.println("ETH Got IP");
       ETH.printInfo(Serial);
       eth_connected = true;
+      break;
+    case ARDUINO_EVENT_ETH_LOST_IP:
+      Serial.println("ETH Lost IP");
+      eth_connected = false;
       break;
     case ARDUINO_EVENT_ETH_DISCONNECTED:
       Serial.println("ETH Disconnected");
@@ -68,7 +72,7 @@ void testClient(const char * host, uint16_t port)
 void setup()
 {
   Serial.begin(115200);
-  WiFi.onEvent(WiFiEvent);
+  WiFi.onEvent(onEvent);
   ETH.begin();
 }
 

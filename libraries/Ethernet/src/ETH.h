@@ -118,7 +118,7 @@ class ETHClass {
 #if ETH_SPI_SUPPORTS_CUSTOM
         bool begin(eth_phy_type_t type, uint8_t phy_addr, int cs, int irq, int rst, SPIClass &spi);
 #endif
-        bool begin(eth_phy_type_t type, uint8_t phy_addr, int cs, int irq, int rst, spi_host_device_t spi_host, int sck, int miso, int mosi);
+        bool begin(eth_phy_type_t type, uint8_t phy_addr, int cs, int irq, int rst, spi_host_device_t spi_host, int sck=-1, int miso=-1, int mosi=-1);
 
         bool begin(){
 #if defined(ETH_PHY_TYPE) && defined(ETH_PHY_ADDR)
@@ -137,37 +137,38 @@ class ETHClass {
 
         void end();
 
-        bool config(IPAddress local_ip, IPAddress gateway, IPAddress subnet, IPAddress dns1 = (uint32_t)0x00000000, IPAddress dns2 = (uint32_t)0x00000000);
-
+        // Netif APIs
+        esp_netif_t * netif(void){ return _esp_netif; }
+        bool config(IPAddress local_ip = (uint32_t)0x00000000, IPAddress gateway = (uint32_t)0x00000000, IPAddress subnet = (uint32_t)0x00000000, IPAddress dns1 = (uint32_t)0x00000000, IPAddress dns2 = (uint32_t)0x00000000);
         const char * getHostname();
         bool setHostname(const char * hostname);
+        IPAddress localIP();
+        IPAddress subnetMask();
+        IPAddress gatewayIP();
+        IPAddress dnsIP(uint8_t dns_no = 0);
+        IPAddress broadcastIP();
+        IPAddress networkID();
+        uint8_t subnetCIDR();
+        bool enableIpV6();
+        IPv6Address localIPv6();
+        const char * ifkey(void);
+        const char * desc(void);
+        String impl_name(void);
 
+        // Event based getters
+        bool connected();
+        bool hasIP();
+
+        // ETH Handle APIs
+        uint8_t * macAddress(uint8_t* mac);
+        String macAddress();
         bool fullDuplex();
         bool linkUp();
         uint8_t linkSpeed();
         bool autoNegotiation();
         uint32_t phyAddr();
 
-        bool enableIpV6();
-        IPv6Address localIPv6();
-
-        IPAddress localIP();
-        IPAddress subnetMask();
-        IPAddress gatewayIP();
-        IPAddress dnsIP(uint8_t dns_no = 0);
-
-        IPAddress broadcastIP();
-        IPAddress networkID();
-        uint8_t subnetCIDR();
-
-        uint8_t * macAddress(uint8_t* mac);
-        String macAddress();
-
-        esp_netif_t * netif(void){ return _esp_netif; }
-        const char * ifkey(void);
-        const char * desc(void);
-        String impl_name(void);
-
+        // Info APIs
         void printInfo(Print & out);
 
         friend class WiFiClient;
@@ -188,7 +189,6 @@ class ETHClass {
 
     private:
         bool _eth_started;
-        bool _use_static_ip;
         esp_eth_handle_t _eth_handle;
         esp_netif_t *_esp_netif;
         uint8_t _eth_index;

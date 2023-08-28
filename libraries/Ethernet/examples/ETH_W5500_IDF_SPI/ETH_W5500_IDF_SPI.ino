@@ -3,6 +3,11 @@
 
 */
 
+#include <ETH.h>
+
+// Set this to 1 to enable dual Ethernet support
+#define USE_TWO_ETH_PORTS 0
+
 #define ETH_TYPE        ETH_PHY_W5500
 #define ETH_ADDR         1
 #define ETH_CS          15
@@ -13,25 +18,40 @@
 #define ETH_SPI_MISO    12
 #define ETH_SPI_MOSI    13
 
-#include <ETH.h>
+#if USE_TWO_ETH_PORTS
+// Second port on shared SPI bus
+#define ETH1_TYPE        ETH_PHY_W5500
+#define ETH1_ADDR         1
+#define ETH1_CS          32
+#define ETH1_IRQ         33
+#define ETH1_RST         18
+ETHClass ETH1(1);
+#endif
 
 static bool eth_connected = false;
 
-void WiFiEvent(WiFiEvent_t event)
+void onEvent(arduino_event_id_t event, arduino_event_info_t info)
 {
   switch (event) {
     case ARDUINO_EVENT_ETH_START:
       Serial.println("ETH Started");
       //set eth hostname here
-      ETH.setHostname("esp32-ethernet");
+      ETH.setHostname("esp32-eth0");
       break;
     case ARDUINO_EVENT_ETH_CONNECTED:
       Serial.println("ETH Connected");
       break;
     case ARDUINO_EVENT_ETH_GOT_IP:
-      Serial.println("ETH Got IP");
+      Serial.printf("ETH Got IP: '%s'\n", esp_netif_get_desc(info.got_ip.esp_netif));
       ETH.printInfo(Serial);
+#if USE_TWO_ETH_PORTS
+      ETH1.printInfo(Serial);
+#endif
       eth_connected = true;
+      break;
+    case ARDUINO_EVENT_ETH_LOST_IP:
+      Serial.println("ETH Lost IP");
+      eth_connected = false;
       break;
     case ARDUINO_EVENT_ETH_DISCONNECTED:
       Serial.println("ETH Disconnected");
@@ -69,8 +89,12 @@ void testClient(const char * host, uint16_t port)
 void setup()
 {
   Serial.begin(115200);
-  WiFi.onEvent(WiFiEvent);
+  WiFi.onEvent(onEvent);
   ETH.begin(ETH_TYPE, ETH_ADDR, ETH_CS, ETH_IRQ, ETH_RST, ETH_SPI_HOST, ETH_SPI_SCK, ETH_SPI_MISO, ETH_SPI_MOSI);
+#if USE_TWO_ETH_PORTS
+  // Since SPI bus is shared, we should skip the SPI pins when calling ETH1.begin()
+  ETH1.begin(ETH1_TYPE, ETH1_ADDR, ETH1_CS, ETH1_IRQ, ETH1_RST, ETH_SPI_HOST);
+#endif
 }
 
 
