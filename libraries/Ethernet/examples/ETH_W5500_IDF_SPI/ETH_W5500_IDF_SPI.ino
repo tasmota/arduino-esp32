@@ -3,14 +3,15 @@
 
 */
 
-// Important to be defined BEFORE including ETH.h for ETH.begin() to work.
-// Example RMII LAN8720 (Olimex, etc.)
-#define ETH_PHY_TYPE        ETH_PHY_LAN8720
-#define ETH_PHY_ADDR         0
-#define ETH_PHY_MDC         23
-#define ETH_PHY_MDIO        18
-#define ETH_PHY_POWER       -1
-#define ETH_CLK_MODE        ETH_CLOCK_GPIO0_IN
+#define ETH_TYPE        ETH_PHY_W5500
+#define ETH_ADDR         1
+#define ETH_CS          15
+#define ETH_IRQ          4
+#define ETH_RST          5
+#define ETH_SPI_HOST    SPI2_HOST
+#define ETH_SPI_SCK     14
+#define ETH_SPI_MISO    12
+#define ETH_SPI_MOSI    13
 
 #include <ETH.h>
 
@@ -69,7 +70,7 @@ void setup()
 {
   Serial.begin(115200);
   WiFi.onEvent(WiFiEvent);
-  ETH.begin();
+  ETH.begin(ETH_TYPE, ETH_ADDR, ETH_CS, ETH_IRQ, ETH_RST, ETH_SPI_HOST, ETH_SPI_SCK, ETH_SPI_MISO, ETH_SPI_MOSI);
 }
 
 
