@@ -999,7 +999,7 @@ void ETHClass::printInfo(Print & out){
   out.print("      ");
   out.print("ether ");
   out.print(macAddress());
-  out.printf(" phy 0x%X", phyAddr());
+  out.printf(" phy 0x%lX", phyAddr());
   out.println();
   
   out.print("      ");
