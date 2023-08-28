@@ -444,7 +444,7 @@ static void _arduino_event_cb(void* arg, esp_event_base_t event_base, int32_t ev
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_ETH_GOT_IP) {
         #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_VERBOSE
             ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
-            log_v("Ethernet got %sip:" IPSTR, event->ip_changed?"new":"", IP2STR(&event->ip_info.ip));
+            log_v("Ethernet got %sip:" IPSTR, event->ip_changed?"new ":"", IP2STR(&event->ip_info.ip));
     	#endif
         arduino_event.event_id = ARDUINO_EVENT_ETH_GOT_IP;
     	memcpy(&arduino_event.event_info.got_ip, event_data, sizeof(ip_event_got_ip_t));

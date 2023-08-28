@@ -5,11 +5,12 @@
 
 #include <ETH.h>
 
+#define ETH_TYPE        ETH_PHY_TLK110
 #define ETH_ADDR        31
-#define ETH_POWER_PIN   17
 #define ETH_MDC_PIN     23
 #define ETH_MDIO_PIN    18
-#define ETH_TYPE        ETH_PHY_TLK110
+#define ETH_POWER_PIN   17
+#define ETH_CLK_MODE    ETH_CLOCK_GPIO0_IN
 
 static bool eth_connected = false;
 
@@ -25,16 +26,8 @@ void WiFiEvent(WiFiEvent_t event)
       Serial.println("ETH Connected");
       break;
     case ARDUINO_EVENT_ETH_GOT_IP:
-      Serial.print("ETH MAC: ");
-      Serial.print(ETH.macAddress());
-      Serial.print(", IPv4: ");
-      Serial.print(ETH.localIP());
-      if (ETH.fullDuplex()) {
-        Serial.print(", FULL_DUPLEX");
-      }
-      Serial.print(", ");
-      Serial.print(ETH.linkSpeed());
-      Serial.println("Mbps");
+      Serial.println("ETH Got IP");
+      ETH.printInfo(Serial);
       eth_connected = true;
       break;
     case ARDUINO_EVENT_ETH_DISCONNECTED:
@@ -74,7 +67,7 @@ void setup()
 {
   Serial.begin(115200);
   WiFi.onEvent(WiFiEvent);
-  ETH.begin(ETH_ADDR, ETH_POWER_PIN, ETH_MDC_PIN, ETH_MDIO_PIN, ETH_TYPE);
+  ETH.begin(ETH_TYPE, ETH_ADDR, ETH_MDC_PIN, ETH_MDIO_PIN, ETH_POWER_PIN);
 }
 
 
