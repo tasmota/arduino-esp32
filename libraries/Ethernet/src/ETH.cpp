@@ -45,7 +45,6 @@ extern void add_esp_interface_netif(esp_interface_t interface, esp_netif_t* esp_
 
 ETHClass::ETHClass(uint8_t eth_index)
     :_eth_started(false)
-    ,_use_static_ip(false)
     ,_eth_handle(NULL)
     ,_esp_netif(NULL)
     ,_eth_index(eth_index)
@@ -616,7 +615,6 @@ bool ETHClass::begin(eth_phy_type_t type, uint8_t phy_addr, int cs, int irq, int
 void ETHClass::end(void)
 {
     _eth_started = false;
-    _use_static_ip = false;
 
     if(_esp_netif != NULL){
         esp_netif_destroy(_esp_netif);
@@ -704,53 +702,52 @@ bool ETHClass::config(IPAddress local_ip, IPAddress gateway, IPAddress subnet, I
     }
     esp_err_t err = ESP_OK;
     esp_netif_ip_info_t info;
+    esp_netif_dns_info_t d1;
+    esp_netif_dns_info_t d2;
+    d1.ip.type = IPADDR_TYPE_V4;
+    d2.ip.type = IPADDR_TYPE_V4;
 
     if(static_cast<uint32_t>(local_ip) != 0){
         info.ip.addr = static_cast<uint32_t>(local_ip);
         info.gw.addr = static_cast<uint32_t>(gateway);
         info.netmask.addr = static_cast<uint32_t>(subnet);
+        d1.ip.u_addr.ip4.addr = static_cast<uint32_t>(dns1);
+        d2.ip.u_addr.ip4.addr = static_cast<uint32_t>(dns2);
     } else {
         info.ip.addr = 0;
         info.gw.addr = 0;
         info.netmask.addr = 0;
+        d1.ip.u_addr.ip4.addr = 0;
+        d2.ip.u_addr.ip4.addr = 0;
 	}
 
+    // Stop DHCPC
     err = esp_netif_dhcpc_stop(_esp_netif);
     if(err != ESP_OK && err != ESP_ERR_ESP_NETIF_DHCP_ALREADY_STOPPED){
         log_e("DHCP could not be stopped! Error: %d", err);
         return false;
     }
 
+    // Set IPv4, Netmask, Gateway
     err = esp_netif_set_ip_info(_esp_netif, &info);
     if(err != ERR_OK){
         log_e("ETH IP could not be configured! Error: %d", err);
         return false;
     }
     
-    if(info.ip.addr){
-        _use_static_ip = true;
-    } else {
+    // Set DNS1-Server
+    esp_netif_set_dns_info(_esp_netif, ESP_NETIF_DNS_MAIN, &d1);
+
+    // Set DNS2-Server
+    esp_netif_set_dns_info(_esp_netif, ESP_NETIF_DNS_BACKUP, &d2);
+
+    // Start DHCPC if static IP was set
+    if(info.ip.addr == 0){
         err = esp_netif_dhcpc_start(_esp_netif);
         if(err != ESP_OK && err != ESP_ERR_ESP_NETIF_DHCP_ALREADY_STARTED){
             log_w("DHCP could not be started! Error: %d", err);
             return false;
         }
-        _use_static_ip = false;
-    }
-
-    esp_netif_dns_info_t d;
-    d.ip.type = IPADDR_TYPE_V4;
-
-    if(static_cast<uint32_t>(dns1) != 0) {
-        // Set DNS1-Server
-        d.ip.u_addr.ip4.addr = static_cast<uint32_t>(dns1);
-        esp_netif_set_dns_info(_esp_netif, ESP_NETIF_DNS_MAIN, &d);
-    }
-
-    if(static_cast<uint32_t>(dns2) != 0) {
-        // Set DNS2-Server
-        d.ip.u_addr.ip4.addr = static_cast<uint32_t>(dns2);
-        esp_netif_set_dns_info(_esp_netif, ESP_NETIF_DNS_BACKUP, &d);
     }
 
     return true;
@@ -880,21 +877,24 @@ IPv6Address ETHClass::localIPv6()
     return IPv6Address(addr.addr);
 }
 
-const char * ETHClass::ifkey(void){
+const char * ETHClass::ifkey(void)
+{
     if(_esp_netif == NULL){
         return "";
     }
     return esp_netif_get_ifkey(_esp_netif);
 }
 
-const char * ETHClass::desc(void){
+const char * ETHClass::desc(void)
+{
     if(_esp_netif == NULL){
         return "";
     }
     return esp_netif_get_desc(_esp_netif);
 }
 
-String ETHClass::impl_name(void){
+String ETHClass::impl_name(void)
+{
     if(_esp_netif == NULL){
         return String("");
     }
@@ -907,9 +907,18 @@ String ETHClass::impl_name(void){
     return String(netif_name);
 }
 
+bool ETHClass::connected()
+{
+    return WiFiGenericClass::getStatusBits() & ETH_CONNECTED_BIT;
+}
+
+bool ETHClass::hasIP()
+{
+    return WiFiGenericClass::getStatusBits() & ETH_HAS_IP_BIT;
+}
+
 bool ETHClass::linkUp()
 {
-    //return WiFiGenericClass::getStatusBits() & ETH_CONNECTED_BIT;
     if(_esp_netif == NULL){
         return false;
     }
