@@ -52,6 +52,7 @@ ETHClass::ETHClass(uint8_t eth_index)
 #if ETH_SPI_SUPPORTS_CUSTOM
     ,_spi(NULL)
 #endif
+    ,_spi_freq_mhz(20)
     ,_pin_cs(-1)
     ,_pin_irq(-1)
     ,_pin_rst(-1)
@@ -252,7 +253,7 @@ esp_err_t ETHClass::eth_spi_read(uint32_t cmd, uint32_t addr, void *data, uint32
         return ESP_FAIL;
     }
     // log_i(" 0x%04lx 0x%04lx %lu", cmd, addr, data_len);
-    _spi->beginTransaction(SPISettings(ETH_SPI_CLOCK_MHZ * 1000 * 1000, MSBFIRST, SPI_MODE0));
+    _spi->beginTransaction(SPISettings(_spi_freq_mhz * 1000 * 1000, MSBFIRST, SPI_MODE0));
     digitalWrite(_pin_cs, LOW);
 
 #if CONFIG_ETH_SPI_ETHERNET_DM9051
@@ -294,7 +295,7 @@ esp_err_t ETHClass::eth_spi_write(uint32_t cmd, uint32_t addr, const void *data,
         return ESP_FAIL;
     }
     // log_i("0x%04lx 0x%04lx %lu", cmd, addr, data_len);
-    _spi->beginTransaction(SPISettings(ETH_SPI_CLOCK_MHZ * 1000 * 1000, MSBFIRST, SPI_MODE0));
+    _spi->beginTransaction(SPISettings(_spi_freq_mhz * 1000 * 1000, MSBFIRST, SPI_MODE0));
     digitalWrite(_pin_cs, LOW);
 
 #if CONFIG_ETH_SPI_ETHERNET_DM9051
@@ -336,7 +337,7 @@ bool ETHClass::beginSPI(eth_phy_type_t type, uint8_t phy_addr, int cs, int irq, 
 #if ETH_SPI_SUPPORTS_CUSTOM
     SPIClass *spi, 
 #endif
-    int sck, int miso, int mosi, spi_host_device_t spi_host){
+    int sck, int miso, int mosi, spi_host_device_t spi_host, uint8_t spi_freq_mhz){
     esp_err_t ret = ESP_OK;
 
     if(_eth_started || _esp_netif != NULL || _eth_handle != NULL){
@@ -372,6 +373,9 @@ bool ETHClass::beginSPI(eth_phy_type_t type, uint8_t phy_addr, int cs, int irq, 
 #if ETH_SPI_SUPPORTS_CUSTOM
     _spi = spi;
 #endif
+    if(spi_freq_mhz){
+        _spi_freq_mhz = spi_freq_mhz;
+    }
     _phy_type = type;
     _pin_cs = cs;
     _pin_irq = irq;
@@ -423,7 +427,8 @@ bool ETHClass::beginSPI(eth_phy_type_t type, uint8_t phy_addr, int cs, int irq, 
     // Configure SPI interface for specific SPI module
     spi_device_interface_config_t spi_devcfg = {
         .mode = 0,
-        .clock_speed_hz = ETH_SPI_CLOCK_MHZ * 1000 * 1000,
+        .clock_speed_hz = _spi_freq_mhz * 1000 * 1000,
+        .input_delay_ns = 20,
         .spics_io_num = _pin_cs,
         .queue_size = 20,
     };
@@ -597,19 +602,19 @@ err:
 }
 
 #if ETH_SPI_SUPPORTS_CUSTOM
-bool ETHClass::begin(eth_phy_type_t type, uint8_t phy_addr, int cs, int irq, int rst, SPIClass &spi){
+bool ETHClass::begin(eth_phy_type_t type, uint8_t phy_addr, int cs, int irq, int rst, SPIClass &spi, uint8_t spi_freq_mhz){
 
-    return beginSPI(type, phy_addr, cs, irq, rst, &spi, -1, -1, -1, SPI2_HOST);
+    return beginSPI(type, phy_addr, cs, irq, rst, &spi, -1, -1, -1, SPI2_HOST, spi_freq_mhz);
 }
 #endif
 
-bool ETHClass::begin(eth_phy_type_t type, uint8_t phy_addr, int cs, int irq, int rst, spi_host_device_t spi_host, int sck, int miso, int mosi){
+bool ETHClass::begin(eth_phy_type_t type, uint8_t phy_addr, int cs, int irq, int rst, spi_host_device_t spi_host, int sck, int miso, int mosi, uint8_t spi_freq_mhz){
 
     return beginSPI(type, phy_addr, cs, irq, rst,
 #if ETH_SPI_SUPPORTS_CUSTOM 
         NULL, 
 #endif
-        sck, miso, mosi, spi_host);
+        sck, miso, mosi, spi_host, spi_freq_mhz);
 }
 
 void ETHClass::end(void)
