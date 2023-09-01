@@ -83,13 +83,9 @@ typedef enum { ETH_CLOCK_GPIO0_IN, ETH_CLOCK_GPIO0_OUT, ETH_CLOCK_GPIO16_OUT, ET
 #define ETH_RMII_CRS_DV 27
 #endif /* CONFIG_ETH_USE_ESP32_EMAC */
 
-#ifndef ETH_SPI_CLOCK_MHZ
-#if CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
-#define ETH_SPI_CLOCK_MHZ 36
-#else
-#define ETH_SPI_CLOCK_MHZ 12
-#endif
-#endif /* ETH_SPI_CLOCK_MHZ */
+#ifndef ETH_PHY_SPI_FREQ_MHZ
+#define ETH_PHY_SPI_FREQ_MHZ 20
+#endif /* ETH_PHY_SPI_FREQ_MHZ */
 
 typedef enum { 
 #if CONFIG_ETH_USE_ESP32_EMAC
@@ -116,9 +112,9 @@ class ETHClass {
         bool begin(eth_phy_type_t type, uint8_t phy_addr, int mdc, int mdio, int power, eth_clock_mode_t clk_mode);
 #endif /* CONFIG_ETH_USE_ESP32_EMAC */
 #if ETH_SPI_SUPPORTS_CUSTOM
-        bool begin(eth_phy_type_t type, uint8_t phy_addr, int cs, int irq, int rst, SPIClass &spi);
+        bool begin(eth_phy_type_t type, uint8_t phy_addr, int cs, int irq, int rst, SPIClass &spi, uint8_t spi_freq_mhz=ETH_PHY_SPI_FREQ_MHZ);
 #endif
-        bool begin(eth_phy_type_t type, uint8_t phy_addr, int cs, int irq, int rst, spi_host_device_t spi_host, int sck=-1, int miso=-1, int mosi=-1);
+        bool begin(eth_phy_type_t type, uint8_t phy_addr, int cs, int irq, int rst, spi_host_device_t spi_host, int sck=-1, int miso=-1, int mosi=-1, uint8_t spi_freq_mhz=ETH_PHY_SPI_FREQ_MHZ);
 
         bool begin(){
 #if defined(ETH_PHY_TYPE) && defined(ETH_PHY_ADDR)
@@ -126,9 +122,9 @@ class ETHClass {
             return begin(ETH_PHY_TYPE, ETH_PHY_ADDR, ETH_PHY_MDC, ETH_PHY_MDIO, ETH_PHY_POWER, ETH_CLK_MODE);
     #elif defined(ETH_PHY_CS) && defined(ETH_PHY_IRQ) && defined(ETH_PHY_RST)
         #if ETH_SPI_SUPPORTS_CUSTOM && defined(ETH_PHY_SPI)
-            return begin(ETH_PHY_TYPE, ETH_PHY_ADDR, ETH_PHY_CS, ETH_PHY_IRQ, ETH_PHY_RST, ETH_PHY_SPI);
+            return begin(ETH_PHY_TYPE, ETH_PHY_ADDR, ETH_PHY_CS, ETH_PHY_IRQ, ETH_PHY_RST, ETH_PHY_SPI, ETH_PHY_SPI_FREQ_MHZ);
         #elif defined(ETH_PHY_SPI_HOST) && defined(ETH_PHY_SPI_SCK) && defined(ETH_PHY_SPI_MISO) && defined(ETH_PHY_SPI_MOSI)
-            return begin(ETH_PHY_TYPE, ETH_PHY_ADDR, ETH_PHY_CS, ETH_PHY_IRQ, ETH_PHY_RST, ETH_PHY_SPI_HOST, ETH_PHY_SPI_SCK, ETH_PHY_SPI_MISO, ETH_PHY_SPI_MOSI);
+            return begin(ETH_PHY_TYPE, ETH_PHY_ADDR, ETH_PHY_CS, ETH_PHY_IRQ, ETH_PHY_RST, ETH_PHY_SPI_HOST, ETH_PHY_SPI_SCK, ETH_PHY_SPI_MISO, ETH_PHY_SPI_MOSI, ETH_PHY_SPI_FREQ_MHZ);
         #endif
     #endif
 #endif
@@ -196,6 +192,7 @@ class ETHClass {
 #if ETH_SPI_SUPPORTS_CUSTOM
         SPIClass * _spi;
 #endif
+        uint8_t _spi_freq_mhz;
         int8_t _pin_cs;
         int8_t _pin_irq;
         int8_t _pin_rst;
@@ -214,7 +211,7 @@ class ETHClass {
 #if ETH_SPI_SUPPORTS_CUSTOM
             SPIClass * spi, 
 #endif
-            int sck, int miso, int mosi, spi_host_device_t spi_host);
+            int sck, int miso, int mosi, spi_host_device_t spi_host, uint8_t spi_freq_mhz);
 };
 
 extern ETHClass ETH;
