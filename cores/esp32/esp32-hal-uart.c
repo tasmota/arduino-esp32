@@ -778,7 +778,7 @@ void uartStartDetectBaudrate(uart_t *uart) {
         return;
     }
 
-#if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32H2
+#if CONFIG_IDF_TARGET_ESP32C2 || CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32H2
     
     // ESP32-C3 requires further testing
     // Baud rate detection returns wrong values 
@@ -849,7 +849,7 @@ uartDetectBaudrate(uart_t *uart)
 
     return default_rates[i];
 #else
-#if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32H2
+#if CONFIG_IDF_TARGET_ESP32C2 || CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32H2
     log_e("ESP32-C3 baud rate detection is not supported.");
 #else
     log_e("ESP32-S3 baud rate detection is not supported.");
