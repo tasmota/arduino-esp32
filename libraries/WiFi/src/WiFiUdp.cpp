@@ -75,6 +75,7 @@ uint8_t WiFiUDP::begin(IPAddress address, uint16_t port){
     memset((char *) tmpaddr, 0, sizeof(struct sockaddr_in));
     tmpaddr->sin6_family = AF_INET6;
     tmpaddr->sin6_port = htons(server_port);
+    tmpaddr->sin6_scope_id = ip_addr->u_addr.ip6.zone;
     inet6_addr_from_ip6addr(&tmpaddr->sin6_addr, ip_2_ip6(ip_addr));
     tmpaddr->sin6_flowinfo = 0;
     sock_size = sizeof(sockaddr_in6);
@@ -256,7 +257,7 @@ int WiFiUDP::endPacket(){
     recipient.sin6_addr = *(in6_addr*)(ip_addr_t*)remote_ip;
     recipient.sin6_family = AF_INET6;
     recipient.sin6_port = htons(remote_port);
-    recipient.sin6_scope_id = 0;
+    recipient.sin6_scope_id = remote_ip.zone();
     int sent = sendto(udp_server, tx_buffer, tx_buffer_len, 0, (struct sockaddr*) &recipient, sizeof(recipient));
     if(sent < 0){
       log_e("could not send data: %d", errno);
@@ -308,7 +309,7 @@ int WiFiUDP::parsePacket(){
 #if LWIP_IPV6 
   else if (si_other_storage.ss_family == AF_INET6) {
     struct sockaddr_in6 &si_other = (sockaddr_in6&) si_other_storage;
-    remote_ip = IPAddress(IPv6, (uint8_t*)&si_other.sin6_addr);   // force IPv6
+    remote_ip = IPAddress(IPv6, (uint8_t*)&si_other.sin6_addr, si_other.sin6_scope_id);   // force IPv6
     ip_addr_t *ip_addr = (ip_addr_t*) remote_ip;
     /* Dual-stack: Unmap IPv4 mapped IPv6 addresses */
     if (IP_IS_V6_VAL(*ip_addr) && ip6_addr_isipv4mappedipv6(ip_2_ip6(ip_addr))) {
