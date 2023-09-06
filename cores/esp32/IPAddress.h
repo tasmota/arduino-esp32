@@ -168,7 +168,7 @@ public:
         IP_SET_TYPE_VAL(_ip, IPADDR_TYPE_V6);
         ip6_addr_clear_zone(ip_2_ip6(&_ip));
     }
-    uint8_t zone() const { return isV6() ? ip_2_ip6(&_ip)->zone : 0; }
+    inline uint8_t zone() const { return isV6() ? ip_2_ip6(&_ip)->zone : 0; }
     void setZone(uint8_t zone) {
         if (isV6()) {
             ip_2_ip6(&_ip)->zone = zone;
@@ -187,7 +187,7 @@ protected:
     const uint16_t* raw6() const { return nullptr; }
     bool isV6() const { return false; }
     void setV6() { }
-    uint8_t zone() const { return 0; }
+    inline uint8_t zone() const { return 0; }
     void setZone(uint8_t zone) { }
 
 #endif

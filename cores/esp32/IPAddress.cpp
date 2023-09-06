@@ -250,65 +250,9 @@ bool IPAddress::fromString6(const char *address) {
             // we have a zone id
             setZone(netif_name_to_index(s + 1));
         }
-    } else {
+        return true;
     }
-
-    uint32_t acc = 0; // Accumulator
-    int dots = 0, doubledots = -1;
-
-    while (*address && *address != '%')
-    {
-        char c = tolower(*address++);
-        if (isalnum(c)) {
-            if (c >= 'a')
-                c -= 'a' - '0' - 10;
-            acc = acc * 16 + (c - '0');
-            if (acc > 0xffff)
-                // Value out of range
-                return false;
-        }
-        else if (c == ':') {
-            if (*address == ':') {
-                if (doubledots >= 0)
-                    // :: allowed once
-                    return false;
-                // remember location
-                doubledots = dots + !!acc;
-                address++;
-            }
-            if (dots == 7)
-                // too many separators
-                return false;
-            raw6()[dots++] = PP_HTONS(acc);
-            acc = 0;
-        }
-        else
-            // Invalid char
-            return false;
-    }
-
-    if (doubledots == -1 && dots != 7)
-        // Too few separators
-        return false;
-    raw6()[dots++] = PP_HTONS(acc);
-
-    if (doubledots != -1) {
-        for (int i = dots - doubledots - 1; i >= 0; i--)
-            raw6()[8 - dots + doubledots + i] = raw6()[doubledots + i];
-        for (int i = doubledots; i < 8 - dots + doubledots; i++)
-            raw6()[i] = 0;
-    }
-
-    setV6();
-
-    if (*address != '%') {
-        // we have a zone id
-        address++;
-        uint8_t zone = atol(address);
-Serial.printf(">>>: IPAddress fromstring6 zone = %i\n", zone);
-        setZone(zone);
-    }
-    return true;
+    return false;
 }
 #endif // LWIP_IPV6
 
