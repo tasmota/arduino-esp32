@@ -61,7 +61,7 @@
 // #define ETH_PHY_SPI         SPI
 
 // This will be uncommented once custom SPI support is available in ESP-IDF
-#define ETH_SPI_SUPPORTS_CUSTOM 0
+#define ETH_SPI_SUPPORTS_CUSTOM 1
 
 #include "WiFi.h"
 #if ETH_SPI_SUPPORTS_CUSTOM
