@@ -261,8 +261,7 @@ esp_err_t ETHClass::eth_spi_read(uint32_t cmd, uint32_t addr, void *data, uint32
 
 #if CONFIG_ETH_SPI_ETHERNET_DM9051
     if(_phy_type == ETH_PHY_DM9051){
-        _spi->write(cmd);
-        _spi->write(addr);
+        _spi->write(((cmd & 0x01) << 7) | (addr & 0x7F));
     } else
 #endif
 #if CONFIG_ETH_SPI_ETHERNET_W5500
@@ -303,8 +302,7 @@ esp_err_t ETHClass::eth_spi_write(uint32_t cmd, uint32_t addr, const void *data,
 
 #if CONFIG_ETH_SPI_ETHERNET_DM9051
     if(_phy_type == ETH_PHY_DM9051){
-        _spi->write(cmd);
-        _spi->write(addr);
+        _spi->write(((cmd & 0x01) << 7) | (addr & 0x7F));
     } else
 #endif
 #if CONFIG_ETH_SPI_ETHERNET_W5500
