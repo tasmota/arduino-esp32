@@ -5,6 +5,7 @@ PLATFORMIO_ESP32_URL="https://github.com/platformio/platform-espressif32.git"
 
 TOOLCHAIN_VERSION="12.2.0+20230208"
 ESPTOOLPY_VERSION="~1.40501.0"
+FRAMEWORK_LIBS_REPOSITORY="https://github.com/espressif/esp32-arduino-libs.git"
 ESPRESSIF_ORGANIZATION_NAME="espressif"
 
 echo "Installing Python Wheel ..."
