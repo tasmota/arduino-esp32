@@ -96,7 +96,6 @@ set(LIBRARY_SRCS
   libraries/SD/src/sd_diskio.cpp
   libraries/SD/src/sd_diskio_crc.c
   libraries/SimpleBLE/src/SimpleBLE.cpp
-  libraries/SPIFFS/src/SPIFFS.cpp
   libraries/SPI/src/SPI.cpp
   libraries/Ticker/src/Ticker.cpp
   libraries/Update/src/Updater.cpp
@@ -183,7 +182,6 @@ set(includedirs
   libraries/SD_MMC/src
   libraries/SD/src
   libraries/SimpleBLE/src
-  libraries/SPIFFS/src
   libraries/SPI/src
   libraries/Ticker/src
   libraries/Update/src
@@ -198,7 +196,7 @@ set(includedirs
 set(srcs ${CORE_SRCS} ${LIBRARY_SRCS} ${BLE_SRCS})
 set(priv_includes cores/esp32/libb64)
 set(requires spi_flash mbedtls mdns esp_adc_cal wifi_provisioning nghttp wpa_supplicant)
-set(priv_requires fatfs nvs_flash app_update spiffs bootloader_support openssl bt esp_ipc esp_hid)
+set(priv_requires fatfs nvs_flash app_update bootloader_support openssl bt esp_ipc esp_hid)
 
 idf_component_register(INCLUDE_DIRS ${includedirs} PRIV_INCLUDE_DIRS ${priv_includes} SRCS ${srcs} REQUIRES ${requires} PRIV_REQUIRES ${priv_requires})
 
