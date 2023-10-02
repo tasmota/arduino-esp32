@@ -82,7 +82,7 @@ bool LittleFSFS::begin(bool formatOnFail, const char * basePath, uint8_t maxOpen
       .base_path = basePath,
       .partition_label = partitionLabel_,
       .format_if_mount_failed = false,
-      .dont_mount = false
+      .dont_mount = false,
       .grow_on_mount = true
     };
 
