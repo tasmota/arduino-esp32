@@ -26,6 +26,8 @@
 #define SOC_RX0 3
 #elif CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
 #define SOC_RX0 44
+#elif CONFIG_IDF_TARGET_ESP32C2
+#define SOC_RX0 19
 #elif CONFIG_IDF_TARGET_ESP32C3
 #define SOC_RX0 20
 #elif CONFIG_IDF_TARGET_ESP32C6
@@ -40,6 +42,8 @@
 #define SOC_TX0 1
 #elif CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
 #define SOC_TX0 43
+#elif CONFIG_IDF_TARGET_ESP32C2
+#define SOC_TX0 20
 #elif CONFIG_IDF_TARGET_ESP32C3
 #define SOC_TX0 21
 #elif CONFIG_IDF_TARGET_ESP32C6
@@ -59,6 +63,8 @@ void serialEvent(void) {}
 #define RX1 9
 #elif CONFIG_IDF_TARGET_ESP32S2
 #define RX1 18
+#elif CONFIG_IDF_TARGET_ESP32C2
+#define RX1 9
 #elif CONFIG_IDF_TARGET_ESP32C3
 #define RX1 18
 #elif CONFIG_IDF_TARGET_ESP32S3
@@ -75,6 +81,8 @@ void serialEvent(void) {}
 #define TX1 10
 #elif CONFIG_IDF_TARGET_ESP32S2
 #define TX1 17
+#elif CONFIG_IDF_TARGET_ESP32C2
+#define TX1 10
 #elif CONFIG_IDF_TARGET_ESP32C3
 #define TX1 19
 #elif CONFIG_IDF_TARGET_ESP32S3
@@ -456,8 +464,6 @@ void HardwareSerial::end(bool fullyTerminate)
       // do not invalidate callbacks, detach pins, invalidate DBG output
       uart_driver_delete(_uart_nr);
     }
-
-    uartEnd(_uart);
     _uart = 0;
     _destroyEventTask();
 }
