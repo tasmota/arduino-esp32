@@ -1,3 +1,6 @@
+#include "soc/soc_caps.h"
+#if SOC_RMT_SUPPORTED
+
 #include "esp32-hal-rgb-led.h"
 
 
@@ -42,3 +45,5 @@ void neopixelWrite(uint8_t pin, uint8_t red_val, uint8_t green_val, uint8_t blue
   }
   rmtWrite(_pin, led_data, RMT_SYMBOLS_OF(led_data), RMT_WAIT_FOR_EVER);
 }
+
+#endif /* SOC_RMT_SUPPORTED */
