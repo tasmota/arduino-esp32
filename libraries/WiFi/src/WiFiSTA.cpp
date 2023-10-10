@@ -42,7 +42,7 @@ extern "C" {
 #include "lwip/dns.h"
 #include <esp_smartconfig.h>
 #include <esp_netif.h>
-#include "esp_eap_client.h"
+#include "esp_wpa2.h"
 #include "esp_mac.h"
 }
 
