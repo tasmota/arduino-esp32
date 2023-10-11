@@ -26,7 +26,6 @@
 #include "WiFiGeneric.h"
 #include "WiFiSTA.h"
 
-extern "C" {
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -42,9 +41,13 @@ extern "C" {
 #include "lwip/dns.h"
 #include <esp_smartconfig.h>
 #include <esp_netif.h>
-#include "esp_eap_client.h"
 #include "esp_mac.h"
-}
+
+#if __has_include ("esp_eap_client.h")
+#include "esp_eap_client.h"
+#else
+#include "esp_wpa2.h"
+#endif
 
 // -----------------------------------------------------------------------------------------------------------------------
 // ---------------------------------------------------- Private functions ------------------------------------------------
