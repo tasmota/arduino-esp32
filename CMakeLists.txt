@@ -112,8 +112,6 @@ set(LIBRARY_SRCS
   libraries/WebServer/src/WebServer.cpp
   libraries/WebServer/src/Parsing.cpp
   libraries/WebServer/src/detail/mimetable.cpp
-  libraries/WiFiClientSecure/src/ssl_client.cpp
-  libraries/WiFiClientSecure/src/WiFiClientSecure.cpp
   libraries/WiFi/src/WiFiAP.cpp
   libraries/WiFi/src/WiFiClient.cpp
   libraries/WiFi/src/WiFi.cpp
@@ -151,7 +149,6 @@ set(includedirs
   libraries/Update/src
   libraries/USB/src
   libraries/WebServer/src
-  libraries/WiFiClientSecure/src
   libraries/WiFi/src
   libraries/Wire/src
   )
