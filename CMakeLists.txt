@@ -119,7 +119,6 @@ set(LIBRARY_SRCS
   libraries/WiFi/src/WiFiServer.cpp
   libraries/WiFi/src/WiFiSTA.cpp
   libraries/WiFi/src/WiFiUdp.cpp
-  libraries/WiFiProv/src/WiFiProv.cpp
   libraries/Wire/src/Wire.cpp
   )
 
@@ -150,7 +149,6 @@ set(includedirs
   libraries/USB/src
   libraries/WebServer/src
   libraries/WiFi/src
-  libraries/WiFiProv/src
   libraries/Wire/src
   )
 
