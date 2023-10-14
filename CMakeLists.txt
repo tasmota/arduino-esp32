@@ -154,7 +154,7 @@ set(includedirs
   libraries/Wire/src
   )
 
-set(srcs ${CORE_SRCS} ${LIBRARY_SRCS} ${BLE_SRCS})
+set(srcs ${CORE_SRCS} ${LIBRARY_SRCS}
 set(priv_includes cores/esp32/libb64)
 set(requires spi_flash mbedtls mdns esp_adc_cal wifi_provisioning nghttp wpa_supplicant)
 set(priv_requires fatfs nvs_flash app_update bootloader_support openssl bt esp_ipc esp_hid)
