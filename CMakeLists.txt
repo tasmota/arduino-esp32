@@ -95,7 +95,6 @@ set(LIBRARY_SRCS
   libraries/SD/src/SD.cpp
   libraries/SD/src/sd_diskio.cpp
   libraries/SD/src/sd_diskio_crc.c
-  libraries/SimpleBLE/src/SimpleBLE.cpp
   libraries/SPI/src/SPI.cpp
   libraries/Ticker/src/Ticker.cpp
   libraries/Update/src/Updater.cpp
@@ -124,44 +123,11 @@ set(LIBRARY_SRCS
   libraries/Wire/src/Wire.cpp
   )
 
-set(BLE_SRCS
-  libraries/BLE/src/BLE2902.cpp
-  libraries/BLE/src/BLE2904.cpp
-  libraries/BLE/src/BLEAddress.cpp
-  libraries/BLE/src/BLEAdvertisedDevice.cpp
-  libraries/BLE/src/BLEAdvertising.cpp
-  libraries/BLE/src/BLEBeacon.cpp
-  libraries/BLE/src/BLECharacteristic.cpp
-  libraries/BLE/src/BLECharacteristicMap.cpp
-  libraries/BLE/src/BLEClient.cpp
-  libraries/BLE/src/BLEDescriptor.cpp
-  libraries/BLE/src/BLEDescriptorMap.cpp
-  libraries/BLE/src/BLEDevice.cpp
-  libraries/BLE/src/BLEEddystoneTLM.cpp
-  libraries/BLE/src/BLEEddystoneURL.cpp
-  libraries/BLE/src/BLEExceptions.cpp
-  libraries/BLE/src/BLEHIDDevice.cpp
-  libraries/BLE/src/BLERemoteCharacteristic.cpp
-  libraries/BLE/src/BLERemoteDescriptor.cpp
-  libraries/BLE/src/BLERemoteService.cpp
-  libraries/BLE/src/BLEScan.cpp
-  libraries/BLE/src/BLESecurity.cpp
-  libraries/BLE/src/BLEServer.cpp
-  libraries/BLE/src/BLEService.cpp
-  libraries/BLE/src/BLEServiceMap.cpp
-  libraries/BLE/src/BLEUtils.cpp
-  libraries/BLE/src/BLEUUID.cpp
-  libraries/BLE/src/BLEValue.cpp
-  libraries/BLE/src/FreeRTOS.cpp
-  libraries/BLE/src/GeneralUtils.cpp
-  )
-
 set(includedirs
   variants/${CONFIG_ARDUINO_VARIANT}/
   cores/esp32/
   libraries/ArduinoOTA/src
   libraries/AsyncUDP/src
-  libraries/BLE/src
   libraries/BluetoothSerial/src
   libraries/DNSServer/src
   libraries/EEPROM/src
@@ -178,7 +144,6 @@ set(includedirs
   libraries/Preferences/src
   libraries/SD_MMC/src
   libraries/SD/src
-  libraries/SimpleBLE/src
   libraries/SPI/src
   libraries/Ticker/src
   libraries/Update/src
