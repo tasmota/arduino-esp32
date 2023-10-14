@@ -29,7 +29,7 @@
 #include "WiFiType.h"
 #include "IPAddress.h"
 #include "esp_smartconfig.h"
-//#include "wifi_provisioning/manager.h"
+#include "wifi_provisioning/manager.h"
 
 ESP_EVENT_DECLARE_BASE(ARDUINO_EVENTS);
 
