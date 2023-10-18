@@ -82,6 +82,7 @@ set(LIBRARY_SRCS
   libraries/BluetoothSerial/src/BTScanResultsSet.cpp
   libraries/DNSServer/src/DNSServer.cpp
   libraries/EEPROM/src/EEPROM.cpp
+  libraries/ESP_I2S/src/ESP_I2S.cpp
   libraries/ESPmDNS/src/ESPmDNS.cpp
   libraries/Ethernet/src/ETH.cpp
   libraries/FFat/src/FFat.cpp
@@ -90,7 +91,6 @@ set(LIBRARY_SRCS
   libraries/HTTPClient/src/HTTPClient.cpp
   libraries/HTTPUpdate/src/HTTPUpdate.cpp
   libraries/LittleFS/src/LittleFS.cpp
-  libraries/I2S/src/I2S.cpp
   libraries/NetBIOS/src/NetBIOS.cpp
   libraries/Preferences/src/Preferences.cpp
   libraries/SD_MMC/src/SD_MMC.cpp
@@ -132,6 +132,7 @@ set(includedirs
   libraries/BluetoothSerial/src
   libraries/DNSServer/src
   libraries/EEPROM/src
+  libraries/ESP_I2S/src
   libraries/ESPmDNS/src
   libraries/Ethernet/src
   libraries/FFat/src
@@ -139,7 +140,6 @@ set(includedirs
   libraries/HTTPClient/src
   libraries/HTTPUpdate/src
   libraries/LittleFS/src
-  libraries/I2S/src
   libraries/NetBIOS/src
   libraries/Preferences/src
   libraries/SD_MMC/src
