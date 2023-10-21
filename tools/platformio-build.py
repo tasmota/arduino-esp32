@@ -101,6 +101,7 @@ def generate_bootloader_image(bootloader_elf):
         env.VerboseAction(" ".join([
             '"$PYTHONEXE" "$OBJCOPY"',
             "--chip", build_mcu, "elf2image",
+            "--dont-append-digest",
             "--flash_mode", "${__get_board_flash_mode(__env__)}",
             "--flash_freq", "${__get_board_f_flash(__env__)}",
             "--flash_size", board_config.get("upload.flash_size", "4MB"),
