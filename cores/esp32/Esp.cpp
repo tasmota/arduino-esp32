@@ -48,6 +48,9 @@ extern "C" {
 #include "esp32s3/rom/spi_flash.h"
 #include "soc/efuse_reg.h"
 #define ESP_FLASH_IMAGE_BASE 0x0000     // Esp32s3 is located at 0x0000
+#elif CONFIG_IDF_TARGET_ESP32C2
+#include "esp32c2/rom/spi_flash.h"
+#define ESP_FLASH_IMAGE_BASE 0x0000     // Esp32c2 is located at 0x0000
 #elif CONFIG_IDF_TARGET_ESP32C3
 #include "esp32c3/rom/spi_flash.h"
 #define ESP_FLASH_IMAGE_BASE 0x0000     // Esp32c3 is located at 0x0000
@@ -245,6 +248,10 @@ String EspClass::getSketchMD5()
         md5.add(buf.get(), readBytes);
         lengthLeft -= readBytes;
         offset += readBytes;
+
+	#if CONFIG_FREERTOS_UNICORE
+        delay(1);  // Fix solo WDT
+        #endif
     }
     md5.calculate();
     result = md5.toString();
@@ -366,7 +373,7 @@ FlashMode_t EspClass::getFlashChipMode(void)
    #if CONFIG_IDF_TARGET_ESP32S2
    uint32_t spi_ctrl = REG_READ(PERIPHS_SPI_FLASH_CTRL);
    #else
-   #if CONFIG_IDF_TARGET_ESP32H2 || CONFIG_IDF_TARGET_ESP32C6
+   #if CONFIG_IDF_TARGET_ESP32H2 || CONFIG_IDF_TARGET_ESP32C2 || CONFIG_IDF_TARGET_ESP32C6
    uint32_t spi_ctrl = REG_READ(DR_REG_SPI0_BASE + 0x8);
    #else
    uint32_t spi_ctrl = REG_READ(SPI_CTRL_REG(0));
