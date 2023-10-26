@@ -201,6 +201,13 @@ env.Prepend(LIBS=libs)
 # Process framework extra images
 #
 
+# Tasmota places extra images "safeboot" in project folder
+flash_extra_img = ''.join([str(element) for element in board_config.get("upload.arduino.flash_extra_images", [])])
+if "safeboot" in flash_extra_img:
+    EXTRA_IMG_DIR = variants_dir
+else:
+    EXTRA_IMG_DIR = FRAMEWORK_DIR
+
 env.Append(
     LIBSOURCE_DIRS=[join(FRAMEWORK_DIR, "libraries")],
     FLASH_EXTRA_IMAGES=[
@@ -212,7 +219,7 @@ env.Append(
         ("0xe000", join(FRAMEWORK_DIR, "tools", "partitions", "boot_app0.bin")),
     ]
     + [
-        (offset, join(FRAMEWORK_DIR, img))
+        (offset, join(EXTRA_IMG_DIR, img))
         for offset, img in board_config.get("upload.arduino.flash_extra_images", [])
     ],
 )
