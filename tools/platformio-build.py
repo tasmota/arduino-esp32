@@ -179,10 +179,10 @@ corelib_env.Append(CPPDEFINES=["ARDUINO_CORE_BUILD"])
 libs = []
 
 variants_dir = join(FRAMEWORK_DIR, "variants")
-build_name = join(board_config.get("name"))
+build_variants_dir = join(board_config.get("build.variants_dir"))
 
 if "build.variants_dir" in board_config:
-    if "Tasmota" not in build_name:
+    if len(build_variants_dir) > 1:
         variants_dir = join("$PROJECT_DIR", board_config.get("build.variants_dir"))
 
 if "build.variant" in board_config:
@@ -206,11 +206,14 @@ env.Prepend(LIBS=libs)
 # Process framework extra images
 #
 
-# Tasmota places extra images "safeboot" in custom variants folder in project directory
-if "Tasmota" in build_name:
-    EXTRA_IMG_DIR = join(variants_dir, "tasmota")
+# Tasmota places extra images "safeboot" in custom variants folder in Project or Framework directory
+build_name = join(board_config.get("name"))
+if len(build_variants_dir) > 1:
+    EXTRA_IMG_DIR = join(variants_dir)
 else:
     EXTRA_IMG_DIR = FRAMEWORK_DIR
+    if "tasmota" in build_name.lower():
+        EXTRA_IMG_DIR = join(EXTRA_IMG_DIR, "variants", "tasmota")
 
 env.Append(
     LIBSOURCE_DIRS=[join(FRAMEWORK_DIR, "libraries")],
