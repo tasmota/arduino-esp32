@@ -54,9 +54,12 @@ public:
     IPAddress(const IPAddress& from);
     IPAddress(uint8_t first_octet, uint8_t second_octet, uint8_t third_octet, uint8_t fourth_octet);
     IPAddress(uint8_t o1, uint8_t o2, uint8_t o3, uint8_t o4, uint8_t o5, uint8_t o6, uint8_t o7, uint8_t o8, uint8_t o9, uint8_t o10, uint8_t o11, uint8_t o12, uint8_t o13, uint8_t o14, uint8_t o15, uint8_t o16);
-    IPAddress(uint32_t address) { ctor32(address); }
-    IPAddress(const uint8_t *address);      // v4 only
+    IPAddress(uint32_t address) { *this = address; }
+    IPAddress(unsigned long address) { *this = address; }
+    IPAddress(int address) { *this = address; }
+    IPAddress(const uint8_t *address) { *this = address; }
     IPAddress(IPType type, const uint8_t *address);
+    IPAddress(IPType type, const uint8_t *address, uint8_t zone);
 
     bool fromString(const char *address);
     bool fromString(const String &address) { return fromString(address.c_str()); }
@@ -67,7 +70,7 @@ public:
     operator uint32_t()       { return isV4()? v4(): (uint32_t)0; }
 
     // generic IPv4 wrapper to uint32-view like arduino loves to see it
-    const uint32_t& v4() const { return ip_2_ip4(&_ip)->addr; } // for raw_address(const)
+    const uint32_t& v4() const { return ip_2_ip4(&_ip)->addr; }
             uint32_t& v4()       { return ip_2_ip4(&_ip)->addr; }
 
     bool operator==(const IPAddress& addr) const {
@@ -96,11 +99,16 @@ public:
 
     // Overloaded index operator to allow getting and setting individual octets of the address
     uint8_t operator[](int index) const {
-        return isV4()? *(raw_address() + index): 0;
+        if (!isV4()) {
+            return 0;
+        }
+
+        return ip4_addr_get_byte_val(*ip_2_ip4(&_ip), index);
     }
     uint8_t& operator[](int index) {
         setV4();
-        return *(raw_address() + index);
+        uint8_t* ptr = reinterpret_cast<uint8_t*>(&v4());
+        return *(ptr + index);
     }
 
     // Overloaded copy operators to allow initialisation of IPAddress objects from other types
@@ -167,6 +175,13 @@ public:
         IP_SET_TYPE_VAL(_ip, IPADDR_TYPE_V6);
         ip6_addr_clear_zone(ip_2_ip6(&_ip));
     }
+    inline uint8_t zone() const { return isV6() ? ip_2_ip6(&_ip)->zone : 0; }
+    void setZone(uint8_t zone) {
+        if (isV6()) {
+            ip_2_ip6(&_ip)->zone = zone;
+        }
+    }
+
 
 protected:
     bool fromString6(const char *address);
@@ -179,6 +194,8 @@ protected:
     const uint16_t* raw6() const { return nullptr; }
     bool isV6() const { return false; }
     void setV6() { }
+    inline uint8_t zone() const { return 0; }
+    void setZone(uint8_t zone) { }
 
 #endif
 
