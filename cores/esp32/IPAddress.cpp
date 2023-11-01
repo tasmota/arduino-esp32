@@ -37,11 +37,13 @@ IPAddress::IPAddress(const IPAddress& from)
 }
 
 IPAddress::IPAddress(uint8_t first_octet, uint8_t second_octet, uint8_t third_octet, uint8_t fourth_octet) {
-    setV4();
-    (*this)[0] = first_octet;
-    (*this)[1] = second_octet;
-    (*this)[2] = third_octet;
-    (*this)[3] = fourth_octet;
+    uint8_t addr[] {
+        first_octet,
+        second_octet,
+        third_octet,
+        fourth_octet,
+    };
+    *this = &addr[0];
 }
 
 IPAddress::IPAddress(uint8_t o1, uint8_t o2, uint8_t o3, uint8_t o4, uint8_t o5, uint8_t o6, uint8_t o7, uint8_t o8, uint8_t o9, uint8_t o10, uint8_t o11, uint8_t o12, uint8_t o13, uint8_t o14, uint8_t o15, uint8_t o16) {
@@ -65,12 +67,17 @@ IPAddress::IPAddress(uint8_t o1, uint8_t o2, uint8_t o3, uint8_t o4, uint8_t o5,
 }
 
 IPAddress::IPAddress(IPType type, const uint8_t *address) {
+    IPAddress(type, address, 0);
+}
+
+IPAddress::IPAddress(IPType type, const uint8_t *address, uint8_t zone) {
     if (type == IPv4) {
         setV4();
         memcpy(&this->_ip.u_addr.ip4, address, 4);
     } else if (type == IPv6) {
         setV6();
         memcpy(&this->_ip.u_addr.ip6.addr[0], address, 16);
+        setZone(zone);
     } else {
 #if LWIP_IPV6
   _ip = *IP6_ADDR_ANY;
@@ -79,19 +86,6 @@ IPAddress::IPAddress(IPType type, const uint8_t *address) {
 #endif
     }
 
-}
-
-void IPAddress::ctor32(uint32_t address) {
-    setV4();
-    v4() = address;
-}
-
-IPAddress::IPAddress(const uint8_t *address) {
-    setV4();
-    (*this)[0] = address[0];
-    (*this)[1] = address[1];
-    (*this)[2] = address[2];
-    (*this)[3] = address[3];
 }
 
 bool IPAddress::fromString(const char *address) {
@@ -149,8 +143,9 @@ bool IPAddress::fromString4(const char *address) {
 }
 
 IPAddress& IPAddress::operator=(const uint8_t *address) {
-    setV4();
-    v4() = *reinterpret_cast<const uint32_t*>(address);
+    uint32_t value;
+    memcpy_P(&value, address, sizeof(value));
+    *this = value;
     return *this;
 }
 
@@ -161,14 +156,18 @@ IPAddress& IPAddress::operator=(uint32_t address) {
 }
 
 bool IPAddress::operator==(const uint8_t* addr) const {
-    return isV4() && v4() == *reinterpret_cast<const uint32_t*>(addr);
+    if (!isV4()) {
+        return false;
+    }
+
+    uint32_t value;
+    memcpy_P(&value, addr, sizeof(value));
+
+    return v4() == value;
 }
 
 size_t IPAddress::printTo(Print& p) const {
     size_t n = 0;
-
-    // if (!isSet())
-    //     return p.print(F("(IP unset)"));
 
 #if LWIP_IPV6
     if (isV6()) {
@@ -184,6 +183,13 @@ size_t IPAddress::printTo(Print& p) const {
                 count0++;
             if ((i != 7 && count0 < 2) || count0 == 7)
                 n += p.print(':');
+        }
+        // add a zone if zone-id si non-zero
+        if (_ip.u_addr.ip6.zone) {
+            n += p.print('%');
+            char if_name[NETIF_NAMESIZE];
+            netif_index_to_name(_ip.u_addr.ip6.zone, if_name);
+            n += p.print(if_name);
         }
         return n;
     }
@@ -202,7 +208,7 @@ String IPAddress::toString() const
     StreamString sstr;
 #if LWIP_IPV6
     if (isV6())
-        sstr.reserve(40); // 8 shorts x 4 chars each + 7 colons + nullterm
+        sstr.reserve(44); // 8 shorts x 4 chars each + 7 colons + nullterm + '%' + zone-id
     else
 #endif
         sstr.reserve(16); // 4 bytes with 3 chars max + 3 dots + nullterm, or '(IP unset)'
@@ -230,56 +236,20 @@ void IPAddress::clear() {
 #if LWIP_IPV6
 
 bool IPAddress::fromString6(const char *address) {
-    // TODO: test test test
-
-    uint32_t acc = 0; // Accumulator
-    int dots = 0, doubledots = -1;
-
-    while (*address)
-    {
-        char c = tolower(*address++);
-        if (isalnum(c)) {
-            if (c >= 'a')
-                c -= 'a' - '0' - 10;
-            acc = acc * 16 + (c - '0');
-            if (acc > 0xffff)
-                // Value out of range
-                return false;
+    ip6_addr_t ip6;
+    if (ip6addr_aton(address, &ip6)) {
+        setV6();
+        memcpy(&this->_ip.u_addr.ip6.addr[0], ip6.addr, 16);
+        // look for '%' in string
+        const char *s = address;
+        while (*s && *s != '%') { s++; }
+        if (*s == '%') {
+            // we have a zone id
+            setZone(netif_name_to_index(s + 1));
         }
-        else if (c == ':') {
-            if (*address == ':') {
-                if (doubledots >= 0)
-                    // :: allowed once
-                    return false;
-                // remember location
-                doubledots = dots + !!acc;
-                address++;
-            }
-            if (dots == 7)
-                // too many separators
-                return false;
-            raw6()[dots++] = PP_HTONS(acc);
-            acc = 0;
-        }
-        else
-            // Invalid char
-            return false;
+        return true;
     }
-
-    if (doubledots == -1 && dots != 7)
-        // Too few separators
-        return false;
-    raw6()[dots++] = PP_HTONS(acc);
-
-    if (doubledots != -1) {
-        for (int i = dots - doubledots - 1; i >= 0; i--)
-            raw6()[8 - dots + doubledots + i] = raw6()[doubledots + i];
-        for (int i = doubledots; i < 8 - dots + doubledots; i++)
-            raw6()[i] = 0;
-    }
-
-    setV6();
-    return true;
+    return false;
 }
 #endif // LWIP_IPV6
 
