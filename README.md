@@ -18,7 +18,8 @@ Here are the ESP32 series supported by the Tasmota Arduino-ESP32 project:
 
 | **SoC**  | **Stable** | **Development** |                                           **Datasheet**                                           |
 |----------|:----------:|:---------------:|:-------------------------------------------------------------------------------------------------:|
-| ESP32    |     Yes    |       Yes       |    [ESP32](https://www.espressif.com/sites/default/files/documentation/esp32_datasheet_en.pdf)    |
+| ESP32    |     Yes    |       Yes       | [ESP32](https://www.espressif.com/sites/default/files/documentation/esp32_datasheet_en.pdf)    |
+| ESP32solo1|    Yes    |       Yes       | [ESP32solo1](https://www.espressif.com/sites/default/files/documentation/esp32-solo-1_datasheet_en.pdf)    |
 | ESP32-S2 |     Yes    |       Yes       | [ESP32-S2](https://www.espressif.com/sites/default/files/documentation/esp32-s2_datasheet_en.pdf) |
 | ESP32-S3 |     Yes    |       Yes       | [ESP32-S3](https://www.espressif.com/sites/default/files/documentation/esp32-s3_datasheet_en.pdf) |
 | ESP32-C3 |     Yes    |       Yes       | [ESP32-C3](https://www.espressif.com/sites/default/files/documentation/esp32-c3_datasheet_en.pdf) |
