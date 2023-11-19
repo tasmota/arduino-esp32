@@ -29,7 +29,7 @@ dependencies:
   idf: ">=5.1"
   # mdns 1.2.1 is necessary to build H2 with no WiFi
   mdns: "1.2.1"
-  espressif/esp-zboss-lib: "^1.0.1"
-  espressif/esp-zigbee-lib: "^1.0.1"
+  #espressif/esp-zboss-lib: "^1.0.1"
+  #espressif/esp-zigbee-lib: "^1.0.1"
   joltwallet/littlefs: "^1.10.2"
  
