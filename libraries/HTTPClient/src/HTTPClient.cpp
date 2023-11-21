@@ -31,6 +31,7 @@
 
 #ifdef HTTPCLIENT_1_1_COMPATIBLE
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
 #endif
 
 #include <StreamString.h>
@@ -60,6 +61,37 @@ public:
     }
 };
 
+class TLSTraits : public TransportTraits
+{
+public:
+    TLSTraits(const char* CAcert, const char* clicert = nullptr, const char* clikey = nullptr) :
+        _cacert(CAcert), _clicert(clicert), _clikey(clikey)
+    {
+    }
+
+    std::unique_ptr<WiFiClient> create() override
+    {
+        return std::unique_ptr<WiFiClient>(new WiFiClientSecure());
+    }
+
+    bool verify(WiFiClient& client, const char* host) override
+    {
+        WiFiClientSecure& wcs = static_cast<WiFiClientSecure&>(client);
+        if (_cacert == nullptr) {
+            wcs.setInsecure();
+        } else {
+            wcs.setCACert(_cacert);
+            wcs.setCertificate(_clicert);
+            wcs.setPrivateKey(_clikey);
+        }
+        return true;
+    }
+
+protected:
+    const char* _cacert;
+    const char* _clicert;
+    const char* _clikey;
+};
 #endif // HTTPCLIENT_1_1_COMPATIBLE
 
 /**
@@ -165,6 +197,29 @@ bool HTTPClient::begin(WiFiClient &client, String host, uint16_t port, String ur
 
 
 #ifdef HTTPCLIENT_1_1_COMPATIBLE
+bool HTTPClient::begin(String url, const char* CAcert)
+{
+    if(_client && !_tcpDeprecated) {
+        log_d("mix up of new and deprecated api");
+        _canReuse = false;
+        end();
+    }
+
+    clear();
+    _port = 443;
+    if (!beginInternal(url, "https")) {
+        return false;
+    }
+    _secure = true;
+    _transportTraits = TransportTraitsPtr(new TLSTraits(CAcert));
+    if(!_transportTraits) {
+        log_e("could not create transport traits");
+        return false;
+    }
+
+    return true;
+}
+
 /**
  * parsing the url for all needed parameters
  * @param url String
@@ -267,6 +322,47 @@ bool HTTPClient::begin(String host, uint16_t port, String uri)
     return true;
 }
 
+bool HTTPClient::begin(String host, uint16_t port, String uri, const char* CAcert)
+{
+    if(_client && !_tcpDeprecated) {
+        log_d("mix up of new and deprecated api");
+        _canReuse = false;
+        end();
+    }
+
+    clear();
+    _host = host;
+    _port = port;
+    _uri = uri;
+
+    if (strlen(CAcert) == 0) {
+        return false;
+    }
+    _secure = true;
+    _transportTraits = TransportTraitsPtr(new TLSTraits(CAcert));
+    return true;
+}
+
+bool HTTPClient::begin(String host, uint16_t port, String uri, const char* CAcert, const char* cli_cert, const char* cli_key)
+{
+    if(_client && !_tcpDeprecated) {
+        log_d("mix up of new and deprecated api");
+        _canReuse = false;
+        end();
+    }
+
+    clear();
+    _host = host;
+    _port = port;
+    _uri = uri;
+
+    if (strlen(CAcert) == 0) {
+        return false;
+    }
+    _secure = true;
+    _transportTraits = TransportTraitsPtr(new TLSTraits(CAcert, cli_cert, cli_key));
+    return true;
+}
 #endif // HTTPCLIENT_1_1_COMPATIBLE
 
 /**
