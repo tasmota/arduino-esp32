@@ -309,7 +309,7 @@ int WiFiUDP::parsePacket(){
 #if LWIP_IPV6 
   else if (si_other_storage.ss_family == AF_INET6) {
     struct sockaddr_in6 &si_other = (sockaddr_in6&) si_other_storage;
-    remote_ip = IPAddress(IPv6, (uint8_t*)&si_other.sin6_addr);   // force IPv6
+    remote_ip = IPAddress(IPv6, (uint8_t*)&si_other.sin6_addr, si_other.sin6_scope_id);   // force IPv6
     ip_addr_t *ip_addr = (ip_addr_t*) remote_ip;
     /* Dual-stack: Unmap IPv4 mapped IPv6 addresses */
     if (IP_IS_V6_VAL(*ip_addr) && ip6_addr_isipv4mappedipv6(ip_2_ip6(ip_addr))) {
