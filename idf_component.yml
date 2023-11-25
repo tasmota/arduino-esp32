@@ -40,10 +40,6 @@ dependencies:
     version: "^1.0.1"
     rules:
       - if: "target != esp32c2"
-  esp-dsp:
-    version: "^1.3.4"
-    rules:
-      - if: "target != esp32c2"
   espressif/esp_rainmaker:
     version: "^1.0.0"
     rules:
