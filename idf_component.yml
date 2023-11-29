@@ -30,4 +30,3 @@ dependencies:
   # mdns 1.2.1 is necessary to build H2 with no WiFi
   mdns: "1.2.1"
   joltwallet/littlefs: "^1.10.2"
- 
