@@ -40,10 +40,6 @@ dependencies:
     version: "^1.0.1"
     rules:
       - if: "target != esp32c2"
-  esp-dsp:
-    version: "^1.3.4"
-    rules:
-      - if: "target != esp32c2"
   espressif/esp_rainmaker:
     version: "^1.0.0"
     rules:
@@ -61,10 +57,3 @@ dependencies:
     rules:
       - if: "target != esp32c2"
   joltwallet/littlefs: "^1.10.2"
-  espressif/esp-sr:
-    version: "^1.4.2"
-    rules:
-      - if: "target in [esp32s3]"
-examples:
-  - path: ../idf_component_examples/
-
