@@ -76,15 +76,8 @@ set(CORE_SRCS
 set(LIBRARY_SRCS
   libraries/ArduinoOTA/src/ArduinoOTA.cpp
   libraries/AsyncUDP/src/AsyncUDP.cpp
-  libraries/BluetoothSerial/src/BluetoothSerial.cpp
-  libraries/BluetoothSerial/src/BTAddress.cpp
-  libraries/BluetoothSerial/src/BTAdvertisedDeviceSet.cpp
-  libraries/BluetoothSerial/src/BTScanResultsSet.cpp
   libraries/DNSServer/src/DNSServer.cpp
   libraries/EEPROM/src/EEPROM.cpp
-  libraries/ESP_I2S/src/ESP_I2S.cpp
-  libraries/ESP_SR/src/ESP_SR.cpp
-  libraries/ESP_SR/src/esp32-hal-sr.c
   libraries/ESPmDNS/src/ESPmDNS.cpp
   libraries/Ethernet/src/ETH.cpp
   libraries/FFat/src/FFat.cpp
@@ -93,23 +86,12 @@ set(LIBRARY_SRCS
   libraries/HTTPClient/src/HTTPClient.cpp
   libraries/HTTPUpdate/src/HTTPUpdate.cpp
   libraries/LittleFS/src/LittleFS.cpp
-  libraries/Insights/src/Insights.cpp
   libraries/NetBIOS/src/NetBIOS.cpp
   libraries/Preferences/src/Preferences.cpp
-  libraries/RainMaker/src/RMaker.cpp
-  libraries/RainMaker/src/RMakerNode.cpp
-  libraries/RainMaker/src/RMakerParam.cpp
-  libraries/RainMaker/src/RMakerDevice.cpp
-  libraries/RainMaker/src/RMakerType.cpp
-  libraries/RainMaker/src/RMakerQR.cpp
-  libraries/RainMaker/src/RMakerUtils.cpp
-  libraries/RainMaker/src/AppInsights.cpp
   libraries/SD_MMC/src/SD_MMC.cpp
   libraries/SD/src/SD.cpp
   libraries/SD/src/sd_diskio.cpp
   libraries/SD/src/sd_diskio_crc.c
-  libraries/SimpleBLE/src/SimpleBLE.cpp
-  libraries/SPIFFS/src/SPIFFS.cpp
   libraries/SPI/src/SPI.cpp
   libraries/Ticker/src/Ticker.cpp
   libraries/Update/src/Updater.cpp
@@ -126,8 +108,6 @@ set(LIBRARY_SRCS
   libraries/WebServer/src/WebServer.cpp
   libraries/WebServer/src/Parsing.cpp
   libraries/WebServer/src/detail/mimetable.cpp
-  libraries/WiFiClientSecure/src/ssl_client.cpp
-  libraries/WiFiClientSecure/src/WiFiClientSecure.cpp
   libraries/WiFi/src/WiFiAP.cpp
   libraries/WiFi/src/WiFiClient.cpp
   libraries/WiFi/src/WiFi.cpp
@@ -137,40 +117,7 @@ set(LIBRARY_SRCS
   libraries/WiFi/src/WiFiServer.cpp
   libraries/WiFi/src/WiFiSTA.cpp
   libraries/WiFi/src/WiFiUdp.cpp
-  libraries/WiFiProv/src/WiFiProv.cpp
   libraries/Wire/src/Wire.cpp
-  )
-
-set(BLE_SRCS
-  libraries/BLE/src/BLE2902.cpp
-  libraries/BLE/src/BLE2904.cpp
-  libraries/BLE/src/BLEAddress.cpp
-  libraries/BLE/src/BLEAdvertisedDevice.cpp
-  libraries/BLE/src/BLEAdvertising.cpp
-  libraries/BLE/src/BLEBeacon.cpp
-  libraries/BLE/src/BLECharacteristic.cpp
-  libraries/BLE/src/BLECharacteristicMap.cpp
-  libraries/BLE/src/BLEClient.cpp
-  libraries/BLE/src/BLEDescriptor.cpp
-  libraries/BLE/src/BLEDescriptorMap.cpp
-  libraries/BLE/src/BLEDevice.cpp
-  libraries/BLE/src/BLEEddystoneTLM.cpp
-  libraries/BLE/src/BLEEddystoneURL.cpp
-  libraries/BLE/src/BLEExceptions.cpp
-  libraries/BLE/src/BLEHIDDevice.cpp
-  libraries/BLE/src/BLERemoteCharacteristic.cpp
-  libraries/BLE/src/BLERemoteDescriptor.cpp
-  libraries/BLE/src/BLERemoteService.cpp
-  libraries/BLE/src/BLEScan.cpp
-  libraries/BLE/src/BLESecurity.cpp
-  libraries/BLE/src/BLEServer.cpp
-  libraries/BLE/src/BLEService.cpp
-  libraries/BLE/src/BLEServiceMap.cpp
-  libraries/BLE/src/BLEUtils.cpp
-  libraries/BLE/src/BLEUUID.cpp
-  libraries/BLE/src/BLEValue.cpp
-  libraries/BLE/src/FreeRTOS.cpp
-  libraries/BLE/src/GeneralUtils.cpp
   )
 
 set(includedirs
@@ -178,13 +125,8 @@ set(includedirs
   cores/esp32/
   libraries/ArduinoOTA/src
   libraries/AsyncUDP/src
-  libraries/BLE/src
-  libraries/BluetoothSerial/src
   libraries/DNSServer/src
   libraries/EEPROM/src
-  libraries/ESP_I2S/src
-  libraries/ESP_SR/src
-  libraries/ESP32/src
   libraries/ESPmDNS/src
   libraries/Ethernet/src
   libraries/FFat/src
@@ -192,29 +134,23 @@ set(includedirs
   libraries/HTTPClient/src
   libraries/HTTPUpdate/src
   libraries/LittleFS/src
-  libraries/Insights/src
   libraries/NetBIOS/src
   libraries/Preferences/src
-  libraries/RainMaker/src
   libraries/SD_MMC/src
   libraries/SD/src
-  libraries/SimpleBLE/src
-  libraries/SPIFFS/src
   libraries/SPI/src
   libraries/Ticker/src
   libraries/Update/src
   libraries/USB/src
   libraries/WebServer/src
-  libraries/WiFiClientSecure/src
   libraries/WiFi/src
-  libraries/WiFiProv/src
   libraries/Wire/src
   )
 
-set(srcs ${CORE_SRCS} ${LIBRARY_SRCS} ${BLE_SRCS})
+set(srcs ${CORE_SRCS} ${LIBRARY_SRCS})
 set(priv_includes cores/esp32/libb64)
 set(requires spi_flash esp_partition mbedtls wifi_provisioning wpa_supplicant esp_adc esp_eth http_parser)
-set(priv_requires fatfs nvs_flash app_update spiffs bootloader_support bt esp_hid)
+set(priv_requires fatfs nvs_flash app_update bootloader_support bt esp_hid)
 
 idf_component_register(INCLUDE_DIRS ${includedirs} PRIV_INCLUDE_DIRS ${priv_includes} SRCS ${srcs} REQUIRES ${requires} PRIV_REQUIRES ${priv_requires})
 
