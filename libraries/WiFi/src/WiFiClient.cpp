@@ -319,21 +319,8 @@ int WiFiClient::connect(const char *host, uint16_t port)
 
 int WiFiClient::connect(const char *host, uint16_t port, int32_t timeout_ms)
 {
-    if (WiFiGenericClass::getStatusBits() & WIFI_WANT_IP6_BIT) {
-        ip_addr_t srv6;
-        if(!WiFiGenericClass::hostByName6(host, srv6)){
-            return 0;
-        }
-        if (srv6.type == IPADDR_TYPE_V4) {
-            IPAddress ip(srv6.u_addr.ip4.addr);
-            return connect(ip, port, timeout_ms);
-        } else {
-            IPAddress ip(IPv6, (uint8_t*)&srv6.u_addr.ip6.addr[0]);
-            return connect(ip, port, timeout_ms);
-        }
-    }
     IPAddress srv((uint32_t)0);
-    if(!WiFiGenericClass::hostByName(host, srv)){
+    if(!WiFiGenericClass::hostByName(host, srv, (WiFiGenericClass::getStatusBits() & WIFI_WANT_IP6_BIT))){
         return 0;
     }
     return connect(srv, port, timeout_ms);
@@ -614,7 +601,7 @@ IPAddress WiFiClient::remoteIP(int fd) const
     if (((struct sockaddr*)&addr)->sa_family == AF_INET6) {
         struct sockaddr_in6 *saddr6 = (struct sockaddr_in6 *)&addr;
         if (IN6_IS_ADDR_V4MAPPED(saddr6->sin6_addr.un.u32_addr)) {
-            return IPAddress(IPv4, (uint8_t*)saddr6->sin6_addr.s6_addr+12);
+            return IPAddress(IPv4, (uint8_t*)saddr6->sin6_addr.s6_addr+IPADDRESS_V4_BYTES_INDEX);
         } else {
             return IPAddress(IPv6, (uint8_t*)(saddr6->sin6_addr.s6_addr), saddr6->sin6_scope_id);
         }
