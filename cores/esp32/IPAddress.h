@@ -57,8 +57,7 @@ public:
     IPAddress(uint32_t address) { *this = address; }
     IPAddress(int address) { *this = address; }
     IPAddress(const uint8_t *address) { *this = address; }
-    IPAddress(IPType type, const uint8_t *address);
-    IPAddress(IPType type, const uint8_t *address, uint8_t zone);
+    IPAddress(IPType type, const uint8_t *address, uint8_t zone = 0);
 
     bool fromString(const char *address);
     bool fromString(const String &address) { return fromString(address.c_str()); }
