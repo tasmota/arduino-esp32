@@ -66,10 +66,6 @@ IPAddress::IPAddress(uint8_t o1, uint8_t o2, uint8_t o3, uint8_t o4, uint8_t o5,
     (*this)[15] = o16;
 }
 
-IPAddress::IPAddress(IPType type, const uint8_t *address) {
-    IPAddress(type, address, 0);
-}
-
 IPAddress::IPAddress(IPType type, const uint8_t *address, uint8_t zone) {
     if (type == IPv4) {
         setV4();
