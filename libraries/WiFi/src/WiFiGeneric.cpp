@@ -191,7 +191,6 @@ esp_err_t set_esp_interface_ip(esp_interface_t interface, IPAddress local_ip=IPA
         lease.start_ip.addr = _byte_swap32(lease.start_ip.addr);
         lease.end_ip.addr = _byte_swap32(lease.end_ip.addr);
         log_v("DHCP Server Range: %s to %s", IPAddress(lease.start_ip.addr).toString().c_str(), IPAddress(lease.end_ip.addr).toString().c_str());
-        }
         err = esp_netif_dhcps_option(
             esp_netif,
             ESP_NETIF_OP_SET,
