@@ -194,16 +194,6 @@ esp_err_t set_esp_interface_ip(esp_interface_t interface, IPAddress local_ip=IPA
         err = esp_netif_dhcps_option(
             esp_netif,
             ESP_NETIF_OP_SET,
-            ESP_NETIF_SUBNET_MASK,
-            (void*)&info.netmask.addr, sizeof(info.netmask.addr)
-        );
-		if(err){
-        	log_e("DHCPS Set Netmask Failed! 0x%04x", err);
-        	return err;
-        }
-        err = esp_netif_dhcps_option(
-            esp_netif,
-            ESP_NETIF_OP_SET,
             ESP_NETIF_REQUESTED_IP_ADDRESS,
             (void*)&lease, sizeof(dhcps_lease_t)
         );
