@@ -355,12 +355,12 @@ size_t IPAddress::printTo(Print& p) const
             }
         }
         // add a zone if zone-id is non-zero
-        if(_zone > 0){
-            n += p.print('%');
-            char if_name[NETIF_NAMESIZE];
-            netif_index_to_name(_zone, if_name);
-            n += p.print(if_name);
-        }
+        // if(_zone > 0){
+        //     n += p.print('%');
+        //     char if_name[NETIF_NAMESIZE];
+        //     netif_index_to_name(_zone, if_name);
+        //     n += p.print(if_name);
+        // }
         return n;
     }
 
@@ -374,7 +374,7 @@ size_t IPAddress::printTo(Print& p) const
     return n;
 }
 
-void IPAddress::to_ip_addr_t(ip_addr_t* addr){
+void IPAddress::to_ip_addr_t(ip_addr_t* addr) const {
     if(_type == IPv6){
         addr->type = IPADDR_TYPE_V6;
         addr->u_addr.ip6.addr[0] = _address.dword[0];
