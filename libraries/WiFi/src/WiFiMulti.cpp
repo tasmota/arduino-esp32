@@ -162,7 +162,7 @@ uint8_t WiFiMulti::run(uint32_t connectTimeout)
 
             WiFi.begin(bestNetwork.ssid, bestNetwork.passphrase, bestChannel, bestBSSID);
             if (ipv6_support == true)
-                WiFi.IPv6(true);
+                WiFi.enableIPv6(true);
             status = WiFi.status();
 
             auto startTime = millis();
@@ -206,6 +206,3 @@ uint8_t WiFiMulti::run(uint32_t connectTimeout)
     return status;
 }
 
-void WiFiMulti::IPv6(bool state) {
-    ipv6_support = state;
-}

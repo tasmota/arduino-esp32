@@ -86,6 +86,7 @@ class ETHClass {
         uint8_t linkSpeed();
 
         bool enableIpV6();
+        bool enableIPv6() { return enableIpV6(); };
         IPv6Address localIPv6();
 
         IPAddress localIP();

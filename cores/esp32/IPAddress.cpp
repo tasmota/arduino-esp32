@@ -31,6 +31,14 @@ IPAddress::IPAddress() {
     // _ip = *IP_ANY_TYPE; // lwIP's v4-or-v6 generic address
 }
 
+IPAddress::IPAddress(IPType type) {
+  if (type == IPv6) {
+    _ip = *IP6_ADDR_ANY;
+  } else {
+    _ip = *IP_ADDR_ANY;
+  }
+}
+
 IPAddress::IPAddress(const IPAddress& from)
 {
     ip_addr_copy(_ip, from._ip);
@@ -199,7 +207,7 @@ size_t IPAddress::printTo(Print& p) const {
     return n;
 }
 
-String IPAddress::toString() const
+String IPAddress::toString(bool includeZone) const
 {
     StreamString sstr;
 #if LWIP_IPV6
@@ -246,6 +254,24 @@ bool IPAddress::fromString6(const char *address) {
         return true;
     }
     return false;
+}
+
+// compatibillity with Core3
+
+esp_ip6_addr_type_t IPAddress::addr_type() const {
+    if(_ip.type != IPv6){
+        return ESP_IP6_ADDR_IS_UNKNOWN;
+    }
+    return esp_netif_ip6_get_addr_type((esp_ip6_addr_t*)(&(_ip.u_addr.ip6)));
+}
+
+void IPAddress::to_ip_addr_t(ip_addr_t* addr) const {
+    ip_addr_copy(*addr, _ip);
+}
+
+IPAddress& IPAddress::from_ip_addr_t(const ip_addr_t* addr) {
+    ip_addr_copy(_ip, *addr);
+    return *this;
 }
 #endif // LWIP_IPV6
 

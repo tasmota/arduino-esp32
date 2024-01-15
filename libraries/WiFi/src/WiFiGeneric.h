@@ -140,6 +140,10 @@ static const int WIFI_DNS_IDLE_BIT = BIT13;
 static const int WIFI_DNS_DONE_BIT = BIT14;
 static const int WIFI_WANT_IP6_BIT = BIT15;
 
+// Compatibility with Core3
+static const int NET_DNS_IDLE_BIT       = WIFI_DNS_IDLE_BIT;
+static const int NET_DNS_DONE_BIT       = WIFI_DNS_DONE_BIT;
+
 typedef enum {
 	WIFI_RX_ANT0 = 0,
 	WIFI_RX_ANT1,

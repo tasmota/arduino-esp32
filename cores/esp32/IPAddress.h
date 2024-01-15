@@ -23,8 +23,9 @@
 #include <WString.h>
 #include <Printable.h>
 #include <lwip/netif.h>
+#include "esp_netif_ip_addr.h"
 
-enum IPType
+enum IPType : uint8_t
 {
     IPv4 = IPADDR_TYPE_V4,
     IPv6 = IPADDR_TYPE_V6
@@ -51,6 +52,7 @@ private:
 public:
     // Constructors
     IPAddress();
+    IPAddress(IPType type);
     IPAddress(const IPAddress& from);
     IPAddress(uint8_t first_octet, uint8_t second_octet, uint8_t third_octet, uint8_t fourth_octet);
     IPAddress(uint8_t o1, uint8_t o2, uint8_t o3, uint8_t o4, uint8_t o5, uint8_t o6, uint8_t o7, uint8_t o8, uint8_t o9, uint8_t o10, uint8_t o11, uint8_t o12, uint8_t o13, uint8_t o14, uint8_t o15, uint8_t o16);
@@ -117,7 +119,8 @@ public:
     IPType type() const { return (IPType)_ip.type; }
 
     virtual size_t printTo(Print& p) const;
-    String toString() const;
+    // String toString() const;
+    String toString(bool includeZone = false) const ;
 
     void clear();
 
@@ -180,6 +183,10 @@ public:
         }
     }
 
+    // compatibility with Core3 version
+    esp_ip6_addr_type_t addr_type() const;
+    void to_ip_addr_t(ip_addr_t* addr) const;
+    IPAddress& from_ip_addr_t(const ip_addr_t* addr);
 
 protected:
     bool fromString6(const char *address);
