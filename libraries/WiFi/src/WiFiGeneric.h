@@ -92,9 +92,7 @@ typedef union {
 	ip_event_got_ip_t got_ip;
 	ip_event_got_ip6_t got_ip6;
 	smartconfig_event_got_ssid_pswd_t sc_got_ssid_pswd;
-#ifdef CONFIG_ETH_ENABLED
 	esp_eth_handle_t eth_connected;
-#endif
 	wifi_sta_config_t prov_cred_recv;
 	wifi_prov_sta_fail_reason_t prov_fail_reason;
 } arduino_event_info_t;
@@ -140,6 +138,11 @@ static const int WIFI_SCANNING_BIT = BIT11;
 static const int WIFI_SCAN_DONE_BIT= BIT12;
 static const int WIFI_DNS_IDLE_BIT = BIT13;
 static const int WIFI_DNS_DONE_BIT = BIT14;
+static const int WIFI_WANT_IP6_BIT = BIT15;
+
+// Compatibility with Core3
+static const int NET_DNS_IDLE_BIT       = WIFI_DNS_IDLE_BIT;
+static const int NET_DNS_DONE_BIT       = WIFI_DNS_DONE_BIT;
 
 typedef enum {
 	WIFI_RX_ANT0 = 0,
@@ -152,6 +155,11 @@ typedef enum {
 	WIFI_TX_ANT1,
 	WIFI_TX_ANT_AUTO
 } wifi_tx_ant_t;
+
+struct dns_api_msg {
+    ip_addr_t ip_addr;
+    int result;
+};
 
 class WiFiGenericClass
 {
@@ -216,6 +224,7 @@ class WiFiGenericClass
 
   public:
     static int hostByName(const char *aHostname, IPAddress &aResult);
+    static int hostByName6(const char *aHostname, ip_addr_t& aResult);
 
     static IPAddress calculateNetworkID(IPAddress ip, IPAddress subnet);
     static IPAddress calculateBroadcast(IPAddress ip, IPAddress subnet);
