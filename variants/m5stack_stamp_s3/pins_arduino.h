@@ -2,6 +2,7 @@
 #define Pins_Arduino_h
 
 #include <stdint.h>
+#include "soc/soc_caps.h"
 
 #define USB_VID 0x303a
 #define USB_PID 0x1001
@@ -12,13 +13,14 @@ static const uint8_t RX = 44;
 static const uint8_t TXD2 = 1;
 static const uint8_t RXD2 = 2;
 
-static const uint8_t SS    = 7;
-static const uint8_t MOSI  = 6;
-static const uint8_t MISO  = 5;
-static const uint8_t SCK   = 4;
-
 static const uint8_t SDA = 13;
 static const uint8_t SCL = 15;
+
+// Modified elsewhere
+static const uint8_t SS    = -1;
+static const uint8_t MOSI  = -1;
+static const uint8_t MISO  = -1;
+static const uint8_t SCK   = -1;
 
 static const uint8_t G0  = 0;
 static const uint8_t G1  = 1;
