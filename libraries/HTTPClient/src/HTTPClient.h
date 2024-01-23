@@ -34,7 +34,6 @@
 #include <memory>
 #include <Arduino.h>
 #include <WiFiClient.h>
-#include <WiFiClientSecure.h>
 
 /// Cookie jar support
 #include <vector>
