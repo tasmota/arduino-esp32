@@ -121,7 +121,6 @@ set(LIBRARY_SRCS
   libraries/WiFi/src/WiFiMulti.cpp
   libraries/WiFi/src/WiFiScan.cpp
   libraries/WiFi/src/WiFiSTA.cpp
-  libraries/WiFiProv/src/WiFiProv.cpp
   libraries/Wire/src/Wire.cpp
   )
 
