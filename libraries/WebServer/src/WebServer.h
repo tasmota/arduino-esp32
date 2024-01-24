@@ -26,8 +26,8 @@
 
 #include <functional>
 #include <memory>
-#include <WiFi.h>
-#include <FS.h>
+#include "FS.h"
+#include "Networking.h"
 #include "HTTP_Method.h"
 #include "Uri.h"
 

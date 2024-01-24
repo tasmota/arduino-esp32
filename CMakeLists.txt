@@ -88,6 +88,12 @@ set(LIBRARY_SRCS
   libraries/HTTPUpdate/src/HTTPUpdate.cpp
   libraries/LittleFS/src/LittleFS.cpp
   libraries/NetBIOS/src/NetBIOS.cpp
+  libraries/Networking/src/ESP_Network_Interface.cpp
+  libraries/Networking/src/ESP_Network_Events.cpp
+  libraries/Networking/src/ESP_Network_Manager.cpp
+  libraries/Networking/src/WiFiClient.cpp
+  libraries/Networking/src/WiFiServer.cpp
+  libraries/Networking/src/WiFiUdp.cpp
   libraries/Preferences/src/Preferences.cpp
   libraries/SD_MMC/src/SD_MMC.cpp
   libraries/SD/src/SD.cpp
@@ -110,14 +116,12 @@ set(LIBRARY_SRCS
   libraries/WebServer/src/Parsing.cpp
   libraries/WebServer/src/detail/mimetable.cpp
   libraries/WiFi/src/WiFiAP.cpp
-  libraries/WiFi/src/WiFiClient.cpp
   libraries/WiFi/src/WiFi.cpp
   libraries/WiFi/src/WiFiGeneric.cpp
   libraries/WiFi/src/WiFiMulti.cpp
   libraries/WiFi/src/WiFiScan.cpp
-  libraries/WiFi/src/WiFiServer.cpp
   libraries/WiFi/src/WiFiSTA.cpp
-  libraries/WiFi/src/WiFiUdp.cpp
+  libraries/WiFiProv/src/WiFiProv.cpp
   libraries/Wire/src/Wire.cpp
   )
 
@@ -136,6 +140,7 @@ set(includedirs
   libraries/HTTPUpdate/src
   libraries/LittleFS/src
   libraries/NetBIOS/src
+  libraries/Networking/src
   libraries/Preferences/src
   libraries/SD_MMC/src
   libraries/SD/src

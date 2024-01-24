@@ -17,7 +17,7 @@
 static bool eth_connected = false;
 
 // WARNING: WiFiEvent is called from a separate FreeRTOS task (thread)!
-void WiFiEvent(WiFiEvent_t event)
+void onEvent(arduino_event_id_t event)
 {
   switch (event) {
     case ARDUINO_EVENT_ETH_START:
@@ -74,7 +74,7 @@ void testClient(const char * host, uint16_t port)
 void setup()
 {
   Serial.begin(115200);
-  WiFi.onEvent(WiFiEvent);  // Will call WiFiEvent() from another thread.
+  Network.onEvent(onEvent);
   ETH.begin();
 }
 

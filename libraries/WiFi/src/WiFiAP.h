@@ -20,8 +20,10 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef ESP32WIFIAP_H_
-#define ESP32WIFIAP_H_
+#pragma once
+
+#include "soc/soc_caps.h"
+#if SOC_WIFI_SUPPORTED
 
 
 #include "WiFiType.h"
@@ -48,9 +50,13 @@ public:
     bool softAPbandwidth(wifi_bandwidth_t bandwidth);
 
     uint8_t softAPgetStationNum();
+    String softAPSSID(void) const;
+
+
+
+
 
     IPAddress softAPIP();
-
     IPAddress softAPBroadcastIP();
     IPAddress softAPNetworkID();
     IPAddress softAPSubnetMask();
@@ -65,10 +71,9 @@ public:
     uint8_t* softAPmacAddress(uint8_t* mac);
     String softAPmacAddress(void);
 
-    String softAPSSID(void) const;
 
 protected:
 
 };
 
-#endif /* ESP32WIFIAP_H_*/
+#endif /* SOC_WIFI_SUPPORTED*/

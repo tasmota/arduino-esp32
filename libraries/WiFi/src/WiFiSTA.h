@@ -20,9 +20,10 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef ESP32WIFISTA_H_
-#define ESP32WIFISTA_H_
+#pragma once
 
+#include "soc/soc_caps.h"
+#if SOC_WIFI_SUPPORTED
 
 #include "WiFiType.h"
 #include "WiFiGeneric.h"
@@ -56,7 +57,6 @@ public:
     wl_status_t begin();
 
     bool config(IPAddress local_ip, IPAddress gateway, IPAddress subnet, IPAddress dns1 = (uint32_t)0x00000000, IPAddress dns2 = (uint32_t)0x00000000);
-    bool setDNS(IPAddress dns1, IPAddress dns2 = (uint32_t)0x00000000);  // sets DNS IP for all network interfaces
 
     bool bandwidth(wifi_bandwidth_t bandwidth);
 
@@ -80,6 +80,20 @@ public:
     void setScanMethod(wifi_scan_method_t scanMethod);// Default is WIFI_FAST_SCAN
     void setSortMethod(wifi_sort_method_t sortMethod);// Default is WIFI_CONNECT_AP_BY_SIGNAL
 
+    // STA WiFi info
+    static wl_status_t status();
+    String SSID() const;
+    String psk() const;
+
+    uint8_t * BSSID(uint8_t* bssid = NULL);
+    String BSSIDstr();
+
+    int8_t RSSI();
+
+
+
+    bool setDNS(IPAddress dns1, IPAddress dns2 = (uint32_t)0x00000000);  // sets DNS IP for all network interfaces
+
     // STA network info
     IPAddress localIP();
 
@@ -97,16 +111,6 @@ public:
     bool enableIPv6(bool en=true);
     IPAddress localIPv6();
     IPAddress globalIPv6();
-
-    // STA WiFi info
-    static wl_status_t status();
-    String SSID() const;
-    String psk() const;
-
-    uint8_t * BSSID(uint8_t* bssid = NULL);
-    String BSSIDstr();
-
-    int8_t RSSI();
 
     static void _setStatus(wl_status_t status);
     
@@ -129,4 +133,4 @@ protected:
 };
 
 
-#endif /* ESP32WIFISTA_H_ */
+#endif /* SOC_WIFI_SUPPORTED */

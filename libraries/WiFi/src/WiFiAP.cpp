@@ -25,6 +25,7 @@
 #include "WiFi.h"
 #include "WiFiGeneric.h"
 #include "WiFiAP.h"
+#if SOC_WIFI_SUPPORTED
 
 extern "C" {
 #include <stdint.h>
@@ -414,9 +415,9 @@ bool WiFiAPClass::softAPsetHostname(const char * hostname)
 bool WiFiAPClass::softAPenableIPv6(bool enable)
 {
     if (enable) {
-        WiFiGenericClass::setStatusBits(AP_WANT_IP6_BIT);
+        Network.setStatusBits(AP_WANT_IP6_BIT);
     } else {
-        WiFiGenericClass::clearStatusBits(AP_WANT_IP6_BIT);
+        Network.clearStatusBits(AP_WANT_IP6_BIT);
     }
     return true;
     // if(WiFiGenericClass::getMode() == WIFI_MODE_NULL){
@@ -443,3 +444,4 @@ IPAddress WiFiAPClass::softAPIPv6()
     return IPAddress(IPv6, (const uint8_t *)addr.addr, addr.zone);
 }
 
+#endif /* SOC_WIFI_SUPPORTED */

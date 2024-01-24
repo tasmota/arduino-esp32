@@ -25,6 +25,7 @@
 #include "WiFi.h"
 #include "WiFiGeneric.h"
 #include "WiFiSTA.h"
+#if SOC_WIFI_SUPPORTED
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -837,9 +838,9 @@ int8_t WiFiSTAClass::RSSI(void)
 bool WiFiSTAClass::enableIPv6(bool en)
 {
     if (en) {
-        WiFiGenericClass::setStatusBits(STA_WANT_IP6_BIT);
+        Network.setStatusBits(STA_WANT_IP6_BIT);
     } else {
-        WiFiGenericClass::clearStatusBits(STA_WANT_IP6_BIT);
+        Network.clearStatusBits(STA_WANT_IP6_BIT);
     }
     return true;
 }
@@ -941,3 +942,5 @@ bool WiFiSTAClass::smartConfigDone() {
 
     return _smartConfigDone;
 }
+
+#endif /* SOC_WIFI_SUPPORTED */
