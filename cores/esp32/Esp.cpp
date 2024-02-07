@@ -249,7 +249,7 @@ String EspClass::getSketchMD5()
         lengthLeft -= readBytes;
         offset += readBytes;
 
-	#if CONFIG_FREERTOS_UNICORE
+        #if CONFIG_FREERTOS_UNICORE
         delay(1);  // Fix solo WDT
         #endif
     }
