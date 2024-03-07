@@ -25,6 +25,7 @@ http://arduino.cc/en/Reference/HomePage
 # Extends: https://github.com/platformio/platform-espressif32/blob/develop/builder/main.py
 
 from os.path import abspath, basename, isdir, isfile, join
+from copy import deepcopy
 from SCons.Script import DefaultEnvironment, SConscript
 
 env = DefaultEnvironment()
@@ -101,7 +102,6 @@ def generate_bootloader_image(bootloader_elf):
         env.VerboseAction(" ".join([
             '"$PYTHONEXE" "$OBJCOPY"',
             "--chip", build_mcu, "elf2image",
-            "--dont-append-digest",
             "--flash_mode", "${__get_board_flash_mode(__env__)}",
             "--flash_freq", "${__get_board_f_flash(__env__)}",
             "--flash_size", board_config.get("upload.flash_size", "4MB"),
@@ -256,3 +256,13 @@ partition_table = env.Command(
     ),
 )
 env.Depends("$BUILD_DIR/$PROGNAME$PROGSUFFIX", partition_table)
+
+#
+#  Adjust the `esptoolpy` command in the `ElfToBin` builder with firmware checksum offset
+#
+
+action = deepcopy(env["BUILDERS"]["ElfToBin"].action)
+action.cmd_list = env["BUILDERS"]["ElfToBin"].action.cmd_list.replace(
+    "-o", "--elf-sha256-offset 0xb0 -o"
+)
+env["BUILDERS"]["ElfToBin"].action = action
