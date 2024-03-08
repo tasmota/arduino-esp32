@@ -9,7 +9,9 @@
 #endif
 #endif
 
+#if defined __has_include && __has_include ("chip-debug-report.h")
 #include "chip-debug-report.h"
+#endif
 
 #ifndef ARDUINO_LOOP_STACK_SIZE
 #ifndef CONFIG_ARDUINO_LOOP_STACK_SIZE
