@@ -150,67 +150,6 @@ wl_status_t WiFiSTAClass::status()
 }
 
 /**
- * Start Wifi connection with a WPA2 Enterprise AP
- * if passphrase is set the most secure supported mode will be automatically selected
- * @param ssid const char*          Pointer to the SSID string.
- * @param method wpa2_method_t      The authentication method of WPA2 (WPA2_AUTH_TLS, WPA2_AUTH_PEAP, WPA2_AUTH_TTLS)
- * @param wpa2_identity  const char*          Pointer to the entity
- * @param wpa2_username  const char*          Pointer to the username
- * @param password const char *     Pointer to the password.
- * @param ca_pem const char*        Pointer to a string with the contents of a  .pem  file with CA cert
- * @param client_crt const char*        Pointer to a string with the contents of a .crt file with client cert
- * @param client_key const char*        Pointer to a string with the contants of a .key file with client key
- * @param bssid uint8_t[6]          Optional. BSSID / MAC of AP
- * @param channel                   Optional. Channel of AP
- * @param connect                   Optional. call connect
- * @return
- */
-wl_status_t WiFiSTAClass::begin(const char* wpa2_ssid, wpa2_auth_method_t method, const char* wpa2_identity, const char* wpa2_username, const char *wpa2_password, const char* ca_pem, const char* client_crt, const char* client_key, int32_t channel, const uint8_t* bssid, bool connect)
-{
-    if(!WiFi.enableSTA(true)) {
-        log_e("STA enable failed!");
-        return WL_CONNECT_FAILED;
-    }
-
-    if(!wpa2_ssid || *wpa2_ssid == 0x00 || strlen(wpa2_ssid) > 32) {
-        log_e("SSID too long or missing!");
-        return WL_CONNECT_FAILED;
-    }
-
-    if(wpa2_identity && strlen(wpa2_identity) > 64) {
-        log_e("identity too long!");
-        return WL_CONNECT_FAILED;
-    }
-
-    if(wpa2_username && strlen(wpa2_username) > 64) {
-        log_e("username too long!");
-        return WL_CONNECT_FAILED;
-    }
-
-    if(wpa2_password && strlen(wpa2_password) > 64) {
-        log_e("password too long!");
-    }
-
-    if(ca_pem) {
-        esp_wifi_sta_wpa2_ent_set_ca_cert((uint8_t *)ca_pem, strlen(ca_pem));
-    }
-
-    if(client_crt) {
-        esp_wifi_sta_wpa2_ent_set_cert_key((uint8_t *)client_crt, strlen(client_crt), (uint8_t *)client_key, strlen(client_key), NULL, 0);
-    }
-
-    esp_wifi_sta_wpa2_ent_set_identity((uint8_t *)wpa2_identity, strlen(wpa2_identity));
-    if(method == WPA2_AUTH_PEAP || method == WPA2_AUTH_TTLS) {
-        esp_wifi_sta_wpa2_ent_set_username((uint8_t *)wpa2_username, strlen(wpa2_username));
-        esp_wifi_sta_wpa2_ent_set_password((uint8_t *)wpa2_password, strlen(wpa2_password));
-    }
-    esp_wifi_sta_wpa2_ent_enable(); //set config settings to enable function
-    WiFi.begin(wpa2_ssid); //connect to wifi
-
-    return status();
-}
-
-/**
  * Start Wifi connection
  * if passphrase is set the most secure supported mode will be automatically selected
  * @param ssid const char*          Pointer to the SSID string.
@@ -746,6 +685,18 @@ bool WiFiSTAClass::enableIpV6()
         return false;
     }
     return esp_netif_create_ip6_linklocal(get_esp_interface_netif(ESP_IF_WIFI_STA)) == ESP_OK;
+}
+
+/**
+ * Enable IPv6 support on the station interface.
+ * @return true on success
+ */
+void WiFiSTAClass::enableIPv6(bool state)
+{
+   if (state)
+       WiFiGenericClass::setStatusBits(WIFI_WANT_IP6_BIT);
+   else
+       WiFiGenericClass::clearStatusBits(WIFI_WANT_IP6_BIT);
 }
 
 /**
