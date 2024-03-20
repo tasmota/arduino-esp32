@@ -63,6 +63,9 @@
 // This will be uncommented once custom SPI support is available in ESP-IDF
 #define ETH_SPI_SUPPORTS_CUSTOM 1
 
+// This will be removed when the support is backported to official IDF 5.1
+#define ETH_SPI_SUPPORTS_NO_IRQ 1
+
 #include "WiFi.h"
 #if ETH_SPI_SUPPORTS_CUSTOM
 #include "SPI.h"
@@ -91,7 +94,7 @@ typedef enum { ETH_CLOCK_GPIO0_IN, ETH_CLOCK_GPIO0_OUT, ETH_CLOCK_GPIO16_OUT, ET
 
 typedef enum { 
 #if CONFIG_ETH_USE_ESP32_EMAC
-    ETH_PHY_LAN8720, ETH_PHY_TLK110, ETH_PHY_RTL8201, ETH_PHY_DP83848, ETH_PHY_KSZ8041, ETH_PHY_KSZ8081, 
+    ETH_PHY_LAN8720, ETH_PHY_TLK110, ETH_PHY_RTL8201, ETH_PHY_JL1101, ETH_PHY_DP83848, ETH_PHY_KSZ8041, ETH_PHY_KSZ8081,
 #endif /* CONFIG_ETH_USE_ESP32_EMAC */
 #if CONFIG_ETH_SPI_ETHERNET_DM9051
     ETH_PHY_DM9051, 

@@ -37,7 +37,7 @@ partitions_name = board_config.get(
 )
 
 FRAMEWORK_DIR = platform.get_package_dir("framework-arduinoespressif32")
-FRAMEWORK_LIBS_DIR = platform.get_package_dir("framework-arduinoespressif32-libs")
+FRAMEWORK_LIBS_DIR = join(FRAMEWORK_DIR, "tools", "esp32-arduino-libs")
 assert isdir(FRAMEWORK_DIR)
 
 
@@ -176,9 +176,14 @@ corelib_env.Append(CPPDEFINES=["ARDUINO_CORE_BUILD"])
 libs = []
 
 variants_dir = join(FRAMEWORK_DIR, "variants")
+try:
+    build_variants_dir = join(board_config.get("build.variants_dir"))
+except:
+    build_variants_dir=""
 
 if "build.variants_dir" in board_config:
-    variants_dir = join("$PROJECT_DIR", board_config.get("build.variants_dir"))
+    if len(build_variants_dir) > 1:
+        variants_dir = join("$PROJECT_DIR", board_config.get("build.variants_dir"))
 
 if "build.variant" in board_config:
     env.Append(CPPPATH=[join(variants_dir, board_config.get("build.variant"))])
@@ -201,6 +206,15 @@ env.Prepend(LIBS=libs)
 # Process framework extra images
 #
 
+# Tasmota places extra images "safeboot" in custom variants folder in project directory
+build_name = join(board_config.get("name"))
+if len(build_variants_dir) > 1:
+    EXTRA_IMG_DIR = join(variants_dir)
+else:
+    EXTRA_IMG_DIR = FRAMEWORK_DIR
+    if "tasmota" in build_name.lower():
+        EXTRA_IMG_DIR = join(EXTRA_IMG_DIR, "variants", "tasmota")
+
 env.Append(
     LIBSOURCE_DIRS=[join(FRAMEWORK_DIR, "libraries")],
     FLASH_EXTRA_IMAGES=[
@@ -212,7 +226,7 @@ env.Append(
         ("0xe000", join(FRAMEWORK_DIR, "tools", "partitions", "boot_app0.bin")),
     ]
     + [
-        (offset, join(FRAMEWORK_DIR, img))
+        (offset, join(EXTRA_IMG_DIR, img))
         for offset, img in board_config.get("upload.arduino.flash_extra_images", [])
     ],
 )
