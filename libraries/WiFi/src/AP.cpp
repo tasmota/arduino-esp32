@@ -200,7 +200,7 @@ bool APClass::end(){
     return true;
 }
 
-bool APClass::enable(const char* ssid, const char* passphrase, int channel, int ssid_hidden, int max_connection, bool ftm_responder){
+bool APClass::create(const char* ssid, const char* passphrase, int channel, int ssid_hidden, int max_connection, bool ftm_responder){
     if(!ssid || *ssid == 0) {
         // fail SSID missing
         log_e("SSID missing!");
@@ -251,7 +251,7 @@ bool APClass::enable(const char* ssid, const char* passphrase, int channel, int 
     return true;
 }
 
-bool APClass::disable(){
+bool APClass::clear(){
     if(!begin()) {
         return false;
     }
@@ -304,7 +304,37 @@ uint8_t APClass::stationCount(){
 }
 
 size_t APClass::printDriverInfo(Print & out) const{
-    return 0;
+    size_t bytes = 0;
+    wifi_config_t info;
+    wifi_sta_list_t clients;
+    if(!started()){
+        return bytes;
+    }
+    if(esp_wifi_get_config(WIFI_IF_AP, &info) != ESP_OK){
+        return bytes;
+    }
+    bytes += out.print(",");
+    bytes += out.print((const char*)info.ap.ssid);
+    bytes += out.print(",CH:");
+    bytes += out.print(info.ap.channel);
+
+    if(info.ap.authmode == WIFI_AUTH_OPEN){ bytes += out.print(",OPEN"); }
+    else if(info.ap.authmode == WIFI_AUTH_WEP){ bytes += out.print(",WEP"); }
+    else if(info.ap.authmode == WIFI_AUTH_WPA_PSK){ bytes += out.print(",WWPA_PSK"); }
+    else if(info.ap.authmode == WIFI_AUTH_WPA2_PSK){ bytes += out.print(",WWPA2_PSK"); }
+    else if(info.ap.authmode == WIFI_AUTH_WPA_WPA2_PSK){ bytes += out.print(",WWPA_WPA2_PSK"); }
+    else if(info.ap.authmode == WIFI_AUTH_ENTERPRISE){ bytes += out.print(",WEAP"); }
+    else if(info.ap.authmode == WIFI_AUTH_WPA3_PSK){ bytes += out.print(",WWPA3_PSK"); }
+    else if(info.ap.authmode == WIFI_AUTH_WPA2_WPA3_PSK){ bytes += out.print(",WWPA2_WPA3_PSK"); }
+    else if(info.ap.authmode == WIFI_AUTH_WAPI_PSK){ bytes += out.print(",WWAPI_PSK"); }
+    else if(info.ap.authmode == WIFI_AUTH_OWE){ bytes += out.print(",WOWE"); }
+    else if(info.ap.authmode == WIFI_AUTH_WPA3_ENT_192){ bytes += out.print(",WWPA3_ENT_SUITE_B_192_BIT"); }
+
+    if(esp_wifi_ap_get_sta_list(&clients) == ESP_OK) {
+        bytes += out.print(",STA:");
+        bytes += out.print(clients.num);
+    }
+    return bytes;
 }
 
 

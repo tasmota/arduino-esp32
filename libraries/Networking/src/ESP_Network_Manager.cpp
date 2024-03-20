@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 #include "ESP_Network_Manager.h"
+#include "ESP_Network_Interface.h"
 #include "esp_netif.h"
 #include "lwip/ip_addr.h"
 #include "lwip/dns.h"
@@ -137,5 +138,40 @@ String ESP_Network_Manager::macAddress(void){
     sprintf(macStr, "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     return String(macStr);
 }
+
+static char default_hostname[32] = {0,};
+
+const char * ESP_Network_Manager::getHostname()
+{
+    if(default_hostname[0] == 0){
+        uint8_t eth_mac[6];
+        esp_base_mac_addr_get(eth_mac);
+        snprintf(default_hostname, 32, "%s%02X%02X%02X", CONFIG_IDF_TARGET "-", eth_mac[3], eth_mac[4], eth_mac[5]);
+    }
+    return (const char *)default_hostname;
+}
+
+bool ESP_Network_Manager::setHostname(const char * name)
+{
+    if(name){
+        snprintf(default_hostname, 32, "%s", name);
+    }
+    return true;
+}
+
+ESP_Network_Interface * getNetifByID(ESP_Network_Interface_ID id);
+
+size_t ESP_Network_Manager::printTo(Print & out) const {
+    size_t bytes = 0;
+
+    for (int i = 0; i < ESP_NETIF_ID_MAX; ++i){
+        ESP_Network_Interface * iface = getNetifByID((ESP_Network_Interface_ID)i);
+        if(iface != NULL && iface->netif() != NULL){
+            bytes += out.println(*iface);
+        }
+    }
+    return bytes;
+}
+
 
 ESP_Network_Manager Network;
