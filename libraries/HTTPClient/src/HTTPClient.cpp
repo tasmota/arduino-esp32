@@ -30,7 +30,7 @@
 #include <esp32-hal-log.h>  
 
 #ifdef HTTPCLIENT_1_1_COMPATIBLE
-#include <WiFiClient.h>
+#include <NetworkClient.h>
 #endif
 
 #include <StreamString.h>
@@ -49,12 +49,12 @@ public:
     {
     }
 
-    virtual std::unique_ptr<WiFiClient> create()
+    virtual std::unique_ptr<NetworkClient> create()
     {
-        return std::unique_ptr<WiFiClient>(new WiFiClient());
+        return std::unique_ptr<NetworkClient>(new NetworkClient());
     }
 
-    virtual bool verify(WiFiClient& client, const char* host)
+    virtual bool verify(NetworkClient& client, const char* host)
     {
         return true;
     }
@@ -103,7 +103,7 @@ void HTTPClient::clear()
  * @param https bool
  * @return success bool
  */
-bool HTTPClient::begin(WiFiClient &client, String url) {
+bool HTTPClient::begin(NetworkClient &client, String url) {
 #ifdef HTTPCLIENT_1_1_COMPATIBLE
     if(_tcpDeprecated) {
         log_d("mix up of new and deprecated api");
@@ -142,7 +142,7 @@ bool HTTPClient::begin(WiFiClient &client, String url) {
  * @param https bool
  * @return success bool
  */
-bool HTTPClient::begin(WiFiClient &client, String host, uint16_t port, String uri, bool https)
+bool HTTPClient::begin(NetworkClient &client, String host, uint16_t port, String uri, bool https)
 {
 #ifdef HTTPCLIENT_1_1_COMPATIBLE
     if(_tcpDeprecated) {
@@ -766,24 +766,24 @@ int HTTPClient::getSize(void)
 
 /**
  * returns the stream of the tcp connection
- * @return WiFiClient
+ * @return NetworkClient
  */
-WiFiClient& HTTPClient::getStream(void)
+NetworkClient& HTTPClient::getStream(void)
 {
     if (connected()) {
         return *_client;
     }
 
     log_w("getStream: not connected");
-    static WiFiClient empty;
+    static NetworkClient empty;
     return empty;
 }
 
 /**
  * returns a pointer to the stream of the tcp connection
- * @return WiFiClient*
+ * @return NetworkClient*
  */
-WiFiClient* HTTPClient::getStreamPtr(void)
+NetworkClient* HTTPClient::getStreamPtr(void)
 {
     if(connected()) {
         return _client;
@@ -1068,7 +1068,7 @@ bool HTTPClient::connect(void)
         return false;
     }
 
-    // set Timeout for WiFiClient and for Stream::readBytesUntil() and Stream::readStringUntil()
+    // set Timeout for NetworkClient and for Stream::readBytesUntil() and Stream::readStringUntil()
     _client->setTimeout(_tcpTimeout);	
 
     log_d(" connected to %s:%u", _host.c_str(), _port);
