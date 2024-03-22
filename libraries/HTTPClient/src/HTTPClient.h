@@ -33,7 +33,7 @@
 
 #include <memory>
 #include <Arduino.h>
-#include <WiFiClient.h>
+#include <NetworkClient.h>
 
 /// Cookie jar support
 #include <vector>
@@ -179,8 +179,8 @@ public:
  * Since both begin() functions take a reference to client as a parameter, you need to 
  * ensure the client object lives the entire time of the HTTPClient
  */
-    bool begin(WiFiClient &client, String url);
-    bool begin(WiFiClient &client, String host, uint16_t port, String uri = "/", bool https = false);
+    bool begin(NetworkClient &client, String url);
+    bool begin(NetworkClient &client, String host, uint16_t port, String uri = "/", bool https = false);
 
 #ifdef HTTPCLIENT_1_1_COMPATIBLE
     bool begin(String url);
@@ -235,8 +235,8 @@ public:
     int getSize(void);
     const String &getLocation(void);
 
-    WiFiClient& getStream(void);
-    WiFiClient* getStreamPtr(void);
+    NetworkClient& getStream(void);
+    NetworkClient* getStreamPtr(void);
     int writeToStream(Stream* stream);
     String getString(void);
 
@@ -268,10 +268,10 @@ protected:
 
 #ifdef HTTPCLIENT_1_1_COMPATIBLE
     TransportTraitsPtr _transportTraits;
-    std::unique_ptr<WiFiClient> _tcpDeprecated;
+    std::unique_ptr<NetworkClient> _tcpDeprecated;
 #endif
 
-    WiFiClient* _client = nullptr;
+    NetworkClient* _client = nullptr;
 
     /// request handling
     String _host;
