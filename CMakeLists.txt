@@ -87,7 +87,7 @@ set(ARDUINO_ALL_LIBRARIES
   HTTPUpdate
   LittleFS
   NetBIOS
-  Networking
+  Network
   Preferences
   SD_MMC
   SD
@@ -160,13 +160,13 @@ set(ARDUINO_LIBRARY_WebServer_SRCS
   libraries/WebServer/src/Parsing.cpp
   libraries/WebServer/src/detail/mimetable.cpp)
 
-set(ARDUINO_LIBRARY_Networking_SRCS
-  libraries/Networking/src/NetworkInterface.cpp
-  libraries/Networking/src/NetworkEvents.cpp
-  libraries/Networking/src/NetworkManager.cpp
-  libraries/Networking/src/WiFiClient.cpp
-  libraries/Networking/src/WiFiServer.cpp
-  libraries/Networking/src/WiFiUdp.cpp)
+set(ARDUINO_LIBRARY_Network_SRCS
+  libraries/Network/src/NetworkInterface.cpp
+  libraries/Network/src/NetworkEvents.cpp
+  libraries/Network/src/NetworkManager.cpp
+  libraries/Network/src/NetworkClient.cpp
+  libraries/Network/src/NetworkServer.cpp
+  libraries/Network/src/NetworkUdp.cpp)
 
 set(ARDUINO_LIBRARY_WiFi_SRCS
   libraries/WiFi/src/WiFiAP.cpp
