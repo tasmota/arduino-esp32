@@ -66,7 +66,6 @@
 // This will be removed when the support is backported to official IDF 5.1
 #define ETH_SPI_SUPPORTS_NO_IRQ 1
 
-// #include "WiFi.h"
 #include "Network.h"
 
 #if ETH_SPI_SUPPORTS_CUSTOM
