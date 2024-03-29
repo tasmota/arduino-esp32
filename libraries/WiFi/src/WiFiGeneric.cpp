@@ -476,23 +476,24 @@ bool WiFiGenericClass::mode(wifi_mode_t m)
     if(((m & WIFI_MODE_STA) != 0) && ((cm & WIFI_MODE_STA) == 0)){
         // we are enabling STA interface
         WiFi.STA.onEnable();
-    } else if(((m & WIFI_MODE_STA) == 0) && ((cm & WIFI_MODE_STA) != 0)){
-        // we are disabling STA interface
-        WiFi.STA.onDisable();
     }
-
     if(((m & WIFI_MODE_AP) != 0) && ((cm & WIFI_MODE_AP) == 0)){
         // we are enabling AP interface
         WiFi.AP.onEnable();
-    } else if(((m & WIFI_MODE_AP) == 0) && ((cm & WIFI_MODE_AP) != 0)){
-        // we are disabling AP interface
-        WiFi.AP.onDisable();
     }
 
     if(cm && !m){
         // Turn OFF WiFi
         if(!espWiFiStop()){
             return false;
+        }
+        if((cm & WIFI_MODE_STA) != 0){
+            // we are disabling STA interface
+            WiFi.STA.onDisable();
+        }
+        if((cm & WIFI_MODE_AP) != 0){
+            // we are disabling AP interface
+            WiFi.AP.onDisable();
         }
         Network.removeEvent(_eventCallback);
         return true;
@@ -511,6 +512,16 @@ bool WiFiGenericClass::mode(wifi_mode_t m)
         log_e("Could not set mode! %d", err);
         return false;
     }
+
+    if(((m & WIFI_MODE_STA) == 0) && ((cm & WIFI_MODE_STA) != 0)){
+        // we are disabling STA interface (but AP is ON)
+        WiFi.STA.onDisable();
+    }
+    if(((m & WIFI_MODE_AP) == 0) && ((cm & WIFI_MODE_AP) != 0)){
+        // we are disabling AP interface (but STA is ON)
+        WiFi.AP.onDisable();
+    }
+
     if(_long_range){
         if(m & WIFI_MODE_STA){
             err = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_LR);

@@ -294,9 +294,13 @@ bool STAClass::onEnable(){
         return false;
     }
     if(_esp_netif == NULL){
-        Network.onSysEvent(_onStaArduinoEvent);
         _esp_netif = get_esp_interface_netif(ESP_IF_WIFI_STA);
+        if(_esp_netif == NULL){
+            log_e("STA was enabled, but netif is NULL???");
+            return false;
+        }
         /* attach to receive events */
+        Network.onSysEvent(_onStaArduinoEvent);
         initNetif(ESP_NETIF_ID_STA);
     }
     return true;
