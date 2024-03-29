@@ -471,7 +471,25 @@ bool WiFiGenericClass::mode(wifi_mode_t m)
             return false;
         }
         Network.onSysEvent(_eventCallback);
-    } else if(cm && !m){
+    }
+
+    if(((m & WIFI_MODE_STA) != 0) && ((cm & WIFI_MODE_STA) == 0)){
+        // we are enabling STA interface
+        WiFi.STA.onEnable();
+    } else if(((m & WIFI_MODE_STA) == 0) && ((cm & WIFI_MODE_STA) != 0)){
+        // we are disabling STA interface
+        WiFi.STA.onDisable();
+    }
+
+    if(((m & WIFI_MODE_AP) != 0) && ((cm & WIFI_MODE_AP) == 0)){
+        // we are enabling AP interface
+        WiFi.AP.onEnable();
+    } else if(((m & WIFI_MODE_AP) == 0) && ((cm & WIFI_MODE_AP) != 0)){
+        // we are disabling AP interface
+        WiFi.AP.onDisable();
+    }
+
+    if(cm && !m){
         // Turn OFF WiFi
         if(!espWiFiStop()){
             return false;
@@ -481,7 +499,7 @@ bool WiFiGenericClass::mode(wifi_mode_t m)
     }
 
     esp_err_t err;
-    if(m & WIFI_MODE_STA){
+    if(((m & WIFI_MODE_STA) != 0) && ((cm & WIFI_MODE_STA) == 0)){
     	err = esp_netif_set_hostname(esp_netifs[ESP_IF_WIFI_STA], NetworkManager::getHostname());
         if(err){
             log_e("Could not set hostname! %d", err);
