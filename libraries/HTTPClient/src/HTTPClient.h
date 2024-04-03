@@ -34,7 +34,6 @@
 #include <memory>
 #include <Arduino.h>
 #include <NetworkClient.h>
-#include <NetworkClientSecure.h>
 
 /// Cookie jar support
 #include <vector>
