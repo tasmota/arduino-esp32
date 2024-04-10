@@ -12,6 +12,7 @@ typedef struct { void * arg; } PdpContext;
 static PPPClass * _esp_modem = NULL;
 static esp_event_handler_instance_t _ppp_ev_instance = NULL;
 
+#if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_VERBOSE
 static const char * _ppp_event_name(int32_t event_id){
     switch(event_id){
         case NETIF_PPP_ERRORNONE         : return "No error.";
@@ -57,6 +58,7 @@ static const char * _ppp_terminal_error_name(esp_modem_terminal_error_t err){
     }
     return "UNKNOWN";
 }
+#endif
 
 static void _ppp_event_cb(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
     if (event_base == NETIF_PPP_STATUS){
@@ -140,9 +142,12 @@ PPPClass::PPPClass()
     ,_pin_rx(-1)
     ,_pin_rts(-1)
     ,_pin_cts(-1)
+    ,_flow_ctrl(ESP_MODEM_FLOW_CONTROL_NONE)
+    ,_pin_rst(-1)
+    ,_pin_rst_act_low(true)
     ,_pin(NULL)
     ,_apn(NULL)
-    ,_rx_buffer_size(1024)
+    ,_rx_buffer_size(4096)
     ,_tx_buffer_size(512)
     ,_mode(ESP_MODEM_MODE_COMMAND)
 {
@@ -157,9 +162,55 @@ bool PPPClass::pppDetachBus(void * bus_pointer){
     return true;
 }
 
-bool PPPClass::begin(ppp_modem_model_t model, int8_t tx, int8_t rx, int8_t rts, int8_t cts, esp_modem_flow_ctrl_t flow_ctrl){
+void PPPClass::setResetPin(int8_t rst, bool active_low){
+    _pin_rst = digitalPinToGPIONumber(rst);
+    _pin_rst_act_low = active_low;
+}
+
+bool PPPClass::setPins(int8_t tx, int8_t rx, int8_t rts, int8_t cts, esp_modem_flow_ctrl_t flow_ctrl){
+    perimanSetBusDeinit(ESP32_BUS_TYPE_PPP_TX, PPPClass::pppDetachBus);
+    perimanSetBusDeinit(ESP32_BUS_TYPE_PPP_RX, PPPClass::pppDetachBus);
+    perimanSetBusDeinit(ESP32_BUS_TYPE_PPP_RTS, PPPClass::pppDetachBus);
+    perimanSetBusDeinit(ESP32_BUS_TYPE_PPP_CTS, PPPClass::pppDetachBus);
+
+    if(_pin_tx >= 0){
+        if(!perimanClearPinBus(_pin_tx)){ return false; }
+    }
+    if(_pin_rx >= 0){
+        if(!perimanClearPinBus(_pin_rx)){ return false; }
+    }
+    if(_pin_rts >= 0){
+        if(!perimanClearPinBus(_pin_rts)){ return false; }
+    }
+    if(_pin_cts >= 0){
+        if(!perimanClearPinBus(_pin_cts)){ return false; }
+    }
+
+    _flow_ctrl = flow_ctrl;
+    _pin_tx = digitalPinToGPIONumber(tx);
+    _pin_rx = digitalPinToGPIONumber(rx);
+    _pin_rts = digitalPinToGPIONumber(rts);
+    _pin_cts = digitalPinToGPIONumber(cts);
+
+    if(_pin_tx >= 0){
+        if(!perimanSetPinBus(_pin_tx, ESP32_BUS_TYPE_PPP_TX, (void *)(this), -1, -1)){ return false; }
+    }
+    if(_pin_rx >= 0){
+        if(!perimanSetPinBus(_pin_rx, ESP32_BUS_TYPE_PPP_RX, (void *)(this), -1, -1)){ return false; }
+    }
+    if(_pin_rts >= 0){
+        if(!perimanSetPinBus(_pin_rts,  ESP32_BUS_TYPE_PPP_RTS, (void *)(this), -1, -1)){ return false; }
+    }
+    if(_pin_cts >= 0){
+        if(!perimanSetPinBus(_pin_cts,  ESP32_BUS_TYPE_PPP_CTS, (void *)(this), -1, -1)){ return false; }
+    }
+    return true;
+}
+
+bool PPPClass::begin(ppp_modem_model_t model){
     esp_err_t ret = ESP_OK;
     bool pin_ok = false;
+    int trys = 0;
 
     if(_esp_netif != NULL || _dce != NULL){
         log_w("PPP Already Started");
@@ -171,29 +222,15 @@ bool PPPClass::begin(ppp_modem_model_t model, int8_t tx, int8_t rx, int8_t rts, 
         return false;
     }
 
-    perimanSetBusDeinit(ESP32_BUS_TYPE_PPP_TX, PPPClass::pppDetachBus);
-    perimanSetBusDeinit(ESP32_BUS_TYPE_PPP_RX, PPPClass::pppDetachBus);
-    perimanSetBusDeinit(ESP32_BUS_TYPE_PPP_RTS, PPPClass::pppDetachBus);
-    perimanSetBusDeinit(ESP32_BUS_TYPE_PPP_CTS, PPPClass::pppDetachBus);
-
-    if(_pin_tx != -1){
-        if(!perimanClearPinBus(_pin_tx)){ return false; }
-    }
-    if(_pin_rx != -1){
-        if(!perimanClearPinBus(_pin_rx)){ return false; }
-    }
-    if(_pin_rts != -1){
-        if(!perimanClearPinBus(_pin_rts)){ return false; }
-    }
-    if(_pin_cts != -1){
-        if(!perimanClearPinBus(_pin_cts)){ return false; }
+    if(_pin_tx < 0 || _pin_rx < 0){
+        log_e("UART pins not set. Call 'PPP.setPins()' first");
+        return false;
     }
 
-    _flow_ctrl = flow_ctrl;
-    _pin_tx = digitalPinToGPIONumber(tx);
-    _pin_rx = digitalPinToGPIONumber(rx);
-    _pin_rts = digitalPinToGPIONumber(rts);
-    _pin_cts = digitalPinToGPIONumber(cts);
+    if((_pin_rts < 0 || _pin_cts < 0) && (_flow_ctrl != ESP_MODEM_FLOW_CONTROL_NONE)){
+        log_e("UART CTS/RTS pins not set, but flow control is enabled!");
+        return false;
+    }
 
     Network.begin();
     _esp_modem = this;
@@ -215,7 +252,6 @@ bool PPPClass::begin(ppp_modem_model_t model, int8_t tx, int8_t rx, int8_t rts, 
 
     /* Configure the DTE */
     esp_modem_dte_config_t dte_config = ESP_MODEM_DTE_DEFAULT_CONFIG();
-    /* setup UART specific configuration based on kconfig options */
     dte_config.uart_config.tx_io_num = _pin_tx;
     dte_config.uart_config.rx_io_num = _pin_rx;
     dte_config.uart_config.rts_io_num = _pin_rts;
@@ -223,13 +259,25 @@ bool PPPClass::begin(ppp_modem_model_t model, int8_t tx, int8_t rx, int8_t rts, 
     dte_config.uart_config.flow_control = _flow_ctrl;
     dte_config.uart_config.rx_buffer_size = _rx_buffer_size;
     dte_config.uart_config.tx_buffer_size = _tx_buffer_size;
-    dte_config.uart_config.event_queue_size = 20;
-    dte_config.task_stack_size = 2048;
-    dte_config.task_priority = 5;
-    dte_config.dte_buffer_size = _rx_buffer_size / 2;
 
     /* Configure the DCE */
     esp_modem_dce_config_t dce_config = ESP_MODEM_DCE_DEFAULT_CONFIG(_apn);
+
+    /* Reset the Modem */
+    if(_pin_rst >= 0){
+        log_v("Resetting the modem");
+        if(_pin_rst_act_low){
+            pinMode(_pin_rst, OUTPUT_OPEN_DRAIN);
+        } else {
+            pinMode(_pin_rst, OUTPUT);
+        }
+        digitalWrite(_pin_rst, !_pin_rst_act_low);
+        delay(200);
+        digitalWrite(_pin_rst, _pin_rst_act_low);
+        delay(100);
+    }
+
+    /* Start the DCE */
     _dce = esp_modem_new_dev((esp_modem_dce_device_t)model, &dte_config, &dce_config, _esp_netif);
     if(_dce == NULL){
         log_e("esp_modem_new_dev failed");
@@ -238,34 +286,38 @@ bool PPPClass::begin(ppp_modem_model_t model, int8_t tx, int8_t rx, int8_t rts, 
 
     esp_modem_set_error_cb(_dce, _ppp_error_cb);
 
+    /* Wait for Modem to respond */
+    if(_pin_rst >= 0){
+        // wait to be able to talk to the modem
+        log_v("Waiting for response from the modem");
+        while(esp_modem_sync(_dce) != ESP_OK && trys < 50){
+            trys++;
+            delay(500);
+        }
+        if(trys >= 50){
+            log_e("Failed to wait for communication");
+            goto err;
+        }
+    } else {
+        // try to communicate with the modem
+        
+    }
+
+    /* enable flow control */
     if (dte_config.uart_config.flow_control == ESP_MODEM_FLOW_CONTROL_HW) {
         ret = esp_modem_set_flow_control(_dce, 2, 2);  //2/2 means HW Flow Control.
         if (ret != ESP_OK) {
-            log_e("Failed to set the set_flow_control mode: [%d] %s", ret, esp_err_to_name(ret));
+            log_e("Failed to set the hardware flow control: [%d] %s", ret, esp_err_to_name(ret));
             goto err;
         }
     }
 
-    // check if PIN needed
+    /* check if PIN needed */
     if (esp_modem_read_pin(_dce, pin_ok) == ESP_OK && pin_ok == false) {
         if (_pin == NULL || esp_modem_set_pin(_dce, _pin) != ESP_OK) {
             log_e("PIN verification failed!");
             goto err;
         }
-        // delay(1000);
-    }
-
-    if(_pin_tx != -1){
-        if(!perimanSetPinBus(_pin_tx, ESP32_BUS_TYPE_PPP_TX, (void *)(this), -1, -1)){ goto err; }
-    }
-    if(_pin_rx != -1){
-        if(!perimanSetPinBus(_pin_rx, ESP32_BUS_TYPE_PPP_RX, (void *)(this), -1, -1)){ goto err; }
-    }
-    if(_pin_rts != -1){
-        if(!perimanSetPinBus(_pin_rts,  ESP32_BUS_TYPE_PPP_RTS, (void *)(this), -1, -1)){ goto err; }
-    }
-    if(_pin_cts != -1){
-        if(!perimanSetPinBus(_pin_cts,  ESP32_BUS_TYPE_PPP_CTS, (void *)(this), -1, -1)){ goto err; }
     }
 
     Network.onSysEvent(onPppArduinoEvent);
@@ -278,7 +330,6 @@ bool PPPClass::begin(ppp_modem_model_t model, int8_t tx, int8_t rx, int8_t rts, 
     return true;
 
 err:
-    log_e("Failed to set all pins bus to ETHERNET");
     PPPClass::pppDetachBus((void *)(this));
     return false;
 }
@@ -334,6 +385,19 @@ void PPPClass::end(void)
     }
 
     _mode = ESP_MODEM_MODE_COMMAND;
+}
+
+bool PPPClass::sync() const
+{
+    if(_dce == NULL){
+        return false;
+    }
+
+    if(_mode == ESP_MODEM_MODE_DATA){
+        log_e("Wrong modem mode. Should be ESP_MODEM_MODE_COMMAND");
+        return false;
+    }
+    return esp_modem_sync(_dce) == ESP_OK;
 }
 
 bool PPPClass::attached() const
@@ -423,7 +487,7 @@ int PPPClass::RSSI() const
     int rssi, ber;
     esp_err_t err = esp_modem_get_signal_quality(_dce, rssi, ber);
     if (err != ESP_OK) {
-        log_e("esp_modem_get_signal_quality failed with %d %s", err, esp_err_to_name(err));
+        // log_e("esp_modem_get_signal_quality failed with %d %s", err, esp_err_to_name(err));
         return -1;
     }
     return rssi;
@@ -443,7 +507,7 @@ int PPPClass::BER() const
     int rssi, ber;
     esp_err_t err = esp_modem_get_signal_quality(_dce, rssi, ber);
     if (err != ESP_OK) {
-        log_e("esp_modem_get_signal_quality failed with %d %s", err, esp_err_to_name(err));
+        // log_e("esp_modem_get_signal_quality failed with %d %s", err, esp_err_to_name(err));
         return -1;
     }
     return ber;
@@ -675,8 +739,10 @@ size_t PPPClass::printDriverInfo(Print & out) const {
         bytes += out.print(",");
         bytes += out.print(operatorName());
     }
-    bytes += out.print(", RSSI: ");
+    bytes += out.print(",RSSI:");
     bytes += out.print(RSSI());
+    bytes += out.print(",BER:");
+    bytes += out.print(BER());
     return bytes;
 }
 
