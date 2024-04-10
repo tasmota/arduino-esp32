@@ -175,6 +175,8 @@ bool ETHClass::begin(eth_phy_type_t type, int32_t phy_addr, int mdc, int mdio, i
         return false;
     }
 
+    Network.onSysEvent(onEthConnected, ARDUINO_EVENT_ETH_CONNECTED);
+
     eth_esp32_emac_config_t mac_config = ETH_ESP32_EMAC_DEFAULT_CONFIG();
     mac_config.clock_config.rmii.clock_mode = (clock_mode) ? EMAC_CLK_OUT : EMAC_CLK_EXT_IN;
     mac_config.clock_config.rmii.clock_gpio = (1 == clock_mode) ? EMAC_APPL_CLK_OUT_GPIO : (2 == clock_mode) ? EMAC_CLK_OUT_GPIO : (3 == clock_mode) ? EMAC_CLK_OUT_180_GPIO : EMAC_CLK_IN_GPIO;
@@ -226,7 +228,7 @@ bool ETHClass::begin(eth_phy_type_t type, int32_t phy_addr, int mdc, int mdio, i
         case ETH_PHY_DP83848:
             phy = esp_eth_phy_new_dp83848(&phy_config);
             break;
-	case ETH_PHY_JL1101:
+        case ETH_PHY_JL1101:
             phy = esp_eth_phy_new_jl1101(&phy_config);
             break;
         case ETH_PHY_KSZ8041:
@@ -310,8 +312,6 @@ bool ETHClass::begin(eth_phy_type_t type, int32_t phy_addr, int mdc, int mdio, i
     if(_pin_power != -1){
         if(!perimanSetPinBus(_pin_power,  ESP32_BUS_TYPE_ETHERNET_PWR, (void *)(this), -1, -1)){ goto err; }
     }
-
-    Network.onSysEvent(onEthConnected, ARDUINO_EVENT_ETH_CONNECTED);
 
     // holds a few milliseconds to let DHCP start and enter into a good state
     // FIX ME -- adresses issue https://github.com/espressif/arduino-esp32/issues/5733
