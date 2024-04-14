@@ -286,8 +286,8 @@ void HWCDC::begin(unsigned long baud)
     }
 
     // the HW Serial pins needs to be first deinited in order to allow `if(Serial)` to work :-(
-    deinit();
-    delay(10);     // USB Host has to enumerate it again
+//    deinit();
+//    delay(10);     // USB Host has to enumerate it again
 
     // Configure PHY
     // USB_Serial_JTAG use internal PHY
