@@ -88,6 +88,7 @@ set(ARDUINO_ALL_LIBRARIES
   LittleFS
   NetBIOS
   Network
+  PPP
   Preferences
   SD_MMC
   SD
@@ -126,6 +127,10 @@ set(ARDUINO_LIBRARY_HTTPUpdate_SRCS libraries/HTTPUpdate/src/HTTPUpdate.cpp)
 set(ARDUINO_LIBRARY_LittleFS_SRCS libraries/LittleFS/src/LittleFS.cpp)
 
 set(ARDUINO_LIBRARY_NetBIOS_SRCS libraries/NetBIOS/src/NetBIOS.cpp)
+
+set(ARDUINO_LIBRARY_PPP_SRCS
+  libraries/PPP/src/PPP.cpp
+  libraries/PPP/src/ppp.c)
 
 set(ARDUINO_LIBRARY_Preferences_SRCS libraries/Preferences/src/Preferences.cpp)
 
