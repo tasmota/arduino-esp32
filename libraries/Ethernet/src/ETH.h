@@ -63,6 +63,9 @@
 // This will be uncommented once custom SPI support is available in ESP-IDF
 #define ETH_SPI_SUPPORTS_CUSTOM 1
 
+// This will be removed when the support is backported to official IDF 5.1
+#define ETH_SPI_SUPPORTS_NO_IRQ 1
+
 #include "Network.h"
 
 #if ETH_SPI_SUPPORTS_CUSTOM
@@ -98,6 +101,7 @@ typedef enum {
   ETH_PHY_LAN8720,
   ETH_PHY_TLK110,
   ETH_PHY_RTL8201,
+  ETH_PHY_JL1101,
   ETH_PHY_DP83848,
   ETH_PHY_KSZ8041,
   ETH_PHY_KSZ8081,
