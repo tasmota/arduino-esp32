@@ -177,10 +177,12 @@ static bool initWiFiEvents() {
     return false;
   }
 
+#if defined __has_include && __has_include ("wifi_provisioning/wifi_config.h")
   if (esp_event_handler_instance_register(WIFI_PROV_EVENT, ESP_EVENT_ANY_ID, &_arduino_event_cb, NULL, NULL)) {
     log_e("event_handler_instance_register for WIFI_PROV_EVENT Failed!");
     return false;
   }
+#endif // __has_include ("wifi_provisioning/wifi_config.h")
 
   return true;
 }
@@ -196,10 +198,12 @@ static bool deinitWiFiEvents() {
     return false;
   }
 
+#if defined __has_include && __has_include ("wifi_provisioning/wifi_config.h")
   if (esp_event_handler_unregister(WIFI_PROV_EVENT, ESP_EVENT_ANY_ID, &_arduino_event_cb)) {
     log_e("esp_event_handler_unregister for WIFI_PROV_EVENT Failed!");
     return false;
   }
+#endif // __has_include ("wifi_provisioning/wifi_config.h")
 
   return true;
 }
@@ -857,3 +861,4 @@ int WiFiGenericClass::waitStatusBits(int bits, uint32_t timeout_ms) {
 }
 
 #endif /* SOC_WIFI_SUPPORTED */
+
