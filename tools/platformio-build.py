@@ -177,7 +177,7 @@ libs = []
 variants_dir = join(FRAMEWORK_DIR, "variants")
 try:
     build_variants_dir = join(board_config.get("build.variants_dir"))
-except:
+except Exception:
     build_variants_dir = ""
 
 if "build.variants_dir" in board_config:
