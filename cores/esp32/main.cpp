@@ -9,7 +9,7 @@
 #endif
 #endif
 
-#if defined __has_include && __has_include ("chip-debug-report.h")
+#if defined __has_include && __has_include("chip-debug-report.h")
 #include "chip-debug-report.h"
 #endif
 
@@ -50,7 +50,7 @@ void loopTask(void *pvParameters) {
   // sets UART0 (default console) RX/TX pins as already configured in boot or as defined in variants/pins_arduino.h
   Serial0.setPins(gpioNumberToDigitalPin(SOC_RX0), gpioNumberToDigitalPin(SOC_TX0));
 #endif
-#if defined __has_include && __has_include ("chip-debug-report.h")
+#if defined __has_include && __has_include("chip-debug-report.h")
 #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_DEBUG
   printBeforeSetupInfo();
 #else
@@ -60,7 +60,7 @@ void loopTask(void *pvParameters) {
 #endif
 #endif
   setup();
-#if defined __has_include && __has_include ("chip-debug-report.h")
+#if defined __has_include && __has_include("chip-debug-report.h")
 #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_DEBUG
   printAfterSetupInfo();
 #else

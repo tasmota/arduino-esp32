@@ -415,7 +415,6 @@ bool STAClass::connect(const char *ssid, const char *passphrase, int32_t channel
   return true;
 }
 
-
 bool STAClass::disconnect(bool eraseap, unsigned long timeout) {
   if (eraseap) {
     if (!started()) {

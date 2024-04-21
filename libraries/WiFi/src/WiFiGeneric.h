@@ -33,7 +33,7 @@
 #include "esp_smartconfig.h"
 #include "esp_netif_types.h"
 #include "esp_eth_driver.h"
-#if defined __has_include && __has_include ("wifi_provisioning/manager.h")
+#if defined __has_include && __has_include("wifi_provisioning/manager.h")
 #include "wifi_provisioning/manager.h"
 #endif
 #include "lwip/ip_addr.h"
