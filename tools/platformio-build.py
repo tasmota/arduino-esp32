@@ -178,7 +178,7 @@ variants_dir = join(FRAMEWORK_DIR, "variants")
 try:
     build_variants_dir = join(board_config.get("build.variants_dir"))
 except:
-    build_variants_dir=""
+    build_variants_dir = ""
 
 if "build.variants_dir" in board_config:
     if len(build_variants_dir) > 1:
