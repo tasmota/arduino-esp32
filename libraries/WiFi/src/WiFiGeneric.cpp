@@ -126,8 +126,9 @@ static void _arduino_event_cb(void *arg, esp_event_base_t event_base, int32_t ev
     /*
 	 * Provisioning
 	 * */
-#if defined __has_include && __has_include ("wifi_provisioning/wifi_config.h")
-  } else if (event_base == WIFI_PROV_EVENT && event_id == WIFI_PROV_INIT) {
+  }
+  #if defined __has_include && __has_include ("wifi_provisioning/wifi_config.h")
+    else if (event_base == WIFI_PROV_EVENT && event_id == WIFI_PROV_INIT) {
     log_v("Provisioning Initialized!");
     arduino_event.event_id = ARDUINO_EVENT_PROV_INIT;
   } else if (event_base == WIFI_PROV_EVENT && event_id == WIFI_PROV_DEINIT) {
@@ -157,8 +158,8 @@ static void _arduino_event_cb(void *arg, esp_event_base_t event_base, int32_t ev
   } else if (event_base == WIFI_PROV_EVENT && event_id == WIFI_PROV_CRED_SUCCESS) {
     log_v("Provisioning Success!");
     arduino_event.event_id = ARDUINO_EVENT_PROV_CRED_SUCCESS;
-#endif // __has_include ("wifi_provisioning/wifi_config.h")
   }
+  #endif // __has_include ("wifi_provisioning/wifi_config.h")
 
   if (arduino_event.event_id < ARDUINO_EVENT_MAX) {
     Network.postEvent(&arduino_event);
