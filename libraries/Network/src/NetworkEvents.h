@@ -20,7 +20,9 @@
 #if SOC_WIFI_SUPPORTED
 #include "esp_wifi_types.h"
 #include "esp_smartconfig.h"
+#if defined __has_include && __has_include ("wifi_provisioning/wifi_config.h")
 #include "wifi_provisioning/wifi_config.h"
+#endif
 #endif
 
 #if SOC_WIFI_SUPPORTED
