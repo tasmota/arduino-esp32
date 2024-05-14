@@ -76,6 +76,10 @@ static bool usb_otg_deinit(void *busptr) {
 #endif
 }
 
+#if __has_include("hal/usb_hal.h")
+
+#include "hal/usb_hal.h"
+
 static void configure_pins(usb_hal_context_t *usb) {
   for (const usb_iopin_dsc_t *iopin = usb_periph_iopins; iopin->pin != -1; ++iopin) {
     if ((usb->use_external_phy) || (iopin->ext_phy_only == 0)) {
