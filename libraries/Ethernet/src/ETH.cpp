@@ -118,7 +118,7 @@ void ETHClass::_onEthEvent(int32_t event_id, void *event_data) {
 }
 
 ETHClass::ETHClass(uint8_t eth_index)
-  : _eth_handle(NULL), _eth_index(eth_index), _phy_type(ETH_PHY_MAX)
+  : _eth_handle(NULL), _eth_index(eth_index), _phy_type(ETH_PHY_MAX), _glue_handle(NULL)
 #if ETH_SPI_SUPPORTS_CUSTOM
     ,
     _spi(NULL)
@@ -729,7 +729,7 @@ bool ETHClass::beginSPI(
     log_e("event_handler_instance_register for ETH_EVENT Failed!");
     return false;
   }
-  
+
   /* attach to receive events */
   initNetif((Network_Interface_ID)(ESP_NETIF_ID_ETH + _eth_index));
 
@@ -833,6 +833,7 @@ void ETHClass::end(void) {
         log_e("Failed to del_netif_glue Ethernet");
         return;
       }
+      _glue_handle = NULL;
     }
     //uninstall driver
     if (esp_eth_driver_uninstall(_eth_handle) != ESP_OK) {
