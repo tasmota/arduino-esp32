@@ -37,18 +37,17 @@
 
 #include "esp32-hal-tinyusb.h"
 #if CONFIG_IDF_TARGET_ESP32S2
-#include "hal/usb_wrap_hal.h"
-#include "hal/usb_serial_jtag_hal.h"
 #include "esp32s2/rom/usb/usb_persist.h"
 #include "esp32s2/rom/usb/usb_dc.h"
 #include "esp32s2/rom/usb/chip_usb_dw_wrapper.h"
 #elif CONFIG_IDF_TARGET_ESP32S3
-#include "hal/usb_wrap_hal.h"
-#include "hal/usb_serial_jtag_hal.h"
 #include "esp32s3/rom/usb/usb_persist.h"
 #include "esp32s3/rom/usb/usb_dc.h"
 #include "esp32s3/rom/usb/chip_usb_dw_wrapper.h"
 #endif
+#include "hal/usb_wrap_hal.h"
+#include "hal/usb_serial_jtag_hal.h"
+#include "hal/usb_serial_jtag_ll.h"
 
 typedef enum {
   TINYUSB_USBDEV_0,
