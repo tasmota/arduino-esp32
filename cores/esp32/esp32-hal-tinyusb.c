@@ -44,7 +44,11 @@
 #if defined __has_include && __has_include("hal/usb_phy_ll.h")
 #include "hal/usb_phy_ll.h"
 #else
+#if defined __has_include && __has_include("hal/usb_fsls_phy_ll.h")
 #include "hal/usb_fsls_phy_ll.h"
+#endif
+#else
+#include "hal/usb_serial_jtag_hal.h"
 #endif
 #include "hal/usb_serial_jtag_ll.h"
 #include "esp32s3/rom/usb/usb_persist.h"
