@@ -44,8 +44,9 @@ files:
 dependencies:
   idf: ">=5.1,<5.2"
   # mdns 1.2.1 is necessary to build H2 with no WiFi
-  mdns: "^1.2.3"
-  espressif/esp_modem: "^1.1.0"
+  espressif/mdns:
+    version: "^1.2.3"
+    require: public
   espressif/esp-zboss-lib:
     version: "^1.0.1"
     rules:
