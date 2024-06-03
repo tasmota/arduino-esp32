@@ -47,6 +47,8 @@ dependencies:
   espressif/mdns:
     version: "^1.2.3"
     require: public
+  espressif/esp_modem:
+    version: "^1.1.0"
   espressif/esp-zboss-lib:
     version: "^1.0.1"
     rules:
