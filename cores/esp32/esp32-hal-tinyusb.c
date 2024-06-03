@@ -2,7 +2,7 @@
 
 #if SOC_USB_OTG_SUPPORTED
 #include "sdkconfig.h"
-#if CONFIG_TINYUSB_ENABLED
+#if CONFIG_TINYUSB_ENABLED_ON // Disable TinyUSB since currently broken
 #include <stdlib.h>
 #include <stdbool.h>
 
