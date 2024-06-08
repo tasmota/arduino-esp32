@@ -231,6 +231,7 @@ bool ETHClass::begin(eth_phy_type_t type, int32_t phy_addr, int mdc, int mdio, i
     case ETH_PHY_TLK110:  phy = esp_eth_phy_new_ip101(&phy_config); break;
     case ETH_PHY_RTL8201: phy = esp_eth_phy_new_rtl8201(&phy_config); break;
     case ETH_PHY_DP83848: phy = esp_eth_phy_new_dp83848(&phy_config); break;
+    case ETH_PHY_JL1101:  phy = esp_eth_phy_new_jl1101(&phy_config); break;
     case ETH_PHY_KSZ8041: phy = esp_eth_phy_new_ksz80xx(&phy_config); break;
     case ETH_PHY_KSZ8081: phy = esp_eth_phy_new_ksz80xx(&phy_config); break;
     default:              log_e("Unsupported PHY %d", type); break;
@@ -358,11 +359,11 @@ err:
 #endif /* CONFIG_ETH_USE_ESP32_EMAC */
 
 #if ETH_SPI_SUPPORTS_CUSTOM
-static void *_eth_spi_init(const void *ctx) {
+__unused static void *_eth_spi_init(const void *ctx) {
   return (void *)ctx;
 }
 
-static esp_err_t _eth_spi_deinit(void *ctx) {
+__unused static esp_err_t _eth_spi_deinit(void *ctx) {
   return ESP_OK;
 }
 
@@ -575,8 +576,8 @@ bool ETHClass::beginSPI(
   }
 
   // Init common MAC and PHY configs to default
-  eth_mac_config_t eth_mac_config = ETH_MAC_DEFAULT_CONFIG();
-  eth_phy_config_t phy_config = ETH_PHY_DEFAULT_CONFIG();
+  __unused eth_mac_config_t eth_mac_config = ETH_MAC_DEFAULT_CONFIG();
+  __unused eth_phy_config_t phy_config = ETH_PHY_DEFAULT_CONFIG();
 
   // Update PHY config based on board specific configuration
   phy_config.phy_addr = phy_addr;
