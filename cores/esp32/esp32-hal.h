@@ -121,10 +121,10 @@ BaseType_t xTaskCreateUniversal(
   TaskHandle_t *const pxCreatedTask, const BaseType_t xCoreID
 );
 
-unsigned long long micros();
+unsigned long micros();
 unsigned long millis();
 void delay(uint32_t);
-void delayMicroseconds(uint64_t us);
+void delayMicroseconds(uint32_t us);
 
 #if !CONFIG_ESP32_PHY_AUTO_INIT
 void arduino_phy_init();
