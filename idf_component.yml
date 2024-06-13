@@ -52,42 +52,14 @@ dependencies:
   espressif/esp-zboss-lib:
     version: "^1.0.1"
     rules:
-      - if: "target != esp32c2"
+      - if: "target in [esp32h2]"
   espressif/esp-zigbee-lib:
     version: "^1.0.1"
     rules:
-      - if: "target != esp32c2"
+      - if: "target in [esp32h2]"
   espressif/esp-dsp:
-    version: "^1.3.4"
+    version: "^1.4.12"
     rules:
-      - if: "target != esp32c2"
-  espressif/esp_rainmaker:
-    version: "^1.0.0"
-    rules:
-      - if: "target != esp32c2"
-  espressif/rmaker_common:
-    version: "^1.4.3"
-    rules:
-      - if: "target != esp32c2"
-  espressif/esp_insights:
-    version: "^1.0.1"
-    rules:
-      - if: "target != esp32c2"
-  espressif/qrcode:
-    version: "^0.1.0~1"
-    rules:
-      - if: "target != esp32c2"
-  espressif/esp-sr:
-    version: "^1.4.2"
-    rules:
-      - if: "target in [esp32s3]"
-  espressif/libsodium:
-    version: "^1.0.20~1"
-    require: public
+      - if: "target in [esp32s3, esp32]"
   joltwallet/littlefs:
-    version: "^1.10.2"
-  chmorgan/esp-libhelix-mp3:
-    version: "1.0.3"
-    require: public
-examples:
-  - path: ./idf_component_examples/hello_world
+    version: "^1.14.1"
