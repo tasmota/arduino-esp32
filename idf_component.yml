@@ -61,4 +61,5 @@ dependencies:
     version: "^1.4.12"
     rules:
       - if: "target in [esp32s3, esp32]"
-  joltwallet/littlefs: "^1.14.1"
+  joltwallet/littlefs:
+    version: "^1.14.1"
