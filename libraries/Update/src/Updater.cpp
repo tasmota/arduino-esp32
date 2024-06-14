@@ -349,11 +349,9 @@ size_t UpdateClass::writeStream(Stream &data) {
     return 0;
   }
 
-  if (_command == U_FLASH && !_cryptMode) {
-    if (!_verifyHeader(data.peek())) {
-      _reset();
-      return 0;
-    }
+  if (!_verifyHeader(data.peek())) {
+    _reset();
+    return 0;
   }
 
   if (_ledPin != -1) {
