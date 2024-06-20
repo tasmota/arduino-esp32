@@ -28,8 +28,14 @@
 
 #include <Arduino.h>
 #include <esp32-hal-log.h>
+
+#ifdef HTTPCLIENT_1_1_COMPATIBLE
+#include <NetworkClient.h>
+#endif
+
 #include <StreamString.h>
 #include <base64.h>
+
 #include "HTTPClient.h"
 
 /// Cookie jar support
@@ -48,34 +54,6 @@ public:
     return true;
   }
 };
-
-#ifndef HTTPCLIENT_NOSECURE
-class TLSTraits : public TransportTraits {
-public:
-  TLSTraits(const char *CAcert, const char *clicert = nullptr, const char *clikey = nullptr) : _cacert(CAcert), _clicert(clicert), _clikey(clikey) {}
-
-  std::unique_ptr<NetworkClient> create() override {
-    return std::unique_ptr<NetworkClient>(new NetworkClientSecure());
-  }
-
-  bool verify(NetworkClient &client, const char *host) override {
-    NetworkClientSecure &wcs = static_cast<NetworkClientSecure &>(client);
-    if (_cacert == nullptr) {
-      wcs.setInsecure();
-    } else {
-      wcs.setCACert(_cacert);
-      wcs.setCertificate(_clicert);
-      wcs.setPrivateKey(_clikey);
-    }
-    return true;
-  }
-
-protected:
-  const char *_cacert;
-  const char *_clicert;
-  const char *_clikey;
-};
-#endif  // HTTPCLIENT_NOSECURE
 #endif  // HTTPCLIENT_1_1_COMPATIBLE
 
 /**
@@ -140,12 +118,6 @@ bool HTTPClient::begin(NetworkClient &client, String url) {
 
   _port = (protocol == "https" ? 443 : 80);
   _secure = (protocol == "https");
-
-#ifdef HTTPCLIENT_NOSECURE
-  if (_secure) {
-    return false;
-  }
-#endif  // HTTPCLIENT_NOSECURE
   return beginInternal(url, protocol.c_str());
 }
 
@@ -175,39 +147,10 @@ bool HTTPClient::begin(NetworkClient &client, String host, uint16_t port, String
   _uri = uri;
   _protocol = (https ? "https" : "http");
   _secure = https;
-
-#ifdef HTTPCLIENT_NOSECURE
-  return _secure ? false : true;
-#else
   return true;
-#endif  // HTTPCLIENT_NOSECURE
 }
 
 #ifdef HTTPCLIENT_1_1_COMPATIBLE
-#ifndef HTTPCLIENT_NOSECURE
-bool HTTPClient::begin(String url, const char *CAcert) {
-  if (_client && !_tcpDeprecated) {
-    log_d("mix up of new and deprecated api");
-    _canReuse = false;
-    end();
-  }
-
-  clear();
-  _port = 443;
-  if (!beginInternal(url, "https")) {
-    return false;
-  }
-  _secure = true;
-  _transportTraits = TransportTraitsPtr(new TLSTraits(CAcert));
-  if (!_transportTraits) {
-    log_e("could not create transport traits");
-    return false;
-  }
-
-  return true;
-}
-#endif  // HTTPCLIENT_NOSECURE
-
 /**
  * parsing the url for all needed parameters
  * @param url String
@@ -222,11 +165,7 @@ bool HTTPClient::begin(String url) {
   clear();
   _port = 80;
   if (!beginInternal(url, "http")) {
-#ifdef HTTPCLIENT_NOSECURE
-    return false;
-#else
     return begin(url, (const char *)NULL);
-#endif  // HTTPCLIENT_NOSECURE
   }
   _transportTraits = TransportTraitsPtr(new TransportTraits());
   if (!_transportTraits) {
@@ -310,48 +249,6 @@ bool HTTPClient::begin(String host, uint16_t port, String uri) {
   log_d("host: %s port: %d uri: %s", host.c_str(), port, uri.c_str());
   return true;
 }
-
-#ifndef HTTPCLIENT_NOSECURE
-bool HTTPClient::begin(String host, uint16_t port, String uri, const char *CAcert) {
-  if (_client && !_tcpDeprecated) {
-    log_d("mix up of new and deprecated api");
-    _canReuse = false;
-    end();
-  }
-
-  clear();
-  _host = host;
-  _port = port;
-  _uri = uri;
-
-  if (strlen(CAcert) == 0) {
-    return false;
-  }
-  _secure = true;
-  _transportTraits = TransportTraitsPtr(new TLSTraits(CAcert));
-  return true;
-}
-
-bool HTTPClient::begin(String host, uint16_t port, String uri, const char *CAcert, const char *cli_cert, const char *cli_key) {
-  if (_client && !_tcpDeprecated) {
-    log_d("mix up of new and deprecated api");
-    _canReuse = false;
-    end();
-  }
-
-  clear();
-  _host = host;
-  _port = port;
-  _uri = uri;
-
-  if (strlen(CAcert) == 0) {
-    return false;
-  }
-  _secure = true;
-  _transportTraits = TransportTraitsPtr(new TLSTraits(CAcert, cli_cert, cli_key));
-  return true;
-}
-#endif  // HTTPCLIENT_NOSECURE
 #endif  // HTTPCLIENT_1_1_COMPATIBLE
 
 /**
