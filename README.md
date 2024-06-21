@@ -9,7 +9,7 @@ You can use the [Arduino-ESP32 Online Documentation](https://docs.espressif.com/
 ---
 
 **Migration guide from version 2.x to 3.x is available [here](https://docs.espressif.com/projects/arduino-esp32/en/latest/migration_guides/2.x_to_3.0.html).**
-The mentioned change from `flush` to `clear` is NOT done in this fork!
+The mentioned change from `flush` to `clear` is NOT done!
 
 ---
 
