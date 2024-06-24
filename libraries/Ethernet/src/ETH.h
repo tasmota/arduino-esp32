@@ -17,6 +17,7 @@
  License along with this library; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
+#if defined __has_include && __has_include("esp_eth_driver.h")
 
 #ifndef _ETH_H_
 #define _ETH_H_
@@ -220,3 +221,4 @@ private:
 extern ETHClass ETH;
 
 #endif /* _ETH_H_ */
+#endif /* defined __has_include && __has_include("esp_eth_driver.h") */
