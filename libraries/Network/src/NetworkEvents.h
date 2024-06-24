@@ -9,7 +9,9 @@
 #include "esp_err.h"
 #include "esp_event.h"
 #include "esp_netif_types.h"
+#if defined __has_include && __has_include("esp_eth_driver.h")
 #include "esp_eth_driver.h"
+#endif
 #include <functional>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
