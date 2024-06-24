@@ -94,7 +94,9 @@ typedef union {
   ip_event_ap_staipassigned_t wifi_ap_staipassigned;
   ip_event_got_ip_t got_ip;
   ip_event_got_ip6_t got_ip6;
+#if defined __has_include && __has_include("esp_eth_driver.h")
   esp_eth_handle_t eth_connected;
+#endif
 #if SOC_WIFI_SUPPORTED
   wifi_event_sta_scan_done_t wifi_scan_done;
   wifi_event_sta_authmode_change_t wifi_sta_authmode_change;
