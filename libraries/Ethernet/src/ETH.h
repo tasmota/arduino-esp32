@@ -21,9 +21,6 @@
 #ifndef _ETH_H_
 #define _ETH_H_
 
-#include "sdkconfig.h"
-#ifdef CONFIG_ETH_ENABLED
-
 #include "WiFi.h"
 #include "esp_system.h"
 #include "esp_eth.h"
@@ -56,7 +53,7 @@
 typedef enum { ETH_CLOCK_GPIO0_IN, ETH_CLOCK_GPIO0_OUT, ETH_CLOCK_GPIO16_OUT, ETH_CLOCK_GPIO17_OUT } eth_clock_mode_t;
 #endif
 
-typedef enum { ETH_PHY_LAN8720, ETH_PHY_TLK110, ETH_PHY_RTL8201, ETH_PHY_DP83848, ETH_PHY_DM9051, ETH_PHY_KSZ8041, ETH_PHY_KSZ8081, ETH_PHY_MAX } eth_phy_type_t;
+typedef enum { ETH_PHY_LAN8720, ETH_PHY_TLK110, ETH_PHY_RTL8201, ETH_PHY_DP83848, ETH_PHY_DM9051, ETH_PHY_KSZ8041, ETH_PHY_KSZ8081, ETH_PHY_JL1101, ETH_PHY_MAX } eth_phy_type_t;
 #define ETH_PHY_IP101 ETH_PHY_TLK110
 
 class ETHClass {
@@ -89,6 +86,7 @@ class ETHClass {
         uint8_t linkSpeed();
 
         bool enableIpV6();
+        bool enableIPv6() { return enableIpV6(); };
         IPv6Address localIPv6();
 
         IPAddress localIP();
@@ -108,7 +106,5 @@ class ETHClass {
 };
 
 extern ETHClass ETH;
-
-#endif  //  CONFIG_ETH_ENABLED
 
 #endif /* _ETH_H_ */
