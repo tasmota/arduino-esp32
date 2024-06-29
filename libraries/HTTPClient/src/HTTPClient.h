@@ -183,10 +183,13 @@ public:
 
 #ifdef HTTPCLIENT_1_1_COMPATIBLE
     bool begin(String url);
-    bool begin(String url, const char* CAcert);
+    [[deprecated("SSL is not supported in this lib")]]
+    bool begin(String url, const char* CAcert){ return false; };
     bool begin(String host, uint16_t port, String uri = "/");
-    bool begin(String host, uint16_t port, String uri, const char* CAcert);
-    bool begin(String host, uint16_t port, String uri, const char* CAcert, const char* cli_cert, const char* cli_key);
+    [[deprecated("SSL is not supported in this lib")]]
+    bool begin(String host, uint16_t port, String uri, const char* CAcert){ return false; };
+    [[deprecated("SSL is not supported in this lib")]]
+    bool begin(String host, uint16_t port, String uri, const char* CAcert, const char* cli_cert, const char* cli_key){ return false; };
 #endif
 
     void end(void);
