@@ -129,7 +129,10 @@ bool HTTPClient::begin(WiFiClient &client, String url) {
 
     _port = (protocol == "https" ? 443 : 80);
     _secure = (protocol == "https");
-    return beginInternal(url, protocol.c_str());
+    if (_secure)
+      return false;
+    else
+      return beginInternal(url, protocol.c_str());
 }
 
 
@@ -160,7 +163,7 @@ bool HTTPClient::begin(WiFiClient &client, String host, uint16_t port, String ur
     _uri = uri;
     _protocol = (https ? "https" : "http");
     _secure = https;
-    return true;
+    return https ? false : true;
 }
 
 
