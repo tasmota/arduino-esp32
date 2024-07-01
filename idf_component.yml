@@ -47,10 +47,10 @@ dependencies:
   espressif/mdns:
     version: "^1.2.3"
     require: public
-  espressif/esp_modem:
-    version: "^1.1.0"
-    rules:
-      - if: "target in [esp32, esp32s2, esp32s3, esp32h2]"
+#  espressif/esp_modem:
+#    version: "^1.1.0"
+#    rules:
+#      - if: "target in [esp32, esp32s2, esp32s3, esp32h2]"
   espressif/esp-zboss-lib:
     version: "^1.0.1"
     rules:
