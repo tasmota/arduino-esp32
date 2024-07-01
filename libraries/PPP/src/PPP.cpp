@@ -214,7 +214,7 @@ bool PPPClass::setPins(int8_t tx, int8_t rx, int8_t rts, int8_t cts, esp_modem_f
   return true;
 }
 
-bool PPPClass::begin(ppp_modem_model_t model, int uart_num, int baud_rate) {
+bool PPPClass::begin(ppp_modem_model_t model, uint8_t uart_num, int baud_rate) {
   esp_err_t ret = ESP_OK;
   bool pin_ok = false;
   int trys = 0;
@@ -732,7 +732,7 @@ bool PPPClass::setBaudrate(int baudrate) {
     log_e("uart_get_sclk_freq failed with %d %s", err, esp_err_to_name(err));
     return false;
   }
-  uart_ll_set_baudrate(UART_LL_GET_HW(uint8_t)(_uart_num), (uint32_t)baudrate, sclk_freq);
+  uart_ll_set_baudrate(UART_LL_GET_HW(_uart_num), (uint32_t)baudrate, sclk_freq);
 
   return true;
 }
