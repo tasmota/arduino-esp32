@@ -518,7 +518,7 @@ static bool i2c_slave_set_frequency(i2c_slave_struct_t *i2c, uint32_t clk_speed)
   i2c_ll_master_cal_bus_clk(APB_CLK_FREQ, clk_speed, &clk_cal);
   i2c_ll_set_source_clk(i2c->dev, SOC_MOD_CLK_APB); /*!< I2C source clock from APB, 80M*/
 #elif SOC_I2C_SUPPORT_XTAL
-  i2c_ll_cal_bus_clk(XTAL_CLK_FREQ, clk_speed, &clk_cal);
+  i2c_ll_master_cal_bus_clk(XTAL_CLK_FREQ, clk_speed, &clk_cal);
   i2c_ll_set_source_clk(i2c->dev, SOC_MOD_CLK_XTAL); /*!< I2C source clock from XTAL, 40M */
 #endif
   i2c_ll_set_txfifo_empty_thr(i2c->dev, a);
