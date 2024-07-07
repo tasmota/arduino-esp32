@@ -88,7 +88,7 @@ typedef struct {
   HTTPRawStatus status;
   size_t totalSize;    // content size
   size_t currentSize;  // size of data currently in buf
-  uint8_t buf[HTTP_UPLOAD_BUFLEN];
+  uint8_t buf[HTTP_RAW_BUFLEN];
   void *data;  // additional data
 } HTTPRaw;
 
