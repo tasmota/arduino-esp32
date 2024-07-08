@@ -35,7 +35,7 @@
 using namespace fs;
 
 SDMMCFS::SDMMCFS(FSImplPtr impl) : FS(impl), _card(nullptr) {
-#if defined(SOC_SDMMC_USE_GPIO_MATRIX) && defined(BOARD_HAS_SDMMC)
+#if defined(SOC_SDMMC_USE_GPIO_MATRIX)
   _pin_clk = SDMMC_CLK;
   _pin_cmd = SDMMC_CMD;
   _pin_d0 = SDMMC_D0;
@@ -45,7 +45,7 @@ SDMMCFS::SDMMCFS(FSImplPtr impl) : FS(impl), _card(nullptr) {
   _pin_d3 = SDMMC_D3;
 #endif  // BOARD_HAS_1BIT_SDMMC
 
-#elif SOC_SDMMC_USE_IOMUX
+#elif SOC_SDMMC_USE_IOMUX && defined(BOARD_HAS_SDMMC) && defined(CONFIG_IDF_TARGET_ESP32)
   _pin_clk = SDMMC_SLOT1_IOMUX_PIN_NUM_CLK;
   _pin_cmd = SDMMC_SLOT1_IOMUX_PIN_NUM_CMD;
   _pin_d0 = SDMMC_SLOT1_IOMUX_PIN_NUM_D0;
@@ -53,6 +53,16 @@ SDMMCFS::SDMMCFS(FSImplPtr impl) : FS(impl), _card(nullptr) {
   _pin_d1 = SDMMC_SLOT1_IOMUX_PIN_NUM_D1;
   _pin_d2 = SDMMC_SLOT1_IOMUX_PIN_NUM_D2;
   _pin_d3 = SDMMC_SLOT1_IOMUX_PIN_NUM_D3;
+#endif  // BOARD_HAS_1BIT_SDMMC
+
+#elif SOC_SDMMC_USE_IOMUX && defined(BOARD_HAS_SDMMC) && defined(CONFIG_IDF_TARGET_ESP32P4)
+  _pin_clk = SDMMC_SLOT0_IOMUX_PIN_NUM_CLK;
+  _pin_cmd = SDMMC_SLOT0_IOMUX_PIN_NUM_CMD;
+  _pin_d0 = SDMMC_SLOT0_IOMUX_PIN_NUM_D0;
+#ifndef BOARD_HAS_1BIT_SDMMC
+  _pin_d1 = SDMMC_SLOT0_IOMUX_PIN_NUM_D1;
+  _pin_d2 = SDMMC_SLOT0_IOMUX_PIN_NUM_D2;
+  _pin_d3 = SDMMC_SLOT0_IOMUX_PIN_NUM_D3;
 #endif  // BOARD_HAS_1BIT_SDMMC
 #endif
 }
