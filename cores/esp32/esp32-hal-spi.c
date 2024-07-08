@@ -146,13 +146,14 @@ static spi_t _spi_bus_array[] = {
   {(volatile spi_dev_t *)(DR_REG_SPI1_BASE), 0, -1, -1, -1, -1},
   {(volatile spi_dev_t *)(DR_REG_SPI2_BASE), 1, -1, -1, -1, -1},
   {(volatile spi_dev_t *)(DR_REG_SPI3_BASE), 2, -1, -1, -1, -1}
-#elif CONFIG_IDF_TARGET_ESP32S3
-  {(volatile spi_dev_t *)(DR_REG_SPI2_BASE), 0, -1, -1, -1, -1}, {(volatile spi_dev_t *)(DR_REG_SPI3_BASE), 1, -1, -1, -1, -1}
+#elif CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4
+  {(volatile spi_dev_t *)(DR_REG_SPI2_BASE), 0, -1, -1, -1, -1},
+  {(volatile spi_dev_t *)(DR_REG_SPI3_BASE), 1, -1, -1, -1, -1}
 #elif CONFIG_IDF_TARGET_ESP32C2
   {(volatile spi_dev_t *)(DR_REG_SPI2_BASE), 0, -1, -1, -1, -1}
 #elif CONFIG_IDF_TARGET_ESP32C3
   {(volatile spi_dev_t *)(DR_REG_SPI2_BASE), 0, -1, -1, -1, -1}
-#elif CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32H2 || CONFIG_IDF_TARGET_ESP32P4
+#elif CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32H2
   {(spi_dev_t *)(DR_REG_SPI2_BASE), 0, -1, -1, -1, -1}
 #else
   {(volatile spi_dev_t *)(DR_REG_SPI0_BASE), 0, -1, -1, -1, -1},
