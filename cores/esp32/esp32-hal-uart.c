@@ -611,7 +611,7 @@ void uartSetRxInvert(uart_t *uart, bool invert) {
   if (uart == NULL) {
     return;
   }
-#if CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32H2
+#if CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32H2 || CONFIG_IDF_TARGET_ESP32P4
   // POTENTIAL ISSUE :: original code only set/reset rxd_inv bit
   // IDF or LL set/reset the whole inv_mask!
   // if (invert)
@@ -883,7 +883,7 @@ int log_printfv(const char *format, va_list arg) {
     }
 #endif
 */
-#if CONFIG_IDF_TARGET_ESP32C3 || ((CONFIG_IDF_TARGET_ESP32H2 || CONFIG_IDF_TARGET_ESP32C6) && ARDUINO_USB_CDC_ON_BOOT)
+#if CONFIG_IDF_TARGET_ESP32C3 || ((CONFIG_IDF_TARGET_ESP32H2 || CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32P4) && ARDUINO_USB_CDC_ON_BOOT)
   vsnprintf(temp, len + 1, format, arg);
   ets_printf("%s", temp);
 #else
