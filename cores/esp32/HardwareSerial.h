@@ -200,6 +200,8 @@ typedef enum {
 #define RX2 (gpio_num_t)4
 #elif CONFIG_IDF_TARGET_ESP32S3
 #define RX2 (gpio_num_t)19
+#elif CONFIG_IDF_TARGET_ESP32P4
+#define RX2 (gpio_num_t)15
 #endif
 #endif
 
@@ -208,6 +210,8 @@ typedef enum {
 #define TX2 (gpio_num_t)25
 #elif CONFIG_IDF_TARGET_ESP32S3
 #define TX2 (gpio_num_t)20
+#elif CONFIG_IDF_TARGET_ESP32P4
+#define TX2 (gpio_num_t)14
 #endif
 #endif
 #endif /* SOC_UART_HP_NUM > 2 */
