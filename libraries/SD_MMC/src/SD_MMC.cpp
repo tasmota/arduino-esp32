@@ -36,7 +36,7 @@ using namespace fs;
 
 SDMMCFS::SDMMCFS(FSImplPtr impl) : FS(impl), _card(nullptr) {
 #if !defined(CONFIG_IDF_TARGET_ESP32P4)
-#if defined(SOC_SDMMC_USE_GPIO_MATRIX)
+#if defined(SOC_SDMMC_USE_GPIO_MATRIX) && defined(BOARD_HAS_SDMMC)
   _pin_clk = SDMMC_CLK;
   _pin_cmd = SDMMC_CMD;
   _pin_d0 = SDMMC_D0;
