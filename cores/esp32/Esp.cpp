@@ -338,6 +338,8 @@ uint32_t EspClass::getFlashChipSpeed(void) {
   return magicFlashChipSpeed(fhdr.spi_speed);
 }
 
+// FIXME for P4
+#if !defined(CONFIG_IDF_TARGET_ESP32P4)
 FlashMode_t EspClass::getFlashChipMode(void) {
 #if CONFIG_IDF_TARGET_ESP32S2
   uint32_t spi_ctrl = REG_READ(PERIPHS_SPI_FLASH_CTRL);
@@ -364,6 +366,7 @@ FlashMode_t EspClass::getFlashChipMode(void) {
   }
   return (FM_DOUT);
 }
+#endif // if !defined(CONFIG_IDF_TARGET_ESP32P4)
 
 uint32_t EspClass::magicFlashChipSize(uint8_t byte) {
   /*
