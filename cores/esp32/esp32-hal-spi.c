@@ -99,7 +99,19 @@ struct spi_struct_t {
 #define SPI_FSPI_SS_IDX(n) ((n == 0) ? FSPICS0_OUT_IDX : ((n == 1) ? FSPICS1_OUT_IDX : 0))
 #define SPI_SS_IDX(p, n)   ((p == 0) ? SPI_FSPI_SS_IDX(n) : ((p == 1) ? SPI_HSPI_SS_IDX(n) : 0))
 
-#elif CONFIG_IDF_TARGET_ESP32C2 || CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32H2 || CONFIG_IDF_TARGET_ESP32P4
+#elif CONFIG_IDF_TARGET_ESP32P4
+// ESP32P4
+#define SPI_COUNT (2)
+
+#define SPI_CLK_IDX(p)  ((p == 0) ? SPI2_CK_PAD_OUT_IDX : ((p == 1) ? SPI3_CK_PAD_OUT_IDX : 0))
+#define SPI_MISO_IDX(p) ((p == 0) ? SPI2_Q_PAD_OUT_IDX : ((p == 1) ? SPI3_QO_PAD_OUT_IDX : 0))
+#define SPI_MOSI_IDX(p) ((p == 0) ? SPI2_D_PAD_IN_IDX : ((p == 1) ? SPI3_D_IN_IDX : 0))
+
+#define SPI_HSPI_SS_IDX(n) ((n == 0) ? SPI3_CS0_OUT_IDX : ((n == 1) ? SPI3_CS1_OUT_IDX : 0))
+#define SPI_FSPI_SS_IDX(n) ((n == 0) ? SPI2_CS_PAD_OUT_IDX : ((n == 1) ? SPI2_CS1_PAD_OUT_IDX : 0))
+#define SPI_SS_IDX(p, n)   ((p == 0) ? SPI_FSPI_SS_IDX(n) : ((p == 1) ? SPI_HSPI_SS_IDX(n) : 0))
+
+#elif CONFIG_IDF_TARGET_ESP32C2 || CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32H2
 // ESP32C3
 #define SPI_COUNT (1)
 
@@ -128,7 +140,7 @@ struct spi_struct_t {
 #if CONFIG_DISABLE_HAL_LOCKS
 #define SPI_MUTEX_LOCK()
 #define SPI_MUTEX_UNLOCK()
-
++
 static spi_t _spi_bus_array[] = {
 #if CONFIG_IDF_TARGET_ESP32S2
   {(volatile spi_dev_t *)(DR_REG_SPI1_BASE), 0, -1, -1, -1, -1},
