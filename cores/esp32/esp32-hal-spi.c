@@ -173,13 +173,14 @@ static spi_t _spi_bus_array[] = {
   {(volatile spi_dev_t *)(DR_REG_SPI1_BASE), NULL, 0, -1, -1, -1, -1},
   {(volatile spi_dev_t *)(DR_REG_SPI2_BASE), NULL, 1, -1, -1, -1, -1},
   {(volatile spi_dev_t *)(DR_REG_SPI3_BASE), NULL, 2, -1, -1, -1, -1}
-#elif CONFIG_IDF_TARGET_ESP32S3
-  {(volatile spi_dev_t *)(DR_REG_SPI2_BASE), NULL, 0, -1, -1, -1, -1}, {(volatile spi_dev_t *)(DR_REG_SPI3_BASE), NULL, 1, -1, -1, -1, -1}
+#elif CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4
+  {(volatile spi_dev_t *)(DR_REG_SPI2_BASE), NULL, 0, -1, -1, -1, -1}, 
+  {(volatile spi_dev_t *)(DR_REG_SPI3_BASE), NULL, 1, -1, -1, -1, -1}
 #elif CONFIG_IDF_TARGET_ESP32C2
   {(volatile spi_dev_t *)(DR_REG_SPI2_BASE), NULL, 0, -1, -1, -1, -1}
 #elif CONFIG_IDF_TARGET_ESP32C3
   {(volatile spi_dev_t *)(DR_REG_SPI2_BASE), NULL, 0, -1, -1, -1, -1}
-#elif CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32H2 || CONFIG_IDF_TARGET_ESP32P4
+#elif CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32H2
   {(spi_dev_t *)(DR_REG_SPI2_BASE), NULL, 0, -1, -1, -1, -1}
 #else
   {(volatile spi_dev_t *)(DR_REG_SPI0_BASE), NULL, 0, -1, -1, -1, -1},
@@ -645,7 +646,7 @@ spi_t *spiStartBus(uint8_t spi_num, uint32_t clockDiv, uint8_t dataMode, uint8_t
     DPORT_SET_PERI_REG_MASK(DPORT_PERIP_CLK_EN_REG, DPORT_SPI01_CLK_EN);
     DPORT_CLEAR_PERI_REG_MASK(DPORT_PERIP_RST_EN_REG, DPORT_SPI01_RST);
   }
-#elif CONFIG_IDF_TARGET_ESP32S3
+#elif CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4
   if (spi_num == FSPI) {
     periph_ll_reset(PERIPH_SPI2_MODULE);
     periph_ll_enable_clk_clear_rst(PERIPH_SPI2_MODULE);
@@ -664,7 +665,7 @@ spi_t *spiStartBus(uint8_t spi_num, uint32_t clockDiv, uint8_t dataMode, uint8_t
     DPORT_SET_PERI_REG_MASK(DPORT_PERIP_CLK_EN_REG, DPORT_SPI01_CLK_EN);
     DPORT_CLEAR_PERI_REG_MASK(DPORT_PERIP_RST_EN_REG, DPORT_SPI01_RST);
   }
-#elif CONFIG_IDF_TARGET_ESP32C2 || CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32H2 || CONFIG_IDF_TARGET_ESP32P4
+#elif CONFIG_IDF_TARGET_ESP32C2 || CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32H2
   periph_ll_reset(PERIPH_SPI2_MODULE);
   periph_ll_enable_clk_clear_rst(PERIPH_SPI2_MODULE);
 #endif
