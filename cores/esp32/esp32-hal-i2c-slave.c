@@ -341,12 +341,22 @@ esp_err_t i2cSlaveInit(uint8_t num, int sda, int scl, uint16_t slaveID, uint32_t
 
   if (!i2c->intr_handle) {
     uint32_t flags = ESP_INTR_FLAG_LOWMED | ESP_INTR_FLAG_SHARED;
+#if !defined(CONFIG_IDF_TARGET_ESP32P4)
     if (i2c->num == 0) {
       ret = esp_intr_alloc(ETS_I2C_EXT0_INTR_SOURCE, flags, &i2c_slave_isr_handler, i2c, &i2c->intr_handle);
 #if SOC_I2C_NUM > 1
     } else {
       ret = esp_intr_alloc(ETS_I2C_EXT1_INTR_SOURCE, flags, &i2c_slave_isr_handler, i2c, &i2c->intr_handle);
 #endif
+#endif // !defined(CONFIG_IDF_TARGET_ESP32P4)
+#ifdef CONFIG_IDF_TARGET_ESP32P4
+    if (i2c->num == 0) {
+      ret = esp_intr_alloc(ETS_I2C0_INTR_SOURCE, flags, &i2c_slave_isr_handler, i2c, &i2c->intr_handle);
+#if SOC_I2C_NUM > 1
+    } else {
+      ret = esp_intr_alloc(ETS_I2C1_INTR_SOURCE, flags, &i2c_slave_isr_handler, i2c, &i2c->intr_handle);
+#endif
+#endif // #ifdef CONFIG_IDF_TARGET_ESP32P4
     }
 
     if (ret != ESP_OK) {
