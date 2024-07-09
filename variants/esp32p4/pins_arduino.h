@@ -16,8 +16,8 @@ static const uint8_t LED_BUILTIN = SOC_GPIO_PIN_COUNT + PIN_NEOPIXEL;
 static const uint8_t TX = 37;
 static const uint8_t RX = 38;
 
-static const uint8_t SDA = 23;
-static const uint8_t SCL = 22;
+static const uint8_t SDA = 12;
+static const uint8_t SCL = 11;
 
 static const uint8_t SS = 7;
 static const uint8_t MOSI = 8;
