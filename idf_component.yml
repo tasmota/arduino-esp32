@@ -56,12 +56,14 @@ dependencies:
   espressif/esp-zboss-lib:
     version: "^1.0.1"
     rules:
-      - if: "target in [esp32h2]"
+      - if: "target in [esp32h2, esp32p4]"
   espressif/esp-zigbee-lib:
     version: "^1.0.1"
     rules:
-      - if: "target in [esp32h2]"
+      - if: "target in [esp32h2, esp32p4]"
   espressif/esp-dsp:
     version: "^1.4.12"
+    rules:
+      - if: "target in [esp32, esp32s2, esp32s3]"
   joltwallet/littlefs:
     version: "^1.14.1"
