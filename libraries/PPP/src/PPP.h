@@ -103,7 +103,7 @@ private:
   int _rx_buffer_size;
   int _tx_buffer_size;
   esp_modem_dce_mode_t _mode;
-  uint8_t _uart_num;
+  uart_port_t _uart_num;
 
   static bool pppDetachBus(void *bus_pointer);
 };
