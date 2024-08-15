@@ -64,6 +64,6 @@ dependencies:
   espressif/esp-dsp:
     version: "^1.4.12"
     rules:
-      - if: "target in [esp32, esp32s2, esp32s3, esp32c2, esp32c3, eap32c6]"
+      - if: "target in [esp32, esp32s2, esp32s3, esp32c2, esp32c3, esp32c6]"
   joltwallet/littlefs:
     version: "^1.14.1"
