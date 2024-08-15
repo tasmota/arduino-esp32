@@ -182,7 +182,7 @@ static bool initWiFiEvents() {
     log_e("event_handler_instance_register for NETWORK_PROV_EVENT Failed!");
     return false;
   }
-#endif  // __has_include ("wifi_provisioning/wifi_config.h")
+#endif  // __has_include("network_provisioning/network_config.h")
 
   return true;
 }
@@ -203,7 +203,7 @@ static bool deinitWiFiEvents() {
     log_e("esp_event_handler_unregister for NETWORK_PROV_EVENT Failed!");
     return false;
   }
-#endif  // __has_include ("wifi_provisioning/wifi_config.h")
+#endif  // __has_include("network_provisioning/network_config.h")
 
   return true;
 }
