@@ -248,7 +248,7 @@ bool PPPClass::begin(ppp_modem_model_t model, uint8_t uart_num, int baud_rate) {
     return false;
   }
 
-  _uart_num = uart_num;
+  _uart_num = uart_port_t(uart_num);
   _esp_modem = this;
 
   Network.begin();
