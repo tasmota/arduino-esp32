@@ -22,8 +22,8 @@
 #if SOC_WIFI_SUPPORTED
 #include "esp_wifi_types.h"
 #include "esp_smartconfig.h"
-#if defined __has_include && __has_include("wifi_provisioning/wifi_config.h")
-#include "wifi_provisioning/wifi_config.h"
+#if defined __has_include && __has_include("network_provisioning/network_config.h")
+#include "network_provisioning/network_config.h"
 #endif
 #endif
 
@@ -111,8 +111,8 @@ typedef union {
   wifi_event_ap_stadisconnected_t wifi_ap_stadisconnected;
   wifi_event_ftm_report_t wifi_ftm_report;
   wifi_sta_config_t prov_cred_recv;
-#if defined __has_include && __has_include("wifi_provisioning/wifi_config.h")
-  wifi_prov_sta_fail_reason_t prov_fail_reason;
+#if defined __has_include && __has_include("network_provisioning/network_config.h")
+  network_prov_wifi_sta_fail_reason_t prov_fail_reason;
 #endif
   smartconfig_event_got_ssid_pswd_t sc_got_ssid_pswd;
 #endif
