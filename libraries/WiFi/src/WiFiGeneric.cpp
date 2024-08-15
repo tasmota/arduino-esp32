@@ -159,7 +159,7 @@ static void _arduino_event_cb(void *arg, esp_event_base_t event_base, int32_t ev
     log_v("Provisioning Success!");
     arduino_event.event_id = ARDUINO_EVENT_PROV_CRED_SUCCESS;
   }
-#endif  // __has_include ("wifi_provisioning/wifi_config.h")
+#endif  // __has_include("network_provisioning/network_config.h")
 
   if (arduino_event.event_id < ARDUINO_EVENT_MAX) {
     Network.postEvent(&arduino_event);
