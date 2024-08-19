@@ -49,7 +49,7 @@
 
 #define I2C_SLAVE_USE_RX_QUEUE 0  // 1: Queue, 0: RingBuffer
 
-#if SOC_I2C_NUM > 1
+#if SOC_HP_I2C_NUM > 1
 #define I2C_SCL_IDX(p) ((p == 0) ? I2CEXT0_SCL_OUT_IDX : ((p == 1) ? I2CEXT1_SCL_OUT_IDX : 0))
 #define I2C_SDA_IDX(p) ((p == 0) ? I2CEXT0_SDA_OUT_IDX : ((p == 1) ? I2CEXT1_SDA_OUT_IDX : 0))
 #else
@@ -99,14 +99,14 @@ typedef union {
   uint32_t val;
 } i2c_slave_queue_event_t;
 
-static i2c_slave_struct_t _i2c_bus_array[SOC_I2C_NUM] = {
+static i2c_slave_struct_t _i2c_bus_array[SOC_HP_I2C_NUM] = {
   {&I2C0, 0, -1, -1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0
 #if !CONFIG_DISABLE_HAL_LOCKS
    ,
    NULL
 #endif
   },
-#if SOC_I2C_NUM > 1
+#if SOC_HP_I2C_NUM > 1
   {&I2C1, 1, -1, -1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0
 #if !CONFIG_DISABLE_HAL_LOCKS
    ,
@@ -210,7 +210,7 @@ static bool i2cSlaveDetachBus(void *bus_i2c_num);
 //=====================================================================================================================
 
 esp_err_t i2cSlaveAttachCallbacks(uint8_t num, i2c_slave_request_cb_t request_callback, i2c_slave_receive_cb_t receive_callback, void *arg) {
-  if (num >= SOC_I2C_NUM) {
+  if (num >= SOC_HP_I2C_NUM) {
     log_e("Invalid port num: %u", num);
     return ESP_ERR_INVALID_ARG;
   }
@@ -224,7 +224,7 @@ esp_err_t i2cSlaveAttachCallbacks(uint8_t num, i2c_slave_request_cb_t request_ca
 }
 
 esp_err_t i2cSlaveInit(uint8_t num, int sda, int scl, uint16_t slaveID, uint32_t frequency, size_t rx_len, size_t tx_len) {
-  if (num >= SOC_I2C_NUM) {
+  if (num >= SOC_HP_I2C_NUM) {
     log_e("Invalid port num: %u", num);
     return ESP_ERR_INVALID_ARG;
   }
@@ -309,14 +309,14 @@ esp_err_t i2cSlaveInit(uint8_t num, int sda, int scl, uint16_t slaveID, uint32_t
 
   if (i2c->num == 0) {
     periph_ll_enable_clk_clear_rst(PERIPH_I2C0_MODULE);
-#if SOC_I2C_NUM > 1
+#if SOC_HP_I2C_NUM > 1
   } else {
     periph_ll_enable_clk_clear_rst(PERIPH_I2C1_MODULE);
 #endif
   }
 
   i2c_ll_slave_init(i2c->dev);
-  i2c_ll_set_data_mode(i2c->dev, I2C_DATA_MODE_MSB_FIRST, I2C_DATA_MODE_MSB_FIRST);
+  i2c_ll_slave_set_fifo_mode(i2c->dev, true);
   i2c_ll_set_slave_addr(i2c->dev, slaveID, false);
   i2c_ll_set_tout(i2c->dev, I2C_LL_MAX_TIMEOUT);
   i2c_slave_set_frequency(i2c, frequency);
@@ -337,13 +337,13 @@ esp_err_t i2cSlaveInit(uint8_t num, int sda, int scl, uint16_t slaveID, uint32_t
 
   i2c_ll_disable_intr_mask(i2c->dev, I2C_LL_INTR_MASK);
   i2c_ll_clear_intr_mask(i2c->dev, I2C_LL_INTR_MASK);
-  i2c_ll_set_data_mode(i2c->dev, I2C_DATA_MODE_MSB_FIRST, I2C_DATA_MODE_MSB_FIRST);
+  i2c_ll_slave_set_fifo_mode(i2c->dev, true);
 
   if (!i2c->intr_handle) {
     uint32_t flags = ESP_INTR_FLAG_LOWMED | ESP_INTR_FLAG_SHARED;
     if (i2c->num == 0) {
       ret = esp_intr_alloc(ETS_I2C_EXT0_INTR_SOURCE, flags, &i2c_slave_isr_handler, i2c, &i2c->intr_handle);
-#if SOC_I2C_NUM > 1
+#if SOC_HP_I2C_NUM > 1
     } else {
       ret = esp_intr_alloc(ETS_I2C_EXT1_INTR_SOURCE, flags, &i2c_slave_isr_handler, i2c, &i2c->intr_handle);
 #endif
@@ -375,7 +375,7 @@ fail:
 }
 
 esp_err_t i2cSlaveDeinit(uint8_t num) {
-  if (num >= SOC_I2C_NUM) {
+  if (num >= SOC_HP_I2C_NUM) {
     log_e("Invalid port num: %u", num);
     return ESP_ERR_INVALID_ARG;
   }
@@ -398,7 +398,7 @@ esp_err_t i2cSlaveDeinit(uint8_t num) {
 }
 
 size_t i2cSlaveWrite(uint8_t num, const uint8_t *buf, uint32_t len, uint32_t timeout_ms) {
-  if (num >= SOC_I2C_NUM) {
+  if (num >= SOC_HP_I2C_NUM) {
     log_e("Invalid port num: %u", num);
     return 0;
   }
