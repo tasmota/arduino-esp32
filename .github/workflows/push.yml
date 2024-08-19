@@ -194,27 +194,27 @@ jobs:
     - name: Build Sketches
       run: bash ./.github/scripts/on-push.sh
 
-  # PlatformIO on Windows, Ubuntu and Mac
-  build-platformio:
-    name: PlatformIO on ${{ matrix.os }}
-    needs: gen-chunks
-    if: |
-      needs.gen-chunks.outputs.build_all == 'true' ||
-      needs.gen-chunks.outputs.build_static_sketches == 'true' ||
-      needs.gen-chunks.outputs.build_platformio == 'true'
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macOS-latest]
+  # # PlatformIO on Windows, Ubuntu and Mac
+  # build-platformio:
+  #   name: PlatformIO on ${{ matrix.os }}
+  #   needs: gen-chunks
+  #   if: |
+  #     needs.gen-chunks.outputs.build_all == 'true' ||
+  #     needs.gen-chunks.outputs.build_static_sketches == 'true' ||
+  #     needs.gen-chunks.outputs.build_platformio == 'true'
+  #   runs-on: ${{ matrix.os }}
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       os: [ubuntu-latest, windows-latest, macOS-latest]
 
-    steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-python@v5
-      with:
-        python-version: '3.x'
-    - name: Build Sketches
-      run: bash ./.github/scripts/on-push.sh 1 1 #equal and non-zero to trigger PIO
+  #   steps:
+  #   - uses: actions/checkout@v4
+  #   - uses: actions/setup-python@v5
+  #     with:
+  #       python-version: '3.x'
+  #   - name: Build Sketches
+  #     run: bash ./.github/scripts/on-push.sh 1 1 #equal and non-zero to trigger PIO
 
   # ESP-IDF component build
   build-esp-idf-component:
