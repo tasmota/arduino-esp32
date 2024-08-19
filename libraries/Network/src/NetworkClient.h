@@ -28,6 +28,10 @@ class NetworkClientRxBuffer;
 
 class ESPLwIPClient : public Client {
 public:
+  virtual int connect(IPAddress ip, uint16_t port) = 0;
+  virtual int connect(IPAddress ip, uint16_t port, int32_t timeout) = 0;
+  virtual int connect(const char *host, uint16_t port) = 0;
+  virtual int connect(const char *host, uint16_t port, int32_t timeout) = 0;
   virtual void setConnectionTimeout(uint32_t milliseconds) = 0;
 };
 
@@ -54,7 +58,6 @@ public:
   size_t write(const uint8_t *buf, size_t size);
   size_t write_P(PGM_P buf, size_t size);
   size_t write(Stream &stream);
-  void flush();  // Print::flush tx
   int available();
   int read();
   int read(uint8_t *buf, size_t size);
@@ -63,7 +66,7 @@ public:
     return readBytes((char *)buffer, length);
   }
   int peek();
-  void clear();  // clear rx
+  void flush();
   void stop();
   uint8_t connected();
   void setSSE(bool sse);
