@@ -32,7 +32,9 @@
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
 #if CONFIG_ETH_USE_ESP32_EMAC
+#if defined __has_include && __has_include("soc/emac_ext_struct.h")
 #include "soc/emac_ext_struct.h"
+#endif /* __has_include("soc/emac_ext_struct.h" */
 #include "soc/rtc.h"
 #endif /* CONFIG_ETH_USE_ESP32_EMAC */
 #include "esp32-hal-periman.h"
