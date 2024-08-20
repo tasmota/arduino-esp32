@@ -143,8 +143,8 @@ static void __touchInit() {
   if (err != ESP_OK) {
     goto err;
   }
-  touch_pad_intr_enable();  // returns ESP_OK
-#elif SOC_TOUCH_SENSOR_VERSION == 2   // ESP32S2, ESP32S3
+  touch_pad_intr_enable();           // returns ESP_OK
+#elif SOC_TOUCH_SENSOR_VERSION == 2  // ESP32S2, ESP32S3
   err = touch_pad_init();
   if (err != ESP_OK) {
     goto err;
@@ -183,7 +183,7 @@ static void __touchChannelInit(int pad) {
   // Initial no Threshold and setup
   __touchInterruptHandlers[pad].fn = NULL;
   touch_pad_config(pad, TOUCH_PAD_THRESHOLD_MAX);  // returns ESP_OK
-#elif SOC_TOUCH_SENSOR_VERSION == 2                              // ESP32S2, ESP32S3
+#elif SOC_TOUCH_SENSOR_VERSION == 2                // ESP32S2, ESP32S3
   // Initial no Threshold and setup
   __touchInterruptHandlers[pad].fn = NULL;
   touch_pad_config(pad);  // returns ESP_OK
