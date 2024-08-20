@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include "soc/soc_caps.h"
-#if !defined(CONFIG_IDF_TARGET_ESP32P4)
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
 #else
 #if SOC_TOUCH_SENSOR_SUPPORTED
 #include "driver/touch_sensor.h"
