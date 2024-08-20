@@ -655,14 +655,6 @@ spi_t *spiStartBus(uint8_t spi_num, uint32_t clockDiv, uint8_t dataMode, uint8_t
     periph_ll_reset(PERIPH_SPI3_MODULE);
     periph_ll_enable_clk_clear_rst(PERIPH_SPI3_MODULE);
   }
-#elif CONFIG_IDF_TARGET_ESP32P4
-  if (spi_num == FSPI) {
-    periph_ll_reset(PERIPH_GPSPI2_MODULE);
-    periph_ll_enable_clk_clear_rst(PERIPH_GPSPI2_MODULE);
-  } else if (spi_num == HSPI) {
-    periph_ll_reset(PERIPH_GPSPI3_MODULE);
-    periph_ll_enable_clk_clear_rst(PERIPH_GPSPI3_MODULE);
-  }
 #elif CONFIG_IDF_TARGET_ESP32
   if (spi_num == HSPI) {
     DPORT_SET_PERI_REG_MASK(DPORT_PERIP_CLK_EN_REG, DPORT_SPI2_CLK_EN);
@@ -1632,3 +1624,4 @@ uint32_t spiFrequencyToClockDiv(uint32_t freq) {
 }
 
 #endif /* SOC_GPSPI_SUPPORTED */
+
