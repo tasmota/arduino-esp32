@@ -22,6 +22,7 @@
 #include "esp_attr.h"
 #include "soc/spi_reg.h"
 #include "soc/spi_struct.h"
+#include "soc/periph_defs.h"
 #include "soc/io_mux_reg.h"
 #include "soc/gpio_sig_map.h"
 #include "soc/rtc.h"
