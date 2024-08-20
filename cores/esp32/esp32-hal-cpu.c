@@ -179,7 +179,7 @@ bool setCpuFrequencyMhz(uint32_t cpu_freq_mhz) {
   rtc_cpu_freq_config_t conf, cconf;
   uint32_t capb, apb;
   //Get XTAL Frequency and calculate min CPU MHz
-#ifndef CONFIG_IDF_TARGET_ESP32H2
+#if (!defined(CONFIG_IDF_TARGET_ESP32H2) && !defined(CONFIG_IDF_TARGET_ESP32P4))
   rtc_xtal_freq_t xtal = rtc_clk_xtal_freq_get();
 #endif
 #if CONFIG_IDF_TARGET_ESP32
@@ -195,7 +195,7 @@ bool setCpuFrequencyMhz(uint32_t cpu_freq_mhz) {
     }
   }
 #endif
-#ifndef CONFIG_IDF_TARGET_ESP32H2
+#if (!defined(CONFIG_IDF_TARGET_ESP32H2) && !defined(CONFIG_IDF_TARGET_ESP32P4))
   if (cpu_freq_mhz > xtal && cpu_freq_mhz != 240 && cpu_freq_mhz != 160 && cpu_freq_mhz != 120 && cpu_freq_mhz != 80) {
     if (xtal >= RTC_XTAL_FREQ_40M) {
       log_e("Bad frequency: %u MHz! Options are: 240, 160, 120, 80, %u, %u and %u MHz", cpu_freq_mhz, xtal, xtal / 2, xtal / 4);
