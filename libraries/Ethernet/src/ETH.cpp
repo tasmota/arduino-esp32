@@ -173,8 +173,8 @@ bool ETHClass::begin(eth_phy_type_t type, int32_t phy_addr, int mdc, int mdio, i
   _ethernets[_eth_index] = this;
 
 #if CONFIG_IDF_TARGET_ESP32
-  #undef DEFAULT_RMII_CLK_GPIO
-  #define DEFAULT_RMII_CLK_GPIO (emac_rmii_clock_gpio_t)(CONFIG_ETH_RMII_CLK_IN_GPIO)
+#undef DEFAULT_RMII_CLK_GPIO
+#define DEFAULT_RMII_CLK_GPIO (emac_rmii_clock_gpio_t)(CONFIG_ETH_RMII_CLK_IN_GPIO)
 #endif
 
   eth_esp32_emac_config_t mac_config = ETH_ESP32_EMAC_DEFAULT_CONFIG();
@@ -183,8 +183,8 @@ bool ETHClass::begin(eth_phy_type_t type, int32_t phy_addr, int mdc, int mdio, i
                                             : (2 == clock_mode) ? EMAC_CLK_OUT_GPIO
                                             : (3 == clock_mode) ? EMAC_CLK_OUT_180_GPIO
                                                                 : EMAC_CLK_IN_GPIO;
-  mac_config.smi_mdc_gpio_num = digitalPinToGPIONumber(mdc);
-  mac_config.smi_mdio_gpio_num = digitalPinToGPIONumber(mdio);
+  mac_config.smi_gpio.mdc_num = digitalPinToGPIONumber(mdc);
+  mac_config.smi_gpio.mdio_num = digitalPinToGPIONumber(mdio);
 
   _pin_mcd = digitalPinToGPIONumber(mdc);
   _pin_mdio = digitalPinToGPIONumber(mdio);
