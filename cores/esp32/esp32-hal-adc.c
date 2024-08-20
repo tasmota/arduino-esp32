@@ -552,7 +552,7 @@ bool analogContinuous(const uint8_t pins[], size_t pins_count, uint32_t conversi
       .bitwidth = __adcContinuousWidth,
     };
     err = adc_cali_create_scheme_curve_fitting(&cali_config, &adc_handle[adc_unit].adc_cali_handle);
-#elif !defined(CONFIG_IDF_TARGET_ESP32H2)  //ADC_CALI_SCHEME_LINE_FITTING_SUPPORTED
+#elif (!defined(CONFIG_IDF_TARGET_ESP32H2) && !defined(CONFIG_IDF_TARGET_ESP32P4))  //ADC_CALI_SCHEME_LINE_FITTING_SUPPORTED
     adc_cali_line_fitting_config_t cali_config = {
       .unit_id = adc_unit,
       .bitwidth = __adcContinuousWidth,
