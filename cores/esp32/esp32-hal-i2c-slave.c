@@ -41,6 +41,7 @@
 #include "esp_intr_alloc.h"
 #include "soc/i2c_reg.h"
 #include "soc/i2c_struct.h"
+#include "soc/periph_defs.h"
 #include "hal/i2c_ll.h"
 #include "hal/clk_gate_ll.h"
 #include "esp32-hal-log.h"
