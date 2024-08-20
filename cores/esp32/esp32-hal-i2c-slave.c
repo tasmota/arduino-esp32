@@ -314,7 +314,7 @@ esp_err_t i2cSlaveInit(uint8_t num, int sda, int scl, uint16_t slaveID, uint32_t
     frequency = 100000L;
   }
   frequency = (frequency * 5) / 4;
-
+#if !defined(CONFIG_IDF_TARGET_ESP32P4)
   if (i2c->num == 0) {
     periph_ll_enable_clk_clear_rst(PERIPH_I2C0_MODULE);
 #if SOC_HP_I2C_NUM > 1
@@ -322,6 +322,7 @@ esp_err_t i2cSlaveInit(uint8_t num, int sda, int scl, uint16_t slaveID, uint32_t
     periph_ll_enable_clk_clear_rst(PERIPH_I2C1_MODULE);
 #endif
   }
+#endif  // !defined(CONFIG_IDF_TARGET_ESP32P4)
 
   i2c_ll_slave_init(i2c->dev);
   i2c_ll_slave_set_fifo_mode(i2c->dev, true);
