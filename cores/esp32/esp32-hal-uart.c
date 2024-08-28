@@ -45,7 +45,7 @@ struct uart_struct_t {
   bool has_peek;                   // flag to indicate that there is a peek byte pending to be read
   uint8_t peek_byte;               // peek byte that has been read but not consumed
   QueueHandle_t uart_event_queue;  // export it by some uartGetEventQueue() function
-  // configuration data:: Arduino API tipical data
+  // configuration data:: Arduino API typical data
   int8_t _rxPin, _txPin, _ctsPin, _rtsPin;  // UART GPIOs
   uint32_t _baudrate, _config;              // UART baudrate and config
   // UART ESP32 specific data
@@ -497,6 +497,8 @@ uart_t *uartBegin(
     log_v("UART%d not installed. Starting installation", uart_nr);
   }
   uart_config_t uart_config;
+  memset(&uart_config, 0, sizeof(uart_config_t));
+  uart_config.flags.backup_before_sleep = false;  // new flag from IDF v5.3
   uart_config.data_bits = (config & 0xc) >> 2;
   uart_config.parity = (config & 0x3);
   uart_config.stop_bits = (config & 0x30) >> 4;
