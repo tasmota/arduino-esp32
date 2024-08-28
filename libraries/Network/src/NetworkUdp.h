@@ -64,13 +64,15 @@ public:
   int endPacket();
   size_t write(uint8_t);
   size_t write(const uint8_t *buffer, size_t size);
+  [[deprecated("Use clear() instead.")]]
+  void flush();  // Print::flush tx
   int parsePacket();
   int available();
   int read();
   int read(unsigned char *buffer, size_t len);
   int read(char *buffer, size_t len);
   int peek();
-  void flush();
+  void clear();  // clear rx
   IPAddress remoteIP();
   uint16_t remotePort();
 };
