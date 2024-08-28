@@ -56,6 +56,8 @@ public:
   size_t write(const uint8_t *buf, size_t size);
   size_t write_P(PGM_P buf, size_t size);
   size_t write(Stream &stream);
+  [[deprecated("Use clear() instead.")]]
+  void flush();  // Print::flush tx
   int available();
   int read();
   int read(uint8_t *buf, size_t size);
@@ -64,7 +66,7 @@ public:
     return readBytes((char *)buffer, length);
   }
   int peek();
-  void flush();
+  void clear();  // clear rx
   void stop();
   uint8_t connected();
   void setSSE(bool sse);
