@@ -146,7 +146,7 @@ public:
     return _fill - _pos + r_available();
   }
 
-  void flush() {
+  void clear() {
     if (r_available()) {
       fillBuffer();
     }
@@ -369,6 +369,10 @@ int NetworkClient::read() {
   return data;
 }
 
+void NetworkClient::flush() {
+  clear();
+}
+
 size_t NetworkClient::write(const uint8_t *buf, size_t size) {
   int res = 0;
   int retry = WIFI_CLIENT_MAX_WRITE_RETRY;
@@ -529,11 +533,9 @@ int NetworkClient::available() {
   return res;
 }
 
-// Though flushing means to send all pending data,
-// seems that in Arduino it also means to clear RX
-void NetworkClient::flush() {
+void NetworkClient::clear() {
   if (_rxBuffer != nullptr) {
-    _rxBuffer->flush();
+    _rxBuffer->clear();
   }
 }
 
