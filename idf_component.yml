@@ -9,6 +9,7 @@ targets:
   - esp32c3
   - esp32c6
   - esp32h2
+  - esp32p4
 tags:
   - arduino
 files:
@@ -42,7 +43,7 @@ files:
     - "platform.txt"
     - "programmers.txt"
 dependencies:
-  idf: ">=5.1,<5.2"
+  idf: ">=5.3,<5.4"
   # mdns 1.2.1 is necessary to build H2 with no WiFi
   espressif/mdns:
     version: "^1.2.3"
@@ -61,5 +62,7 @@ dependencies:
       - if: "target in [esp32h2]"
   espressif/esp-dsp:
     version: "^1.4.12"
+    rules:
+      - if: "target in [esp32, esp32s2, esp32s3, esp32c2, esp32c3, esp32c6]"
   joltwallet/littlefs:
     version: "^1.14.1"
