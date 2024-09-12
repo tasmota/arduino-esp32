@@ -211,8 +211,8 @@ set(priv_requires fatfs nvs_flash app_update bootloader_support bt esp_hid usb e
 idf_component_register(INCLUDE_DIRS ${includedirs} PRIV_INCLUDE_DIRS ${priv_includes} SRCS ${srcs} REQUIRES ${requires} PRIV_REQUIRES ${priv_requires})
 
 include(gcc)
-cu_gcc_lto_set(COMPONENTS spi_flash esp_partition mbedtls wpa_supplicant esp_adc esp_eth http_parser fatfs nvs_flash app_update bootloader_support bt esp_hid usb esp_psram)
-    # cu_gcc_string_1byte_align(COMPONENTS ${includedirs} ${priv_includes} ${srcs} ${requires} ${priv_requires})
+cu_gcc_lto_set(COMPONENTS ${includedirs} ${priv_includes} ${srcs} ${requires})
+    # cu_gcc_string_1byte_align(COMPONENTS ${includedirs} ${priv_includes} ${srcs} ${requires})
 
 if(NOT CONFIG_FREERTOS_HZ EQUAL 1000 AND NOT "$ENV{ARDUINO_SKIP_TICK_CHECK}")
     # See delay() in cores/esp32/esp32-hal-misc.c.
