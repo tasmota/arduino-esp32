@@ -210,7 +210,7 @@ set(priv_requires fatfs nvs_flash app_update bootloader_support bt esp_hid usb e
 
 set(app_lto_components main)
 set(idf_lto_components spi_flash esp_partition mbedtls wpa_supplicant esp_eth http_parser)
-set(lto_depends main)
+set(lto_depends "")
 
 idf_component_register(INCLUDE_DIRS ${includedirs} PRIV_INCLUDE_DIRS ${priv_includes} SRCS ${srcs} REQUIRES ${requires} PRIV_REQUIRES ${priv_requires})
 
