@@ -5,8 +5,8 @@
 #   export ARDUINO_SKIP_IDF_VERSION_CHECK=1
 #   idf.py build
 
-set(min_supported_idf_version "5.1.0")
-set(max_supported_idf_version "5.1.99")
+set(min_supported_idf_version "5.3.0")
+set(max_supported_idf_version "5.4.99")
 set(idf_version "${IDF_VERSION_MAJOR}.${IDF_VERSION_MINOR}.${IDF_VERSION_PATCH}")
 
 if ("${idf_version}" AND NOT "$ENV{ARDUINO_SKIP_IDF_VERSION_CHECK}")
@@ -205,7 +205,7 @@ endforeach()
 set(includedirs variants/${CONFIG_ARDUINO_VARIANT}/ cores/esp32/ ${ARDUINO_LIBRARIES_INCLUDEDIRS})
 set(srcs ${CORE_SRCS} ${ARDUINO_LIBRARIES_SRCS})
 set(priv_includes cores/esp32/libb64)
-set(requires spi_flash esp_partition mbedtls wpa_supplicant esp_adc esp_eth http_parser)
+set(requires spi_flash esp_partition mbedtls wpa_supplicant esp_adc esp_eth http_parser esp_ringbuf esp_driver_gptimer esp_driver_usb_serial_jtag driver)
 set(priv_requires fatfs nvs_flash app_update bootloader_support bt esp_hid usb esp_psram ${ARDUINO_LIBRARIES_REQUIRES})
 
 idf_component_register(INCLUDE_DIRS ${includedirs} PRIV_INCLUDE_DIRS ${priv_includes} SRCS ${srcs} REQUIRES ${requires} PRIV_REQUIRES ${priv_requires})
