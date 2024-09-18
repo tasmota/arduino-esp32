@@ -285,6 +285,8 @@ bool HWCDC::deinit(void *busptr) {
   }
   running = true;
   // Setting USB D+ D- pins
+  // USB_DM_GPIO_NUM USB_DP_GPIO_NUM
+  // USB_INT_PHY0_DM_GPIO_NUM USB_INT_PHY0_DP_GPIO_NUM
   bool retCode = true;
   retCode &= perimanClearPinBus(USB_INT_PHY0_DM_GPIO_NUM);
   retCode &= perimanClearPinBus(USB_INT_PHY0_DP_GPIO_NUM);

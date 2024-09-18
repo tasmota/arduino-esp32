@@ -9,6 +9,7 @@ You can use the [Arduino-ESP32 Online Documentation](https://docs.espressif.com/
 ---
 
 **Migration guide from version 2.x to 3.x is available [here](https://docs.espressif.com/projects/arduino-esp32/en/latest/migration_guides/2.x_to_3.0.html).**
+The mentioned change from `flush` to `clear` is NOT done!
 
 ---
 
@@ -26,6 +27,7 @@ Here are the ESP32 series supported by the Tasmota Arduino-ESP32 project:
 | ESP32-C3 |     Yes    |       Yes       | [ESP32-C3](https://www.espressif.com/sites/default/files/documentation/esp32-c3_datasheet_en.pdf) |
 | ESP32-C6 |     Yes    |       Yes       | [ESP32-C6](https://www.espressif.com/sites/default/files/documentation/esp32-c6_datasheet_en.pdf) |
 | ESP32-H2 |     Yes    |       Yes       | [ESP32-H2](https://www.espressif.com/sites/default/files/documentation/esp32-h2_datasheet_en.pdf) |
+| ESP32-P4 |     No     |       Yes       | ESP32-P4 |
 
 
 For more details visit the [supported chips](https://docs.espressif.com/projects/arduino-esp32/en/latest/getting_started.html#supported-soc-s) documentation page.
