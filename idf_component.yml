@@ -44,7 +44,7 @@ files:
     - "platform.txt"
     - "programmers.txt"
 dependencies:
-  idf: ">=5.3,<5.4"
+  idf: ">=5.3,<=5.4"
   # mdns 1.2.1 is necessary to build H2 with no WiFi
   espressif/mdns:
     version: "^1.2.3"
@@ -56,11 +56,11 @@ dependencies:
   espressif/esp-zboss-lib:
     version: "^1.0.1"
     rules:
-      - if: "target in [esp32h2]"
+      - if: "target in [esp32h2, esp32p4]"
   espressif/esp-zigbee-lib:
     version: "^1.0.1"
     rules:
-      - if: "target in [esp32h2]"
+      - if: "target in [esp32h2, esp32p4]"
   espressif/esp-dsp:
     version: "^1.4.12"
     rules:
