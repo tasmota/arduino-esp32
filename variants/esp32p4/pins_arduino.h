@@ -19,12 +19,20 @@ static const uint8_t LED_BUILTIN = SOC_GPIO_PIN_COUNT + PIN_NEOPIXEL;
 static const uint8_t TX = 37;
 static const uint8_t RX = 38;
 
-static const uint8_t SDA = 7;
-static const uint8_t SCL = 8;
+static const uint8_t SDA = 13;
+static const uint8_t SCL = 12;
 
-static const uint8_t SS = 10;
-static const uint8_t MOSI = 11;
-static const uint8_t MISO = 12;
-static const uint8_t SCK = 13;
+static const uint8_t SS = 7;
+static const uint8_t MOSI = 8;
+static const uint8_t MISO = 10;
+static const uint8_t SCK = 9;
+
+static const uint8_t A0 = 0;
+static const uint8_t A1 = 1;
+static const uint8_t A2 = 2;
+static const uint8_t A3 = 3;
+static const uint8_t A4 = 4;
+static const uint8_t A5 = 5;
+static const uint8_t A6 = 6;
 
 #endif /* Pins_Arduino_h */
