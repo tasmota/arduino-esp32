@@ -232,9 +232,8 @@ target_compile_options(${COMPONENT_TARGET} PUBLIC
     -DARDUINO_VARIANT="${CONFIG_ARDUINO_VARIANT}"
     -DESP32=ESP32)
 
-list(APPEND compile_options "-ffat-lto-objects"
-                            "-flto-compression-level=9"
-                            "-flto=auto")
+list(APPEND compile_options "-ffat-lto-objects -flto-compression-level=9 -flto=auto")
+list(APPEND CMAKE_EXE_LINKER_FLAGS "-flto -fuse-linker-plugin -ffat-lto-objects -flto-partition=max")
 
 if(CONFIG_AUTOSTART_ARDUINO)
     # in autostart mode, arduino-esp32 contains app_main() function and needs to
