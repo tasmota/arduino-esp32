@@ -22,6 +22,10 @@ if ("${idf_version}" AND NOT "$ENV{ARDUINO_SKIP_IDF_VERSION_CHECK}")
   endif()
 endif()
 
+# Compare to "ar" and "ranlib", "gcc-ar" and "gcc-ranlib" integrate GCC LTO plugin
+set(CMAKE_AR ${_CMAKE_TOOLCHAIN_PREFIX}gcc-ar)
+set(CMAKE_RANLIB ${_CMAKE_TOOLCHAIN_PREFIX}gcc-ranlib)
+
 set(CORE_SRCS
   cores/esp32/base64.cpp
   cores/esp32/cbuf.cpp
@@ -210,6 +214,8 @@ set(priv_requires fatfs nvs_flash app_update bootloader_support bt esp_hid usb e
 
 idf_component_register(INCLUDE_DIRS ${includedirs} PRIV_INCLUDE_DIRS ${priv_includes} SRCS ${srcs} REQUIRES ${requires} PRIV_REQUIRES ${priv_requires})
 
+include(gcc)
+
 if(NOT CONFIG_FREERTOS_HZ EQUAL 1000 AND NOT "$ENV{ARDUINO_SKIP_TICK_CHECK}")
     # See delay() in cores/esp32/esp32-hal-misc.c.
     message(FATAL_ERROR "esp32-arduino requires CONFIG_FREERTOS_HZ=1000 "
@@ -225,6 +231,9 @@ target_compile_options(${COMPONENT_TARGET} PUBLIC
     -DARDUINO_BOARD="${idf_target_caps}_DEV"
     -DARDUINO_VARIANT="${CONFIG_ARDUINO_VARIANT}"
     -DESP32=ESP32)
+
+list(APPEND compile_options "-ffat-lto-objects -flto-compression-level=9 -flto=auto")
+list(APPEND CMAKE_EXE_LINKER_FLAGS "-flto -fuse-linker-plugin -ffat-lto-objects -flto-partition=max")
 
 if(CONFIG_AUTOSTART_ARDUINO)
     # in autostart mode, arduino-esp32 contains app_main() function and needs to
