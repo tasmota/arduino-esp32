@@ -232,6 +232,10 @@ target_compile_options(${COMPONENT_TARGET} PUBLIC
     -DARDUINO_VARIANT="${CONFIG_ARDUINO_VARIANT}"
     -DESP32=ESP32)
 
+list(APPEND compile_options "-ffat-lto-objects"
+                            "-flto-compression-level=9"
+                            "-flto=auto")
+
 if(CONFIG_AUTOSTART_ARDUINO)
     # in autostart mode, arduino-esp32 contains app_main() function and needs to
     # reference setup() and loop() in the main component. If we add main
