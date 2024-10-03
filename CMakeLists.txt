@@ -99,6 +99,7 @@ set(ARDUINO_ALL_LIBRARIES
   WebServer
   WiFi
   Wire
+  Zigbee
   )
 
 set(ARDUINO_LIBRARY_ArduinoOTA_SRCS libraries/ArduinoOTA/src/ArduinoOTA.cpp)
