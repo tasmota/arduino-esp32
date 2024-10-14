@@ -249,6 +249,8 @@ void noTone(uint8_t _pin);
 #endif /* __cplusplus */
 
 #include "pins_arduino.h"
+#if defined __has_include && __has_include("io_pin_remap.h")
 #include "io_pin_remap.h"
+#endif
 
 #endif /* _ESP32_CORE_ARDUINO_H_ */
