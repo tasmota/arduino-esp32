@@ -41,8 +41,7 @@ set(CORE_SRCS
   cores/esp32/esp32-hal-sigmadelta.c
   cores/esp32/esp32-hal-spi.c
   cores/esp32/esp32-hal-time.c
-  cores/esp32/esp32-hal-timer.c
-  cores/esp32/esp32-hal-tinyusb.c
+  cores/esp32/esp32-hal-timer.c 
   cores/esp32/esp32-hal-touch.c
   cores/esp32/esp32-hal-uart.c
   cores/esp32/esp32-hal-rmt.c
@@ -72,6 +71,7 @@ set(CORE_SRCS
   )
 if(IDF_TARGET MATCHES "esp32s2|esp32s3|esp32p4")
   list(APPEND CORE_SRCS
+    cores/esp32/esp32-hal-tinyusb.c
     cores/esp32/USB.cpp
     cores/esp32/USBCDC.cpp
     cores/esp32/USBMSC.cpp)
