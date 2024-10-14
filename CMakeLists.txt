@@ -63,9 +63,11 @@ set(CORE_SRCS
   cores/esp32/StreamString.cpp
   cores/esp32/Tone.cpp
   cores/esp32/HWCDC.cpp
+if(IDF_TARGET MATCHES "esp32s2|esp32s3|esp32p4")
   cores/esp32/USB.cpp
   cores/esp32/USBCDC.cpp
   cores/esp32/USBMSC.cpp
+endif()
   cores/esp32/FirmwareMSC.cpp
   cores/esp32/firmware_msc_fat.c
   cores/esp32/wiring_pulse.c
@@ -95,7 +97,9 @@ set(ARDUINO_ALL_LIBRARIES
   SPI
   Ticker
   Update
+if(IDF_TARGET MATCHES "esp32s2|esp32s3|esp32p4")
   USB
+endif()
   WebServer
   WiFi
   Wire
@@ -149,6 +153,7 @@ set(ARDUINO_LIBRARY_Update_SRCS
   libraries/Update/src/Updater.cpp
   libraries/Update/src/HttpsOTAUpdate.cpp)
 
+if(IDF_TARGET MATCHES "esp32s2|esp32s3|esp32p4")
 set(ARDUINO_LIBRARY_USB_SRCS
   libraries/USB/src/USBHID.cpp
   libraries/USB/src/USBMIDI.cpp
@@ -159,6 +164,7 @@ set(ARDUINO_LIBRARY_USB_SRCS
   libraries/USB/src/USBHIDSystemControl.cpp
   libraries/USB/src/USBHIDVendor.cpp
   libraries/USB/src/USBVendor.cpp)
+endif()
 
 set(ARDUINO_LIBRARY_WebServer_SRCS
   libraries/WebServer/src/WebServer.cpp
