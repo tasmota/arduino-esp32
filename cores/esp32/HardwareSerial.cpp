@@ -5,9 +5,7 @@
 #include <ctime>
 
 #include "pins_arduino.h"
-#if defined __has_include && __has_include("io_pin_remap.h")
 #include "io_pin_remap.h"
-#endif
 #include "HardwareSerial.h"
 #include "soc/soc_caps.h"
 #include "driver/uart.h"
