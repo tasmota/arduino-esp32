@@ -189,6 +189,7 @@ static bool initWiFiEvents() {
     return false;
   }
 #endif
+#endif  // __has_include("network_provisioning/network_config.h")
 
   return true;
 }
@@ -211,6 +212,7 @@ static bool deinitWiFiEvents() {
     return false;
   }
 #endif
+#endif  // __has_include("network_provisioning/network_config.h")
 
   return true;
 }
