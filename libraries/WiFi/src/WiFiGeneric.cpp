@@ -130,7 +130,7 @@ static void _arduino_event_cb(void *arg, esp_event_base_t event_base, int32_t ev
     /*
 	 * Provisioning
 	 * */
-  }
+//  }
 //#if defined __has_include && __has_include("network_provisioning/network_config.h")
 //    else if (event_base == NETWORK_PROV_EVENT && event_id == NETWORK_PROV_INIT) {
 //    log_v("Provisioning Initialized!");
