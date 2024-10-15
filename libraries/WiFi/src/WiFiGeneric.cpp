@@ -777,7 +777,6 @@ set_ant:
     log_e("Failed to set antenna configuration");
     return false;
   }
-#endif
   return true;
 }
 
