@@ -173,10 +173,15 @@ void deinit_usb_hal() {
 
 esp_err_t tinyusb_driver_install(const tinyusb_config_t *config) {
   init_usb_hal(config->external_phy);
+  tusb_rhport_init_t tinit;
+  memset(&tinit, 0, sizeof(tusb_rhport_init_t));
+  tinit.role = TUSB_ROLE_DEVICE;
 #if CONFIG_IDF_TARGET_ESP32P4
-  if (!tud_init(1)) {
+  tinit.speed = TUSB_SPEED_HIGH;
+  if (!tusb_init(1, &tinit)) {
 #else
-  if (!tud_init(0)) {
+  tinit.speed = TUSB_SPEED_FULL;
+  if (!tusb_init(0, &tinit)) {
 #endif
     log_e("Can't initialize the TinyUSB stack.");
     return ESP_FAIL;
@@ -287,15 +292,14 @@ enum {
   VENDOR_REQUEST_MICROSOFT = 2
 };
 
-static uint8_t const tinyusb_bos_descriptor[] = {
-  // total length, number of device caps
-  TUD_BOS_DESCRIPTOR(BOS_TOTAL_LEN, 2),
+static uint8_t const tinyusb_bos_descriptor[] = {// total length, number of device caps
+                                                 TUD_BOS_DESCRIPTOR(BOS_TOTAL_LEN, 2),
 
-  // Vendor Code, iLandingPage
-  TUD_BOS_WEBUSB_DESCRIPTOR(VENDOR_REQUEST_WEBUSB, 1),
+                                                 // Vendor Code, iLandingPage
+                                                 TUD_BOS_WEBUSB_DESCRIPTOR(VENDOR_REQUEST_WEBUSB, 1),
 
-  // Microsoft OS 2.0 descriptor
-  TUD_BOS_MS_OS_20_DESCRIPTOR(MS_OS_20_DESC_LEN, VENDOR_REQUEST_MICROSOFT)
+                                                 // Microsoft OS 2.0 descriptor
+                                                 TUD_BOS_MS_OS_20_DESCRIPTOR(MS_OS_20_DESC_LEN, VENDOR_REQUEST_MICROSOFT)
 };
 
 /*
@@ -831,7 +835,7 @@ esp_err_t tinyusb_init(tinyusb_device_config_t *config) {
     periph_ll_enable_clk_clear_rst(PERIPH_USB_MODULE);
   }
 #endif
-  
+
   tinyusb_config_t tusb_cfg = {
     .external_phy = false  // In the most cases you need to use a `false` value
   };
