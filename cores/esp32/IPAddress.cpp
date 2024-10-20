@@ -26,13 +26,17 @@ IPAddress::IPAddress() : IPAddress(IPv4) {}
 
 IPAddress::IPAddress(IPType ip_type) {
   _type = ip_type;
+#if LWIP_IPV6
   _zone = IP6_NO_ZONE;
+#endif
   memset(_address.bytes, 0, sizeof(_address.bytes));
 }
 
 IPAddress::IPAddress(uint8_t first_octet, uint8_t second_octet, uint8_t third_octet, uint8_t fourth_octet) {
   _type = IPv4;
+#if LWIP_IPV6
   _zone = IP6_NO_ZONE;
+#endif
   memset(_address.bytes, 0, sizeof(_address.bytes));
   _address.bytes[IPADDRESS_V4_BYTES_INDEX] = first_octet;
   _address.bytes[IPADDRESS_V4_BYTES_INDEX + 1] = second_octet;
@@ -67,7 +71,9 @@ IPAddress::IPAddress(
 IPAddress::IPAddress(uint32_t address) {
   // IPv4 only
   _type = IPv4;
+#if LWIP_IPV6
   _zone = IP6_NO_ZONE;
+#endif
   memset(_address.bytes, 0, sizeof(_address.bytes));
   _address.dword[IPADDRESS_V4_DWORD_INDEX] = address;
 
@@ -368,6 +374,7 @@ IPAddress::IPAddress(const ip_addr_t *addr) {
 }
 
 void IPAddress::to_ip_addr_t(ip_addr_t *addr) const {
+#if LWIP_IPV6
   if (_type == IPv6) {
     addr->type = IPADDR_TYPE_V6;
     addr->u_addr.ip6.addr[0] = _address.dword[0];
@@ -377,13 +384,16 @@ void IPAddress::to_ip_addr_t(ip_addr_t *addr) const {
 #if LWIP_IPV6_SCOPES
     addr->u_addr.ip6.zone = _zone;
 #endif /* LWIP_IPV6_SCOPES */
-  } else {
+  } else
+#endif /* LWIP_IPV6 */
+  {
     addr->type = IPADDR_TYPE_V4;
     addr->u_addr.ip4.addr = _address.dword[IPADDRESS_V4_DWORD_INDEX];
   }
 }
 
 IPAddress &IPAddress::from_ip_addr_t(const ip_addr_t *addr) {
+#if LWIP_IPV6
   if (addr->type == IPADDR_TYPE_V6) {
     _type = IPv6;
     _address.dword[0] = addr->u_addr.ip6.addr[0];
@@ -393,7 +403,9 @@ IPAddress &IPAddress::from_ip_addr_t(const ip_addr_t *addr) {
 #if LWIP_IPV6_SCOPES
     _zone = addr->u_addr.ip6.zone;
 #endif /* LWIP_IPV6_SCOPES */
-  } else {
+  } else
+#endif /* LWIP_IPV6 */
+  {
     _type = IPv4;
     memset(_address.bytes, 0, sizeof(_address.bytes));
     _address.dword[IPADDRESS_V4_DWORD_INDEX] = addr->u_addr.ip4.addr;
@@ -401,6 +413,7 @@ IPAddress &IPAddress::from_ip_addr_t(const ip_addr_t *addr) {
   return *this;
 }
 
+#if LWIP_IPV6
 esp_ip6_addr_type_t IPAddress::addr_type() const {
   if (_type != IPv6) {
     return ESP_IP6_ADDR_IS_UNKNOWN;
@@ -409,6 +422,7 @@ esp_ip6_addr_type_t IPAddress::addr_type() const {
   to_ip_addr_t(&addr);
   return esp_netif_ip6_get_addr_type((esp_ip6_addr_t *)(&(addr.u_addr.ip6)));
 }
+#endif /* #if LWIP_IPV6 */
 
 const IPAddress IN6ADDR_ANY(IPv6);
 const IPAddress INADDR_NONE(0, 0, 0, 0);
