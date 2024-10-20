@@ -384,12 +384,13 @@ void IPAddress::to_ip_addr_t(ip_addr_t *addr) const {
 #if LWIP_IPV6_SCOPES
     addr->u_addr.ip6.zone = _zone;
 #endif /* LWIP_IPV6_SCOPES */
-  } else
+  } else {
 #endif /* LWIP_IPV6 */
-  {
     addr->type = IPADDR_TYPE_V4;
     addr->u_addr.ip4.addr = _address.dword[IPADDRESS_V4_DWORD_INDEX];
+#if LWIP_IPV6
   }
+#endif /* LWIP_IPV6 */
 }
 
 IPAddress &IPAddress::from_ip_addr_t(const ip_addr_t *addr) {
@@ -403,13 +404,14 @@ IPAddress &IPAddress::from_ip_addr_t(const ip_addr_t *addr) {
 #if LWIP_IPV6_SCOPES
     _zone = addr->u_addr.ip6.zone;
 #endif /* LWIP_IPV6_SCOPES */
-  } else
+  } else {
 #endif /* LWIP_IPV6 */
-  {
     _type = IPv4;
     memset(_address.bytes, 0, sizeof(_address.bytes));
     _address.dword[IPADDRESS_V4_DWORD_INDEX] = addr->u_addr.ip4.addr;
+#if LWIP_IPV6
   }
+#endif /* LWIP_IPV6 */
   return *this;
 }
 
