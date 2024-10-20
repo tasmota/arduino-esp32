@@ -44,6 +44,7 @@ IPAddress::IPAddress(uint8_t first_octet, uint8_t second_octet, uint8_t third_oc
   _address.bytes[IPADDRESS_V4_BYTES_INDEX + 3] = fourth_octet;
 }
 
+#if LWIP_IPV6
 IPAddress::IPAddress(
   uint8_t o1, uint8_t o2, uint8_t o3, uint8_t o4, uint8_t o5, uint8_t o6, uint8_t o7, uint8_t o8, uint8_t o9, uint8_t o10, uint8_t o11, uint8_t o12,
   uint8_t o13, uint8_t o14, uint8_t o15, uint8_t o16, uint8_t z
@@ -67,6 +68,7 @@ IPAddress::IPAddress(
   _address.bytes[15] = o16;
   _zone = z;
 }
+#endif /* LWIP_IPV6 */
 
 IPAddress::IPAddress(uint32_t address) {
   // IPv4 only
@@ -166,6 +168,7 @@ bool IPAddress::fromString4(const char *address) {
   return true;
 }
 
+#if LWIP_IPV6
 bool IPAddress::fromString6(const char *address) {
   uint32_t acc = 0;  // Accumulator
   int colons = 0, double_colons = -1;
@@ -241,6 +244,7 @@ bool IPAddress::fromString6(const char *address) {
   _type = IPv6;
   return true;
 }
+#endif /* LWIP_IPV6 */
 
 IPAddress &IPAddress::operator=(const uint8_t *address) {
   // IPv4 only conversion from byte pointer
@@ -302,6 +306,7 @@ size_t IPAddress::printTo(Print &p) const {
 size_t IPAddress::printTo(Print &p, bool includeZone) const {
   size_t n = 0;
 
+#if LWIP_IPV6
   if (_type == IPv6) {
     // IPv6 IETF canonical format: compress left-most longest run of two or more zero fields, lower case
     int8_t longest_start = -1;
@@ -359,6 +364,7 @@ size_t IPAddress::printTo(Print &p, bool includeZone) const {
     }
     return n;
   }
+#endif /* LWIP_IPV6 */
 
   // IPv4
   for (int i = 0; i < 3; i++) {
