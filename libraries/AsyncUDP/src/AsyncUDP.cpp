@@ -327,26 +327,34 @@ AsyncUDPPacket::AsyncUDPPacket(AsyncUDP *udp, pbuf *pb, const ip_addr_t *raddr, 
 
   pbuf_ref(_pb);
 
+#if LWIP_IPV6
   //memcpy(&_remoteIp, raddr, sizeof(ip_addr_t));
   _remoteIp.type = raddr->type;
   _localIp.type = _remoteIp.type;
+#endif
 
   eth_hdr *eth = NULL;
   udp_hdr *udphdr = (udp_hdr *)(_data - UDP_HLEN);
+#if LWIP_IPV6
   _localPort = ntohs(udphdr->dest);
   _remotePort = ntohs(udphdr->src);
+#endif
 
+#if LWIP_IPV6
   if (_remoteIp.type == IPADDR_TYPE_V4) {
+#endif
     eth = (eth_hdr *)(_data - UDP_HLEN - IP_HLEN - SIZEOF_ETH_HDR);
     struct ip_hdr *iphdr = (struct ip_hdr *)(_data - UDP_HLEN - IP_HLEN);
     _localIp.u_addr.ip4.addr = iphdr->dest.addr;
     _remoteIp.u_addr.ip4.addr = iphdr->src.addr;
+#if LWIP_IPV6 
   } else {
     eth = (eth_hdr *)(_data - UDP_HLEN - IP6_HLEN - SIZEOF_ETH_HDR);
     struct ip6_hdr *ip6hdr = (struct ip6_hdr *)(_data - UDP_HLEN - IP6_HLEN);
     memcpy(&_localIp.u_addr.ip6.addr, (uint8_t *)ip6hdr->dest.addr, 16);
     memcpy(&_remoteIp.u_addr.ip6.addr, (uint8_t *)ip6hdr->src.addr, 16);
   }
+#endif
   memcpy(_remoteMac, eth->src.addr, 6);
 
   struct netif *netif = NULL;
@@ -419,12 +427,14 @@ IPAddress AsyncUDPPacket::localIP() {
   return IPAddress(_localIp.u_addr.ip4.addr);
 }
 
+#if LWIP_IPV6
 IPAddress AsyncUDPPacket::localIPv6() {
   if (_localIp.type != IPADDR_TYPE_V6) {
     return IPAddress(IPv6);
   }
   return IPAddress(IPv6, (const uint8_t *)_localIp.u_addr.ip6.addr, _localIp.u_addr.ip6.zone);
 }
+#endif
 
 uint16_t AsyncUDPPacket::localPort() {
   return _localPort;
@@ -437,12 +447,14 @@ IPAddress AsyncUDPPacket::remoteIP() {
   return IPAddress(_remoteIp.u_addr.ip4.addr);
 }
 
+#if LWIP_IPV6
 IPAddress AsyncUDPPacket::remoteIPv6() {
   if (_remoteIp.type != IPADDR_TYPE_V6) {
     return IPAddress(IPv6);
   }
   return IPAddress(IPv6, (const uint8_t *)_remoteIp.u_addr.ip6.addr, _remoteIp.u_addr.ip6.zone);
 }
+#endif
 
 uint16_t AsyncUDPPacket::remotePort() {
   return _remotePort;
@@ -452,14 +464,18 @@ void AsyncUDPPacket::remoteMac(uint8_t *mac) {
   memcpy(mac, _remoteMac, 6);
 }
 
+#if LWIP_IPV6
 bool AsyncUDPPacket::isIPv6() {
   return _localIp.type == IPADDR_TYPE_V6;
 }
+#endif
 
 bool AsyncUDPPacket::isBroadcast() {
+#if LWIP_IPV6
   if (_localIp.type == IPADDR_TYPE_V6) {
     return false;
   }
+#endif
   uint32_t ip = _localIp.u_addr.ip4.addr;
   return ip == 0xFFFFFFFF || ip == 0 || (ip & 0xFF000000) == 0xFF000000;
 }
@@ -581,7 +597,9 @@ static esp_err_t joinMulticastGroup(const ip_addr_t *addr, bool join, tcpip_adap
           return ESP_ERR_INVALID_STATE;
         }
       }
-    } else {
+    }
+ #if LWIP_IPV6
+      else {
       if (join) {
         if (mld6_joingroup_netif(netif, &(addr->u_addr.ip6))) {
           return ESP_ERR_INVALID_STATE;
@@ -592,6 +610,7 @@ static esp_err_t joinMulticastGroup(const ip_addr_t *addr, bool join, tcpip_adap
         }
       }
     }
+#endif
   } else {
     if (addr->type == IPADDR_TYPE_V4) {
       if (join) {
@@ -603,7 +622,9 @@ static esp_err_t joinMulticastGroup(const ip_addr_t *addr, bool join, tcpip_adap
           return ESP_ERR_INVALID_STATE;
         }
       }
-    } else {
+    }
+#if LWIP_IPV6    
+    else {
       if (join) {
         if (mld6_joingroup((const ip6_addr *)IP6_ADDR_ANY, &(addr->u_addr.ip6))) {
           return ESP_ERR_INVALID_STATE;
@@ -614,6 +635,7 @@ static esp_err_t joinMulticastGroup(const ip_addr_t *addr, bool join, tcpip_adap
         }
       }
     }
+#endif
   }
   return ESP_OK;
 }
@@ -728,12 +750,14 @@ IPAddress AsyncUDP::listenIP() {
   return IPAddress(_pcb->remote_ip.u_addr.ip4.addr);
 }
 
+#if LWIP_IPV6
 IPAddress AsyncUDP::listenIPv6() {
   if (!_pcb || _pcb->remote_ip.type != IPADDR_TYPE_V6) {
     return IPAddress(IPv6);
   }
   return IPAddress(IPv6, (const uint8_t *)_pcb->remote_ip.u_addr.ip6.addr, _pcb->remote_ip.u_addr.ip6.zone);
 }
+#endif
 
 size_t AsyncUDP::write(const uint8_t *data, size_t len) {
   return writeTo(data, len, &(_pcb->remote_ip), _pcb->remote_port);
