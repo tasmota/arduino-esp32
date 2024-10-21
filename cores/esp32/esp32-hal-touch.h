@@ -22,6 +22,7 @@
 
 #include "soc/soc_caps.h"
 #if SOC_TOUCH_SENSOR_SUPPORTED
+#if SOC_TOUCH_SENSOR_VERSION <= 2  // ESP32 ESP32S2 ESP32S3
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,8 +37,6 @@ extern "C" {
 #if SOC_TOUCH_SENSOR_VERSION == 1  // ESP32
 typedef uint16_t touch_value_t;
 #elif SOC_TOUCH_SENSOR_VERSION == 2  // ESP32S2 ESP32S3
-typedef uint32_t touch_value_t;
-#elif SOC_TOUCH_SENSOR_VERSION == 3  // ESP32P4
 typedef uint32_t touch_value_t;
 #endif
 
@@ -99,5 +98,6 @@ void touchSleepWakeUpEnable(uint8_t pin, touch_value_t threshold);
 }
 #endif
 
+#endif /* SOC_TOUCH_SENSOR_VERSION <= 2 */
 #endif /* SOC_TOUCH_SENSOR_SUPPORTED */
 #endif /* MAIN_ESP32_HAL_TOUCH_H_ */
