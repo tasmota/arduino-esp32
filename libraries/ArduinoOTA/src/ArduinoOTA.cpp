@@ -1,6 +1,8 @@
 #ifndef LWIP_OPEN_SRC
 #define LWIP_OPEN_SRC
 #endif
+#if CONFIG_MDNS_MAX_INTERFACES
+
 #include <functional>
 #include "ArduinoOTA.h"
 #include "NetworkClient.h"
@@ -390,3 +392,5 @@ void ArduinoOTAClass::setTimeout(int timeoutInMillis) {
 #if !defined(NO_GLOBAL_INSTANCES) && !defined(NO_GLOBAL_ARDUINOOTA)
 ArduinoOTAClass ArduinoOTA;
 #endif
+
+#endif /* CONFIG_MDNS_MAX_INTERFACES */
