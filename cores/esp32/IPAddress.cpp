@@ -201,7 +201,13 @@ bool IPAddress::fromString6(const char *address) {
       colons++;
       acc = 0;
     } else if (c == '%') {
-      _zone = netif_name_to_index(address);
+      // netif_index_to_name crashes on latest esp-idf
+      // _zone = netif_name_to_index(address);
+      // in the interim, we parse the suffix as a zone number
+      while ((*address != '\0') && (!isdigit(*address))) {    // skip all non-digit after '%'
+        address++;
+      }
+      _zone = atol(address);
       while (*address != '\0') {
         address++;
       }
@@ -351,6 +357,11 @@ size_t IPAddress::printTo(Print &p, bool includeZone) const {
     //   netif_index_to_name(_zone, if_name);
     //   n += p.print(if_name);
     // }
+    // In the interim, we just output the index number
+    if (_zone > 0 && includeZone) {
+      n += p.print('%');
+      n += p.print(_zone);
+    }
     return n;
   }
 
