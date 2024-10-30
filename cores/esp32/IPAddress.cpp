@@ -207,7 +207,7 @@ bool IPAddress::fromString6(const char *address) {
       while ((*address != '\0') && (!isdigit(*address))) {    // skip all non-digit after '%'
         address++;
       }
-      _zone = atol(address);
+      _zone = atol(address) + 1;    // increase by one by convention, so we can have zone '0'
       while (*address != '\0') {
         address++;
       }
@@ -360,7 +360,15 @@ size_t IPAddress::printTo(Print &p, bool includeZone) const {
     // In the interim, we just output the index number
     if (_zone > 0 && includeZone) {
       n += p.print('%');
-      n += p.print(_zone);
+      // look for the interface name
+      for (netif* intf = netif_list; intf != nullptr; intf = intf->next) {
+        if (_zone - 1 == intf->num) {
+          n += p.print(intf->name[0]);
+          n += p.print(intf->name[1]);
+          break;
+        }
+      }
+      n += p.print(_zone - 1);
     }
     return n;
   }
