@@ -38,6 +38,7 @@ License (MIT license):
   THE SOFTWARE.
 
 */
+#include "sdkconfig.h"
 #if CONFIG_MDNS_MAX_INTERFACES
 
 #ifndef ESP32MDNS_H
