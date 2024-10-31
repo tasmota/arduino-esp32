@@ -38,6 +38,7 @@ License (MIT license):
 #define LWIP_OPEN_SRC
 #endif
 
+#include "sdkconfig.h"
 #if CONFIG_MDNS_MAX_INTERFACES
 
 #include "ESPmDNS.h"
