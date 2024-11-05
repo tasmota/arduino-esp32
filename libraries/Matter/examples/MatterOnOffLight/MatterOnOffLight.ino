@@ -1,3 +1,17 @@
+// Copyright 2024 Espressif Systems (Shanghai) PTE LTD
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 // Matter Manager
 #include <Matter.h>
 #include <WiFi.h>
@@ -5,7 +19,6 @@
 
 // List of Matter Endpoints for this Node
 // On/Off Light Endpoint
-#include <MatterOnOffLight.h>
 MatterOnOffLight OnOffLight;
 
 // it will keep last OnOff state stored, using Preferences
@@ -72,7 +85,7 @@ void setup() {
   lastStatePref.begin("matterLight", false);
   bool lastOnOffState = lastStatePref.getBool("lastOnOffState", true);
   OnOffLight.begin(lastOnOffState);
-  OnOffLight.onChangeOnOff(setLightOnOff);
+  OnOffLight.onChange(setLightOnOff);
 
   // Matter beginning - Last step, after all EndPoints are initialized
   Matter.begin();
@@ -80,7 +93,7 @@ void setup() {
   if (Matter.isDeviceCommissioned()) {
     Serial.println("Matter Node is commissioned and connected to Wi-Fi. Ready for use.");
     Serial.printf("Initial state: %s\r\n", OnOffLight.getOnOff() ? "ON" : "OFF");
-    setLightOnOff(OnOffLight.getOnOff());  // configure the Light based on initial state
+    OnOffLight.updateAccessory();  // configure the Light based on initial state
   }
 }
 // Button control
@@ -107,7 +120,7 @@ void loop() {
       }
     }
     Serial.printf("Initial state: %s\r\n", OnOffLight.getOnOff() ? "ON" : "OFF");
-    setLightOnOff(OnOffLight.getOnOff());  // configure the Light based on initial state
+    OnOffLight.updateAccessory();  // configure the Light based on initial state
     Serial.println("Matter Node is commissioned and connected to Wi-Fi. Ready for use.");
   }
 
