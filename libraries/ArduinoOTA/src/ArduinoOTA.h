@@ -1,3 +1,6 @@
+#include "sdkconfig.h"
+#if CONFIG_MDNS_MAX_INTERFACES
+
 #ifndef __ARDUINO_OTA_H
 #define __ARDUINO_OTA_H
 
@@ -113,3 +116,4 @@ extern ArduinoOTAClass ArduinoOTA;
 #endif
 
 #endif /* __ARDUINO_OTA_H */
+#endif /* CONFIG_MDNS_MAX_INTERFACES */
