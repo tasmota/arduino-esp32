@@ -45,8 +45,6 @@
 
 #include "Network.h"
 
-#include "Network.h"
-
 #define WiFiEventCb     NetworkEventCb
 #define WiFiEventFuncCb NetworkEventFuncCb
 #define WiFiEventSysCb  NetworkEventSysCb
