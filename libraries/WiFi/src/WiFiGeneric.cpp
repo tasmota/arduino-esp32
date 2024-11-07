@@ -131,6 +131,7 @@ static void _arduino_event_cb(void *arg, esp_event_base_t event_base, int32_t ev
     /*
 	 * Provisioning
 	 * */
+#if defined __has_include && __has_include("network_provisioning/network_config.h")
   } else if (event_base == NETWORK_PROV_EVENT && event_id == NETWORK_PROV_INIT) {
     log_v("Provisioning Initialized!");
     arduino_event.event_id = ARDUINO_EVENT_PROV_INIT;
@@ -161,6 +162,7 @@ static void _arduino_event_cb(void *arg, esp_event_base_t event_base, int32_t ev
   } else if (event_base == NETWORK_PROV_EVENT && event_id == NETWORK_PROV_WIFI_CRED_SUCCESS) {
     log_v("Provisioning Success!");
     arduino_event.event_id = ARDUINO_EVENT_PROV_CRED_SUCCESS;
+#endif  // __has_include("network_provisioning/network_config.h")
 #endif
 #endif
   }
@@ -182,12 +184,14 @@ static bool initWiFiEvents() {
     return false;
   }
 
+#if defined __has_include && __has_include("network_provisioning/network_config.h")
 #if CONFIG_NETWORK_PROV_NETWORK_TYPE_WIFI
   if (esp_event_handler_instance_register(NETWORK_PROV_EVENT, ESP_EVENT_ANY_ID, &_arduino_event_cb, NULL, NULL)) {
     log_e("event_handler_instance_register for NETWORK_PROV_EVENT Failed!");
     return false;
   }
 #endif
+#endif  // __has_include("network_provisioning/network_config.h")
 #endif
 
   return true;
@@ -205,12 +209,14 @@ static bool deinitWiFiEvents() {
     return false;
   }
 
+#if defined __has_include && __has_include("network_provisioning/network_config.h")
 #if CONFIG_NETWORK_PROV_NETWORK_TYPE_WIFI
   if (esp_event_handler_unregister(NETWORK_PROV_EVENT, ESP_EVENT_ANY_ID, &_arduino_event_cb)) {
     log_e("esp_event_handler_unregister for NETWORK_PROV_EVENT Failed!");
     return false;
   }
 #endif
+#endif  // __has_include("network_provisioning/network_config.h")
 #endif
 
   return true;

@@ -33,11 +33,17 @@
 #include "IPAddress.h"
 #include "esp_smartconfig.h"
 #include "esp_netif_types.h"
+#if defined __has_include && __has_include("esp_eth_driver.h")
 #include "esp_eth_driver.h"
+#endif
 #if CONFIG_NETWORK_PROV_NETWORK_TYPE_WIFI
+#if defined __has_include && __has_include("network_provisioning/manager.h")
 #include "network_provisioning/manager.h"
 #endif
+#endif
 #include "lwip/ip_addr.h"
+
+#include "Network.h"
 
 #include "Network.h"
 

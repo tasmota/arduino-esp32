@@ -9,7 +9,9 @@
 #include "esp_err.h"
 #include "esp_event.h"
 #include "esp_netif_types.h"
+#if defined __has_include && __has_include("esp_eth_driver.h")
 #include "esp_eth_driver.h"
+#endif
 #include <functional>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -25,7 +27,9 @@
 #include "esp_wifi_types.h"
 #include "esp_smartconfig.h"
 #if CONFIG_NETWORK_PROV_NETWORK_TYPE_WIFI
+#if defined __has_include && __has_include("network_provisioning/network_config.h")
 #include "network_provisioning/network_config.h"
+#endif
 #endif
 #endif
 
@@ -98,7 +102,9 @@ typedef union {
   ip_event_ap_staipassigned_t wifi_ap_staipassigned;
   ip_event_got_ip_t got_ip;
   ip_event_got_ip6_t got_ip6;
+#if defined __has_include && __has_include("esp_eth_driver.h")
   esp_eth_handle_t eth_connected;
+#endif
 #if SOC_WIFI_SUPPORTED || CONFIG_ESP_WIFI_REMOTE_ENABLED
   wifi_event_sta_scan_done_t wifi_scan_done;
   wifi_event_sta_authmode_change_t wifi_sta_authmode_change;
@@ -114,7 +120,9 @@ typedef union {
 #if SOC_WIFI_SUPPORTED
   wifi_sta_config_t prov_cred_recv;
 #if CONFIG_NETWORK_PROV_NETWORK_TYPE_WIFI
+#if defined __has_include && __has_include("network_provisioning/network_config.h")
   network_prov_wifi_sta_fail_reason_t prov_fail_reason;
+#endif
 #endif
   smartconfig_event_got_ssid_pswd_t sc_got_ssid_pswd;
 #endif
