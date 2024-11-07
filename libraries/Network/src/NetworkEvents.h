@@ -26,8 +26,10 @@
 #if SOC_WIFI_SUPPORTED || CONFIG_ESP_WIFI_REMOTE_ENABLED
 #include "esp_wifi_types.h"
 #include "esp_smartconfig.h"
+#if CONFIG_NETWORK_PROV_NETWORK_TYPE_WIFI
 #if defined __has_include && __has_include("network_provisioning/network_config.h")
 #include "network_provisioning/network_config.h"
+#endif
 #endif
 #endif
 
@@ -117,8 +119,10 @@ typedef union {
 #endif
 #if SOC_WIFI_SUPPORTED
   wifi_sta_config_t prov_cred_recv;
+#if CONFIG_NETWORK_PROV_NETWORK_TYPE_WIFI
 #if defined __has_include && __has_include("network_provisioning/network_config.h")
   network_prov_wifi_sta_fail_reason_t prov_fail_reason;
+#endif
 #endif
   smartconfig_event_got_ssid_pswd_t sc_got_ssid_pswd;
 #endif
