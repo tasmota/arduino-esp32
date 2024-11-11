@@ -50,8 +50,8 @@ NetworkClient NetworkServer::accept() {
     struct sockaddr_in6 _client;
     int cs = sizeof(struct sockaddr_in6);
 #else
-    struct sockaddr _client;
-    int cs = sizeof(struct sockaddr);
+    struct sockaddr_in _client;
+    int cs = sizeof(struct sockaddr_in);
 #endif
 #ifdef ESP_IDF_VERSION_MAJOR
     client_sock = lwip_accept(sockfd, (struct sockaddr *)&_client, (socklen_t *)&cs);
@@ -101,12 +101,15 @@ void NetworkServer::begin(uint16_t port, int enable) {
   server.sin6_port = htons(_port);
 #else
   struct sockaddr_in server;
+  memset(&server, 0x0, sizeof(sockaddr_in));
+  server.sin_family = AF_INET;
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd < 0) {
     return;
   }
   setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int));
   memcpy((uint8_t *)&(server.sin_addr.s_addr), (uint8_t *)&_addr[0], 4);
+  server.sin_port = htons(_port);
 #endif
   if (bind(sockfd, (struct sockaddr *)&server, sizeof(server)) < 0) {
     return;
