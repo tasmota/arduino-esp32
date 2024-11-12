@@ -42,6 +42,7 @@ License (MIT license):
 #if CONFIG_MDNS_MAX_INTERFACES
 
 #include "ESPmDNS.h"
+#ifdef CONFIG_MDNS_MAX_INTERFACES
 #include <functional>
 #include "esp_mac.h"
 #include "soc/soc_caps.h"

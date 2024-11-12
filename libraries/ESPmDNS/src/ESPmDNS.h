@@ -44,6 +44,9 @@ License (MIT license):
 #ifndef ESP32MDNS_H
 #define ESP32MDNS_H
 
+#include "sdkconfig.h"
+#ifdef CONFIG_MDNS_MAX_INTERFACES
+
 #include "Arduino.h"
 #include "mdns.h"
 #include "esp_interface.h"
@@ -128,5 +131,6 @@ private:
 
 extern MDNSResponder MDNS;
 
+#endif  /* CONFIG_MDNS_MAX_INTERFACES */
 #endif  //ESP32MDNS_H
 #endif /* CONFIG_MDNS_MAX_INTERFACES */
