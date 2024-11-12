@@ -178,6 +178,7 @@ if(IDF_TARGET MATCHES "esp32s2|esp32s3|esp32p4" AND CONFIG_TINYUSB_ENABLED)
     libraries/USB/src/USBHIDSystemControl.cpp
     libraries/USB/src/USBHIDVendor.cpp
     libraries/USB/src/USBVendor.cpp)
+endif()
 
 set(ARDUINO_LIBRARY_WebServer_SRCS
   libraries/WebServer/src/WebServer.cpp
