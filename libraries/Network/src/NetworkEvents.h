@@ -32,6 +32,9 @@
 #endif
 #endif
 #endif
+#include "network_provisioning/network_config.h"
+#endif
+#endif
 
 #if SOC_WIFI_SUPPORTED || CONFIG_ESP_WIFI_REMOTE_ENABLED
 constexpr int WIFI_SCANNING_BIT = BIT0;
@@ -123,6 +126,8 @@ typedef union {
 #if defined __has_include && __has_include("network_provisioning/network_config.h")
   network_prov_wifi_sta_fail_reason_t prov_fail_reason;
 #endif
+#endif
+  network_prov_wifi_sta_fail_reason_t prov_fail_reason;
 #endif
   smartconfig_event_got_ssid_pswd_t sc_got_ssid_pswd;
 #endif

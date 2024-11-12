@@ -165,6 +165,7 @@ static void _arduino_event_cb(void *arg, esp_event_base_t event_base, int32_t ev
 #endif  // __has_include("network_provisioning/network_config.h")
 #endif
 #endif
+#endif
   }
 
   if (arduino_event.event_id < ARDUINO_EVENT_MAX) {
