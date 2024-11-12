@@ -5,11 +5,12 @@
  */
 #pragma once
 
+#include "sdkconfig.h"
 #include "soc/soc_caps.h"
 #include "esp_err.h"
 #include "esp_event.h"
 #include "esp_netif_types.h"
-#if defined __has_include && __has_include("esp_eth_driver.h")
+#if CONFIG_ETH_ENABLED
 #include "esp_eth_driver.h"
 #endif
 #include <functional>
@@ -18,7 +19,6 @@
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "freertos/event_groups.h"
-#include "sdkconfig.h"
 #if defined NETWORK_EVENTS_MUTEX && SOC_CPU_CORES_NUM > 1
 #include <mutex>
 #endif  // defined NETWORK_EVENTS_MUTEX &&  SOC_CPU_CORES_NUM > 1
@@ -102,7 +102,7 @@ typedef union {
   ip_event_ap_staipassigned_t wifi_ap_staipassigned;
   ip_event_got_ip_t got_ip;
   ip_event_got_ip6_t got_ip6;
-#if defined __has_include && __has_include("esp_eth_driver.h")
+#if CONFIG_ETH_ENABLED 
   esp_eth_handle_t eth_connected;
 #endif
 #if SOC_WIFI_SUPPORTED || CONFIG_ESP_WIFI_REMOTE_ENABLED
