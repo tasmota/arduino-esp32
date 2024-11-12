@@ -124,8 +124,6 @@ typedef union {
   network_prov_wifi_sta_fail_reason_t prov_fail_reason;
 #endif
 #endif
-  network_prov_wifi_sta_fail_reason_t prov_fail_reason;
-#endif
   smartconfig_event_got_ssid_pswd_t sc_got_ssid_pswd;
 #endif
 } arduino_event_info_t;
