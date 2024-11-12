@@ -32,9 +32,6 @@
 #endif
 #endif
 #endif
-#include "network_provisioning/network_config.h"
-#endif
-#endif
 
 #if SOC_WIFI_SUPPORTED || CONFIG_ESP_WIFI_REMOTE_ENABLED
 constexpr int WIFI_SCANNING_BIT = BIT0;
