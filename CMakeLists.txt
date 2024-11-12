@@ -158,26 +158,26 @@ set(ARDUINO_LIBRARY_Update_SRCS
   libraries/Update/src/HttpsOTAUpdate.cpp)
 
 if(IDF_TARGET MATCHES "esp32s2|esp32s3|esp32p4" AND CONFIG_TINYUSB_ENABLED)
-set(ARDUINO_LIBRARY_USB_SRCS
-  libraries/USB/src/USBHID.cpp
-  libraries/USB/src/USBMIDI.cpp
-  libraries/USB/src/USBHIDMouse.cpp
-  libraries/USB/src/USBHIDKeyboard.cpp
-  libraries/USB/src/keyboardLayout/KeyboardLayout_da_DK.cpp
-  libraries/USB/src/keyboardLayout/KeyboardLayout_de_DE.cpp
-  libraries/USB/src/keyboardLayout/KeyboardLayout_en_US.cpp
-  libraries/USB/src/keyboardLayout/KeyboardLayout_es_ES.cpp
-  libraries/USB/src/keyboardLayout/KeyboardLayout_fr_FR.cpp
-  libraries/USB/src/keyboardLayout/KeyboardLayout_hu_HU.cpp
-  libraries/USB/src/keyboardLayout/KeyboardLayout_it_IT.cpp
-  libraries/USB/src/keyboardLayout/KeyboardLayout_pt_BR.cpp
-  libraries/USB/src/keyboardLayout/KeyboardLayout_pt_PT.cpp
-  libraries/USB/src/keyboardLayout/KeyboardLayout_sv_SE.cpp
-  libraries/USB/src/USBHIDGamepad.cpp
-  libraries/USB/src/USBHIDConsumerControl.cpp
-  libraries/USB/src/USBHIDSystemControl.cpp
-  libraries/USB/src/USBHIDVendor.cpp
-  libraries/USB/src/USBVendor.cpp)
+  set(ARDUINO_LIBRARY_USB_SRCS
+    libraries/USB/src/USBHID.cpp
+    libraries/USB/src/USBMIDI.cpp
+    libraries/USB/src/USBHIDMouse.cpp
+    libraries/USB/src/USBHIDKeyboard.cpp
+    libraries/USB/src/keyboardLayout/KeyboardLayout_da_DK.cpp
+    libraries/USB/src/keyboardLayout/KeyboardLayout_de_DE.cpp
+    libraries/USB/src/keyboardLayout/KeyboardLayout_en_US.cpp
+    libraries/USB/src/keyboardLayout/KeyboardLayout_es_ES.cpp
+    libraries/USB/src/keyboardLayout/KeyboardLayout_fr_FR.cpp
+    libraries/USB/src/keyboardLayout/KeyboardLayout_hu_HU.cpp
+    libraries/USB/src/keyboardLayout/KeyboardLayout_it_IT.cpp
+    libraries/USB/src/keyboardLayout/KeyboardLayout_pt_BR.cpp
+    libraries/USB/src/keyboardLayout/KeyboardLayout_pt_PT.cpp
+    libraries/USB/src/keyboardLayout/KeyboardLayout_sv_SE.cpp
+    libraries/USB/src/USBHIDGamepad.cpp
+    libraries/USB/src/USBHIDConsumerControl.cpp
+    libraries/USB/src/USBHIDSystemControl.cpp
+    libraries/USB/src/USBHIDVendor.cpp
+    libraries/USB/src/USBVendor.cpp)
 
 set(ARDUINO_LIBRARY_WebServer_SRCS
   libraries/WebServer/src/WebServer.cpp
