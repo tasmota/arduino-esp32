@@ -19,7 +19,6 @@
  */
 
 // Disable the automatic pin remapping of the API calls in this file
-#if defined __has_include && __has_include("esp_eth_driver.h")
 
 #define ARDUINO_CORE_BUILD
 
