@@ -20,6 +20,9 @@
 
 // Disable the automatic pin remapping of the API calls in this file
 
+#include "sdkconfig.h"
+#if CONFIG_ETH_ENABLED
+
 #define ARDUINO_CORE_BUILD
 
 #include "ETH.h"
@@ -1059,4 +1062,4 @@ size_t ETHClass::printDriverInfo(Print &out) const {
 
 ETHClass ETH;
 
-#endif /* defined __has_include && __has_include("esp_eth_driver.h") */
+#endif /* CONFIG_ETH_ENABLED */
