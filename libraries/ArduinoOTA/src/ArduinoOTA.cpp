@@ -1,7 +1,6 @@
 #ifndef LWIP_OPEN_SRC
 #define LWIP_OPEN_SRC
 #endif
-
 #include <functional>
 #include "ArduinoOTA.h"
 #include "NetworkClient.h"
