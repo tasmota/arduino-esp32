@@ -33,7 +33,7 @@
 #include "IPAddress.h"
 #include "esp_smartconfig.h"
 #include "esp_netif_types.h"
-#if defined __has_include && __has_include("esp_eth_driver.h")
+#if CONFIG_ETH_ENABLED
 #include "esp_eth_driver.h"
 #endif
 #if CONFIG_NETWORK_PROV_NETWORK_TYPE_WIFI
