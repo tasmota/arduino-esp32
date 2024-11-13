@@ -18,6 +18,9 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include "sdkconfig.h"
+#if CONFIG_ETH_ENABLED
+
 #ifndef _ETH_H_
 #define _ETH_H_
 
@@ -127,6 +130,7 @@ typedef enum {
   ETH_PHY_LAN8720,
   ETH_PHY_TLK110,
   ETH_PHY_RTL8201,
+  ETH_PHY_JL1101,
   ETH_PHY_DP83848,
   ETH_PHY_KSZ8041,
   ETH_PHY_KSZ8081,
@@ -249,3 +253,4 @@ private:
 extern ETHClass ETH;
 
 #endif /* _ETH_H_ */
+#endif /* CONFIG_ETH_ENABLED */
