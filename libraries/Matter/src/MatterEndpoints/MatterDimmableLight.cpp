@@ -94,6 +94,12 @@ bool MatterDimmableLight::begin(bool initialState, uint8_t brightness) {
 
   setEndPointId(endpoint::get_id(endpoint));
   log_i("Dimmable Light created with endpoint_id %d", getEndPointId());
+
+  /* Mark deferred persistence for some attributes that might be changed rapidly */
+  cluster_t *level_control_cluster = cluster::get(endpoint, LevelControl::Id);
+  attribute_t *current_level_attribute = attribute::get(level_control_cluster, LevelControl::Attributes::CurrentLevel::Id);
+  attribute::set_deferred_persistence(current_level_attribute);
+
   started = true;
   return true;
 }

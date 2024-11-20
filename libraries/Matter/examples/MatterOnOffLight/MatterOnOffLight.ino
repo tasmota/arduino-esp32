@@ -23,7 +23,7 @@ MatterOnOffLight OnOffLight;
 
 // it will keep last OnOff state stored, using Preferences
 Preferences matterPref;
-const char *onOffPrefKey = "OnOffState";
+const char *onOffPrefKey = "OnOff";
 
 // set your board LED pin here
 #ifdef LED_BUILTIN

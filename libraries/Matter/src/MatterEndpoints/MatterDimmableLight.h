@@ -25,8 +25,8 @@ public:
 
   MatterDimmableLight();
   ~MatterDimmableLight();
-  // default initial state is off and brightness is 0
-  virtual bool begin(bool initialState = false, uint8_t brightness = 0);
+  // default initial state is off and brightness is 64 (25%)
+  virtual bool begin(bool initialState = false, uint8_t brightness = 64);
   // this will just stop processing Light Matter events
   void end();
 
