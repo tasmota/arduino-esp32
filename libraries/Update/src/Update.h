@@ -25,6 +25,7 @@
 #define UPDATE_ERROR_NO_PARTITION (10)
 #define UPDATE_ERROR_BAD_ARGUMENT (11)
 #define UPDATE_ERROR_ABORT        (12)
+#define UPDATE_ERROR_DECRYPT      (13)
 
 #define UPDATE_SIZE_UNKNOWN 0xFFFFFFFF
 
@@ -32,7 +33,15 @@
 #define U_SPIFFS 100
 #define U_AUTH   200
 
-#define ENCRYPTED_BLOCK_SIZE 16
+#define ENCRYPTED_BLOCK_SIZE       16
+#define ENCRYPTED_TWEAK_BLOCK_SIZE 32
+#define ENCRYPTED_KEY_SIZE         32
+
+#define U_AES_DECRYPT_NONE         0
+#define U_AES_DECRYPT_AUTO         1
+#define U_AES_DECRYPT_ON           2
+#define U_AES_DECRYPT_MODE_MASK    3
+#define U_AES_IMAGE_DECRYPTING_BIT 4
 
 #define SPI_SECTORS_PER_BLOCK 16  // usually large erase block is 32k/64k
 #define SPI_FLASH_BLOCK_SIZE  (SPI_SECTORS_PER_BLOCK * SPI_FLASH_SEC_SIZE)
@@ -53,6 +62,17 @@ public:
       Will return false if there is not enough space
     */
   bool begin(size_t size = UPDATE_SIZE_UNKNOWN, int command = U_FLASH, int ledPin = -1, uint8_t ledOn = LOW, const char *label = NULL);
+
+#ifdef UPDATE_CRYPT
+  /*
+     Setup decryption configuration
+     Crypt Key is 32bytes(256bits) block of data, use the same key as used to encrypt image file
+     Crypt Address, use the same value as used to encrypt image file
+     Crypt Config,  use the same value as used to encrypt image file
+     Crypt Mode,    used to select if image files should be decrypted or not
+    */
+  bool setupCrypt(const uint8_t *cryptKey = 0, size_t cryptAddress = 0, uint8_t cryptConfig = 0xf, int cryptMode = U_AES_DECRYPT_AUTO);
+#endif /* UPDATE_CRYPT */
 
   /*
       Writes a buffer to the flash and increments the address
@@ -81,6 +101,32 @@ public:
     */
   bool end(bool evenIfRemaining = false);
 
+#ifdef UPDATE_CRYPT
+  /*
+      sets AES256 key(32 bytes) used for decrypting image file
+    */
+  bool setCryptKey(const uint8_t *cryptKey);
+
+  /*
+      sets crypt mode used on image files
+    */
+  bool setCryptMode(const int cryptMode);
+
+  /*
+      sets address used for decrypting image file
+    */
+  void setCryptAddress(const size_t cryptAddress) {
+    _cryptAddress = cryptAddress & 0x00fffff0;
+  }
+
+  /*
+      sets crypt config used for decrypting image file
+    */
+  void setCryptConfig(const uint8_t cryptConfig) {
+    _cryptCfg = cryptConfig & 0x0f;
+  }
+#endif /* UPDATE_CRYPT */
+
   /*
       Aborts the running update
     */
@@ -95,8 +141,13 @@ public:
 
   /*
       sets the expected MD5 for the firmware (hexString)
+      If calc_post_decryption is true, the update library will calculate the MD5 after the decryption, if false the calculation occurs before the decryption
     */
-  bool setMD5(const char *expected_md5);
+  bool setMD5(const char *expected_md5
+#ifdef UPDATE_CRYPT
+, bool calc_post_decryption = true
+#endif /* #ifdef UPDATE_CRYPT */
+);
 
   /*
       returns the MD5 String of the successfully ended firmware
@@ -193,6 +244,10 @@ public:
 private:
   void _reset();
   void _abort(uint8_t err);
+#ifdef UPDATE_CRYPT
+  void _cryptKeyTweak(size_t cryptAddress, uint8_t *tweaked_key);
+  bool _decryptBuffer();
+#endif /* UPDATE_CRYPT */
   bool _writeBuffer();
   bool _verifyHeader(uint8_t data);
   bool _verifyEnd();
@@ -200,6 +255,10 @@ private:
   bool _chkDataInBlock(const uint8_t *data, size_t len) const;  // check if block contains any data or is empty
 
   uint8_t _error;
+#ifdef UPDATE_CRYPT
+  uint8_t *_cryptKey;
+  uint8_t *_cryptBuffer;
+#endif /* UPDATE_CRYPT */
   uint8_t *_buffer;
   uint8_t *_skipBuffer;
   size_t _bufferLen;
@@ -211,10 +270,19 @@ private:
   const esp_partition_t *_partition;
 
   String _target_md5;
+#ifdef UPDATE_CRYPT
+  bool _target_md5_decrypted = true;
+#endif /* UPDATE_CRYPT */
   MD5Builder _md5;
 
   int _ledPin;
   uint8_t _ledOn;
+
+#ifdef UPDATE_CRYPT
+  uint8_t _cryptMode;
+  size_t _cryptAddress;
+  uint8_t _cryptCfg;
+#endif /* UPDATE_CRYPT */
 };
 
 #if !defined(NO_GLOBAL_INSTANCES) && !defined(NO_GLOBAL_UPDATE)
