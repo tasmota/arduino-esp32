@@ -7,7 +7,9 @@
 #ifndef ESP32UPDATER_H
 #define ESP32UPDATER_H
 
+#ifndef UPDATE_NOCRYPT
 #define UPDATE_NOCRYPT
+#endif
 
 #include <Arduino.h>
 #include <MD5Builder.h>
