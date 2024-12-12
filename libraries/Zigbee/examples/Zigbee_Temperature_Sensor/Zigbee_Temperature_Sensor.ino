@@ -63,7 +63,7 @@ void setup() {
   // Set minimum and maximum temperature measurement value (10-50°C is default range for chip temperature measurement)
   zbTempSensor.setMinMaxValue(10, 50);
 
-  // Set tolerance for temperature measurement in °C (lowest possible value is 0.01°C)
+  // Optional: Set tolerance for temperature measurement in °C (lowest possible value is 0.01°C)
   zbTempSensor.setTolerance(1);
 
   // Add endpoint to Zigbee Core
@@ -89,7 +89,7 @@ void setup() {
   xTaskCreate(temp_sensor_value_update, "temp_sensor_update", 2048, NULL, 10, NULL);
 
   // Set reporting interval for temperature measurement in seconds, must be called after Zigbee.begin()
-  // min_interval and max_interval in seconds, delta (temp change in °C)
+  // min_interval and max_interval in seconds, delta (temp change in 0,1 °C)
   // if min = 1 and max = 0, reporting is sent only when temperature changes by delta
   // if min = 0 and max = 10, reporting is sent every 10 seconds or temperature changes by delta
   // if min = 0, max = 10 and delta = 0, reporting is sent every 10 seconds regardless of temperature change
