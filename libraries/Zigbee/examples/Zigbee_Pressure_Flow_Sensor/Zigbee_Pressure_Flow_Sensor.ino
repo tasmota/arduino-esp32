@@ -53,7 +53,7 @@ void setup() {
   // Set minimum and maximum flow measurement value in 0,1 m3/h
   zbFlowSensor.setMinMaxValue(0.0, 100.0);
 
-  // Set tolerance for flow measurement in 0,1 m3/h
+  // Optional: Set tolerance for flow measurement in 0,1 m3/h
   zbFlowSensor.setTolerance(1.0);
 
   // Optional: set Zigbee device name and model
@@ -62,7 +62,7 @@ void setup() {
   // Set minimum and maximum pressure measurement value in hPa
   zbPressureSensor.setMinMaxValue(0, 10000);
 
-  // Set tolerance for temperature measurement in hPa
+  // Optional: Set tolerance for pressure measurement in hPa
   zbPressureSensor.setTolerance(1);
 
   // Add endpoints to Zigbee Core
@@ -97,7 +97,7 @@ void setup() {
 void loop() {
   static uint32_t timeCounter = 0;
 
-  // Read flow nad pressure sensors every 2s
+  // Read flow and pressure sensors every 2s
   if (!(timeCounter++ % 20)) {  // delaying for 100ms x 20 = 2s
     float flow_value = temperatureRead();
     uint16_t pressure_value = (uint16_t)temperatureRead()*100; //*100 for demonstration so the value is in 1000-3000hPa
@@ -107,7 +107,7 @@ void loop() {
     zbPressureSensor.setPressure(pressure_value);
   }
 
-  // Checking button for factory reset
+  // Checking button for factory reset and reporting
   if (digitalRead(button) == LOW) {  // Push button pressed
     // Key debounce handling
     delay(100);
