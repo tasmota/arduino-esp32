@@ -182,7 +182,11 @@ endif()
 set(ARDUINO_LIBRARY_WebServer_SRCS
   libraries/WebServer/src/WebServer.cpp
   libraries/WebServer/src/Parsing.cpp
-  libraries/WebServer/src/detail/mimetable.cpp)
+  libraries/WebServer/src/detail/mimetable.cpp
+  libraries/WebServer/src/middleware/MiddlewareChain.cpp
+  libraries/WebServer/src/middleware/AuthenticationMiddleware.cpp
+  libraries/WebServer/src/middleware/CorsMiddleware.cpp
+  libraries/WebServer/src/middleware/LoggingMiddleware.cpp)
 
 set(ARDUINO_LIBRARY_Network_SRCS
   libraries/Network/src/NetworkInterface.cpp
