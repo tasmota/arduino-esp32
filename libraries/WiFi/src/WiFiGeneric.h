@@ -23,7 +23,8 @@
 #pragma once
 
 #include "soc/soc_caps.h"
-#if SOC_WIFI_SUPPORTED
+#include "sdkconfig.h"
+#if SOC_WIFI_SUPPORTED || CONFIG_ESP_WIFI_REMOTE_ENABLED
 
 #include "esp_err.h"
 #include "esp_event.h"
@@ -32,10 +33,10 @@
 #include "IPAddress.h"
 #include "esp_smartconfig.h"
 #include "esp_netif_types.h"
-#if defined __has_include && __has_include("esp_eth_driver.h")
+#if CONFIG_ETH_ENABLED
 #include "esp_eth_driver.h"
 #endif
-#if defined __has_include && __has_include("network_provisioning/manager.h")
+#if CONFIG_NETWORK_PROV_NETWORK_TYPE_WIFI
 #include "network_provisioning/manager.h"
 #endif
 #include "lwip/ip_addr.h"
