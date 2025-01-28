@@ -19,11 +19,10 @@
  */
 
 // Disable the automatic pin remapping of the API calls in this file
-#if defined __has_include && __has_include("esp_eth_driver.h")
-
 #define ARDUINO_CORE_BUILD
 
 #include "ETH.h"
+#if CONFIG_ETH_ENABLED
 #include "esp_system.h"
 #include "esp_event.h"
 #include "esp_eth.h"
@@ -32,7 +31,9 @@
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
 #if CONFIG_ETH_USE_ESP32_EMAC
+#if defined __has_include && __has_include("soc/emac_ext_struct.h")
 #include "soc/emac_ext_struct.h"
+#endif /* __has_include("soc/emac_ext_struct.h" */
 #include "soc/rtc.h"
 #endif /* CONFIG_ETH_USE_ESP32_EMAC */
 #include "esp32-hal-periman.h"
@@ -74,6 +75,7 @@ static void onEthConnected(arduino_event_id_t event, arduino_event_info_t info) 
       log_e("Could not find ETH interface with that handle!");
       return;
     }
+#if CONFIG_LWIP_IPV6
     if (_ethernets[index]->getStatusBits() & ESP_NETIF_WANT_IP6_BIT) {
       esp_err_t err = esp_netif_create_ip6_linklocal(_ethernets[index]->netif());
       if (err != ESP_OK) {
@@ -82,6 +84,7 @@ static void onEthConnected(arduino_event_id_t event, arduino_event_info_t info) 
         log_v("Enabled IPv6 Link Local on %s", _ethernets[index]->desc());
       }
     }
+#endif
   }
 }
 
@@ -1011,4 +1014,4 @@ size_t ETHClass::printDriverInfo(Print &out) const {
 
 ETHClass ETH;
 
-#endif /* defined __has_include && __has_include("esp_eth_driver.h") */
+#endif /* CONFIG_ETH_ENABLED */

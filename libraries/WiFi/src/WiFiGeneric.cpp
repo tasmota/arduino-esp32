@@ -123,12 +123,11 @@ static void _arduino_event_cb(void *arg, esp_event_base_t event_base, int32_t ev
     log_v("SC Send Ack Done");
     arduino_event.event_id = ARDUINO_EVENT_SC_SEND_ACK_DONE;
 
+#if CONFIG_NETWORK_PROV_NETWORK_TYPE_WIFI
     /*
 	 * Provisioning
 	 * */
-  }
-#if defined __has_include && __has_include("network_provisioning/network_config.h")
-  else if (event_base == NETWORK_PROV_EVENT && event_id == NETWORK_PROV_INIT) {
+  } else if (event_base == NETWORK_PROV_EVENT && event_id == NETWORK_PROV_INIT) {
     log_v("Provisioning Initialized!");
     arduino_event.event_id = ARDUINO_EVENT_PROV_INIT;
   } else if (event_base == NETWORK_PROV_EVENT && event_id == NETWORK_PROV_DEINIT) {
@@ -158,8 +157,8 @@ static void _arduino_event_cb(void *arg, esp_event_base_t event_base, int32_t ev
   } else if (event_base == NETWORK_PROV_EVENT && event_id == NETWORK_PROV_WIFI_CRED_SUCCESS) {
     log_v("Provisioning Success!");
     arduino_event.event_id = ARDUINO_EVENT_PROV_CRED_SUCCESS;
+#endif
   }
-#endif  // __has_include("network_provisioning/network_config.h")
 
   if (arduino_event.event_id < ARDUINO_EVENT_MAX) {
     Network.postEvent(&arduino_event);
@@ -177,12 +176,12 @@ static bool initWiFiEvents() {
     return false;
   }
 
-#if defined __has_include && __has_include("network_provisioning/network_config.h")
+#if CONFIG_NETWORK_PROV_NETWORK_TYPE_WIFI
   if (esp_event_handler_instance_register(NETWORK_PROV_EVENT, ESP_EVENT_ANY_ID, &_arduino_event_cb, NULL, NULL)) {
     log_e("event_handler_instance_register for NETWORK_PROV_EVENT Failed!");
     return false;
   }
-#endif  // __has_include("network_provisioning/network_config.h")
+#endif
 
   return true;
 }
@@ -198,12 +197,12 @@ static bool deinitWiFiEvents() {
     return false;
   }
 
-#if defined __has_include && __has_include("network_provisioning/network_config.h")
+#if CONFIG_NETWORK_PROV_NETWORK_TYPE_WIFI
   if (esp_event_handler_unregister(NETWORK_PROV_EVENT, ESP_EVENT_ANY_ID, &_arduino_event_cb)) {
     log_e("esp_event_handler_unregister for NETWORK_PROV_EVENT Failed!");
     return false;
   }
-#endif  // __has_include("network_provisioning/network_config.h")
+#endif
 
   return true;
 }
@@ -700,7 +699,7 @@ bool WiFiGenericClass::initiateFTM(uint8_t frm_count, uint16_t burst_period, uin
  */
 bool WiFiGenericClass::setDualAntennaConfig(uint8_t gpio_ant1, uint8_t gpio_ant2, wifi_rx_ant_t rx_mode, wifi_tx_ant_t tx_mode) {
 
-  wifi_ant_gpio_config_t wifi_ant_io;
+ wifi_ant_gpio_config_t wifi_ant_io;
 
   if (ESP_OK != esp_wifi_get_ant_gpio(&wifi_ant_io)) {
     log_e("Failed to get antenna configuration");
