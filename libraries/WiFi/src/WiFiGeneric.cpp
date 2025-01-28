@@ -158,7 +158,6 @@ static void _arduino_event_cb(void *arg, esp_event_base_t event_base, int32_t ev
     log_v("Provisioning Success!");
     arduino_event.event_id = ARDUINO_EVENT_PROV_CRED_SUCCESS;
 #endif
-#endif
   }
 
   if (arduino_event.event_id < ARDUINO_EVENT_MAX) {
@@ -700,7 +699,7 @@ bool WiFiGenericClass::initiateFTM(uint8_t frm_count, uint16_t burst_period, uin
  */
 bool WiFiGenericClass::setDualAntennaConfig(uint8_t gpio_ant1, uint8_t gpio_ant2, wifi_rx_ant_t rx_mode, wifi_tx_ant_t tx_mode) {
 
-  wifi_ant_gpio_config_t wifi_ant_io;
+ wifi_ant_gpio_config_t wifi_ant_io;
 
   if (ESP_OK != esp_wifi_get_ant_gpio(&wifi_ant_io)) {
     log_e("Failed to get antenna configuration");
