@@ -11,18 +11,6 @@
 #include "driver/uart.h"
 #include "freertos/queue.h"
 
-#ifndef ARDUINO_SERIAL_EVENT_TASK_STACK_SIZE
-#define ARDUINO_SERIAL_EVENT_TASK_STACK_SIZE 2048
-#endif
-
-#ifndef ARDUINO_SERIAL_EVENT_TASK_PRIORITY
-#define ARDUINO_SERIAL_EVENT_TASK_PRIORITY (configMAX_PRIORITIES - 1)
-#endif
-
-#ifndef ARDUINO_SERIAL_EVENT_TASK_RUNNING_CORE
-#define ARDUINO_SERIAL_EVENT_TASK_RUNNING_CORE -1
-#endif
-
 void serialEvent(void) __attribute__((weak));
 
 #if SOC_UART_HP_NUM > 1
