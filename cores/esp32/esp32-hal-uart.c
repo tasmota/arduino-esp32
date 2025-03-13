@@ -442,7 +442,7 @@ uart_t *uartBegin(
       UART_MUTEX_LOCK();
       //User may just want to change some parameters, such as baudrate, data length, parity, stop bits or pins
       if (uart->_baudrate != baudrate) {
-        if (ESP_OK != uart_set_baudrate(uart_nr, baudrate)) {
+        if (!uartSetBaudRate(uart, baudrate)) {
           log_e("UART%d changing baudrate failed.", uart_nr);
           retCode = false;
         } else {
@@ -800,10 +800,11 @@ void uartFlushTxOnly(uart_t *uart, bool txOnly) {
   UART_MUTEX_UNLOCK();
 }
 
-void uartSetBaudRate(uart_t *uart, uint32_t baud_rate) {
+bool uartSetBaudRate(uart_t *uart, uint32_t baud_rate) {
   if (uart == NULL) {
-    return;
+    return false;
   }
+  bool retCode = true;
   UART_MUTEX_LOCK();
 #if !SOC_UART_SUPPORT_XTAL_CLK
   soc_module_clk_t newClkSrc = baud_rate <= REF_TICK_BAUDRATE_LIMIT ? SOC_MOD_CLK_REF_TICK : SOC_MOD_CLK_APB;
@@ -812,9 +813,11 @@ void uartSetBaudRate(uart_t *uart, uint32_t baud_rate) {
   if (uart_set_baudrate(uart->num, baud_rate) == ESP_OK) {
     uart->_baudrate = baud_rate;
   } else {
+    retCode = false;
     log_e("Setting UART%d baud rate to %d has failed.", uart->num, baud_rate);
   }
   UART_MUTEX_UNLOCK();
+  return retCode;
 }
 
 uint32_t uartGetBaudRate(uart_t *uart) {
