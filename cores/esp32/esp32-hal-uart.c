@@ -805,10 +805,11 @@ bool uartSetBaudRate(uart_t *uart, uint32_t baud_rate) {
   uart_ll_set_sclk(UART_LL_GET_HW(uart->num), newClkSrc);
 #endif
   if (uart_set_baudrate(uart->num, baud_rate) == ESP_OK) {
+    log_v("Setting UART%d baud rate to %ld.", uart->num, baud_rate);
     uart->_baudrate = baud_rate;
   } else {
     retCode = false;
-    log_e("Setting UART%d baud rate to %d has failed.", uart->num, baud_rate);
+    log_e("Setting UART%d baud rate to %ld has failed.", uart->num, baud_rate);
   }
   UART_MUTEX_UNLOCK();
   return retCode;
