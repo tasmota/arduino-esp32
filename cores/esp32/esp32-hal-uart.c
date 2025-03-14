@@ -439,17 +439,11 @@ uart_t *uartBegin(
       uartEnd(uart_nr);
     } else {
       bool retCode = true;
-      UART_MUTEX_LOCK();
       //User may just want to change some parameters, such as baudrate, data length, parity, stop bits or pins
       if (uart->_baudrate != baudrate) {
-        if (!uartSetBaudRate(uart, baudrate)) {
-          log_e("UART%d changing baudrate failed.", uart_nr);
-          retCode = false;
-        } else {
-          log_v("UART%d changed baudrate to %d", uart_nr, baudrate);
-          uart->_baudrate = baudrate;
-        }
+      retCode = uartSetBaudRate(uart, baudrate);
       }
+      UART_MUTEX_LOCK();
       uart_word_length_t data_bits = (config & 0xc) >> 2;
       uart_parity_t parity = config & 0x3;
       uart_stop_bits_t stop_bits = (config & 0x30) >> 4;
