@@ -115,14 +115,6 @@ static uart_t _uart_bus_array[] = {
 
 #endif
 
-#ifndef GPIO_FUNC_IN_LOW
-#define GPIO_FUNC_IN_LOW GPIO_MATRIX_CONST_ZERO_INPUT
-#endif
-
-#ifndef GPIO_FUNC_IN_HIGH
-#define GPIO_FUNC_IN_HIGH GPIO_MATRIX_CONST_ONE_INPUT
-#endif
-
 #if SOC_UART_LP_NUM >= 1
 // LP UART enable pins routine
 static bool lp_uart_config_io(uint8_t uart_num, int8_t pin, rtc_gpio_mode_t direction, uint32_t idx) {
