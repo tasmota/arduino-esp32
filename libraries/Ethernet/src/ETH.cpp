@@ -290,6 +290,7 @@ bool ETHClass::begin(eth_phy_type_t type, int32_t phy_addr, int mdc, int mdio, i
     case ETH_PHY_TLK110:  _phy = esp_eth_phy_new_ip101(&phy_config); break;
     case ETH_PHY_RTL8201: _phy = esp_eth_phy_new_rtl8201(&phy_config); break;
     case ETH_PHY_DP83848: _phy = esp_eth_phy_new_dp83848(&phy_config); break;
+    case ETH_PHY_JL1101:  _phy = esp_eth_phy_new_jl1101(&phy_config); break;
     case ETH_PHY_KSZ8041: _phy = esp_eth_phy_new_ksz80xx(&phy_config); break;
     case ETH_PHY_KSZ8081: _phy = esp_eth_phy_new_ksz80xx(&phy_config); break;
     default:              log_e("Unsupported PHY %d", type); break;
