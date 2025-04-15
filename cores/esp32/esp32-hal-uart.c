@@ -58,7 +58,6 @@ struct uart_struct_t {
   uint16_t _rx_buffer_size, _tx_buffer_size;  // UART RX and TX buffer sizes
   bool _inverted;                             // UART inverted signal
   uint8_t _rxfifo_full_thrhd;                 // UART RX FIFO full threshold
-  int8_t _uart_clock_source;                  // UART Clock Source used when it is started using uartBegin()
 };
 
 #if CONFIG_DISABLE_HAL_LOCKS
@@ -67,21 +66,21 @@ struct uart_struct_t {
 #define UART_MUTEX_UNLOCK()
 
 static uart_t _uart_bus_array[] = {
-  {0, false, 0, NULL, -1, -1, -1, -1, 0, 0, 0, 0, false, 0, -1},
+  {0, false, 0, NULL, -1, -1, -1, -1, 0, 0, 0, 0, false, 0},
 #if SOC_UART_NUM > 1
-  {1, false, 0, NULL, -1, -1, -1, -1, 0, 0, 0, 0, false, 0, -1},
+  {1, false, 0, NULL, -1, -1, -1, -1, 0, 0, 0, 0, false, 0},
 #endif
 #if SOC_UART_NUM > 2
-  {2, false, 0, NULL, -1, -1, -1, -1, 0, 0, 0, 0, false, 0, -1},
+  {2, false, 0, NULL, -1, -1, -1, -1, 0, 0, 0, 0, false, 0},
 #endif
 #if SOC_UART_NUM > 3
-  {3, false, 0, NULL, -1, -1, -1, -1, 0, 0, 0, 0, false, 0, -1},
+  {3, false, 0, NULL, -1, -1, -1, -1, 0, 0, 0, 0, false, 0},
 #endif
 #if SOC_UART_NUM > 4
-  {4, false, 0, NULL, -1, -1, -1, -1, 0, 0, 0, 0, false, 0, -1},
+  {4, false, 0, NULL, -1, -1, -1, -1, 0, 0, 0, 0, false, 0},
 #endif
 #if SOC_UART_NUM > 5
-  {5, false, 0, NULL, -1, -1, -1, -1, 0, 0, 0, 0, false, 0, -1},
+  {5, false, 0, NULL, -1, -1, -1, -1, 0, 0, 0, 0, false, 0},
 #endif
 };
 
@@ -96,21 +95,21 @@ static uart_t _uart_bus_array[] = {
   xSemaphoreGive(uart->lock)
 
 static uart_t _uart_bus_array[] = {
-  {NULL, 0, false, 0, NULL, -1, -1, -1, -1, 0, 0, 0, 0, false, 0, -1},
+  {NULL, 0, false, 0, NULL, -1, -1, -1, -1, 0, 0, 0, 0, false, 0},
 #if SOC_UART_NUM > 1
-  {NULL, 1, false, 0, NULL, -1, -1, -1, -1, 0, 0, 0, 0, false, 0, -1},
+  {NULL, 1, false, 0, NULL, -1, -1, -1, -1, 0, 0, 0, 0, false, 0},
 #endif
 #if SOC_UART_NUM > 2
-  {NULL, 2, false, 0, NULL, -1, -1, -1, -1, 0, 0, 0, 0, false, 0, -1},
+  {NULL, 2, false, 0, NULL, -1, -1, -1, -1, 0, 0, 0, 0, false, 0},
 #endif
 #if SOC_UART_NUM > 3
-  {NULL, 3, false, 0, NULL, -1, -1, -1, -1, 0, 0, 0, 0, false, 0, -1},
+  {NULL, 3, false, 0, NULL, -1, -1, -1, -1, 0, 0, 0, 0, false, 0},
 #endif
 #if SOC_UART_NUM > 4
-  {NULL, 4, false, 0, NULL, -1, -1, -1, -1, 0, 0, 0, 0, false, 0, -1},
+  {NULL, 4, false, 0, NULL, -1, -1, -1, -1, 0, 0, 0, 0, false, 0},
 #endif
 #if SOC_UART_NUM > 5
-  {NULL, 5, false, 0, NULL, -1, -1, -1, -1, 0, 0, 0, 0, false, 0, -1},
+  {NULL, 5, false, 0, NULL, -1, -1, -1, -1, 0, 0, 0, 0, false, 0},
 #endif
 };
 
@@ -207,14 +206,6 @@ static bool lpuartCheckPins(int8_t rxPin, int8_t txPin, int8_t ctsPin, int8_t rt
 }
 #endif  // SOC_UART_LP_NUM >= 1
 
-#ifndef GPIO_FUNC_IN_LOW
-#define GPIO_FUNC_IN_LOW GPIO_MATRIX_CONST_ZERO_INPUT
-#endif
-
-#ifndef GPIO_FUNC_IN_HIGH
-#define GPIO_FUNC_IN_HIGH GPIO_MATRIX_CONST_ONE_INPUT
-#endif
-
 // Negative Pin Number will keep it unmodified, thus this function can detach individual pins
 // This function will also unset the pins in the Peripheral Manager and set the pin to -1 after detaching
 static bool _uartDetachPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t ctsPin, int8_t rtsPin) {
@@ -230,8 +221,7 @@ static bool _uartDetachPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t
 
   // detaches HP and LP pins and sets Peripheral Manager and UART information
   if (rxPin >= 0 && uart->_rxPin == rxPin && perimanGetPinBusType(rxPin) == ESP32_BUS_TYPE_UART_RX) {
-    //gpio_hal_iomux_func_sel(GPIO_PIN_MUX_REG[rxPin], PIN_FUNC_GPIO);
-    esp_rom_gpio_pad_select_gpio(rxPin);
+    gpio_hal_iomux_func_sel(GPIO_PIN_MUX_REG[rxPin], PIN_FUNC_GPIO);
     // avoids causing BREAK in the UART line
     if (uart->_inverted) {
       esp_rom_gpio_connect_in_signal(GPIO_FUNC_IN_LOW, UART_PERIPH_SIGNAL(uart_num, SOC_UART_RX_PIN_IDX), false);
@@ -245,8 +235,7 @@ static bool _uartDetachPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t
     }
   }
   if (txPin >= 0 && uart->_txPin == txPin && perimanGetPinBusType(txPin) == ESP32_BUS_TYPE_UART_TX) {
-    //gpio_hal_iomux_func_sel(GPIO_PIN_MUX_REG[txPin], PIN_FUNC_GPIO);
-    esp_rom_gpio_pad_select_gpio(txPin);
+    gpio_hal_iomux_func_sel(GPIO_PIN_MUX_REG[txPin], PIN_FUNC_GPIO);
     esp_rom_gpio_connect_out_signal(txPin, SIG_GPIO_OUT_IDX, false, false);
     uart->_txPin = -1;  // -1 means unassigned/detached
     if (!perimanClearPinBus(txPin)) {
@@ -255,8 +244,7 @@ static bool _uartDetachPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t
     }
   }
   if (ctsPin >= 0 && uart->_ctsPin == ctsPin && perimanGetPinBusType(ctsPin) == ESP32_BUS_TYPE_UART_CTS) {
-    //gpio_hal_iomux_func_sel(GPIO_PIN_MUX_REG[ctsPin], PIN_FUNC_GPIO);
-    esp_rom_gpio_pad_select_gpio(ctsPin);
+    gpio_hal_iomux_func_sel(GPIO_PIN_MUX_REG[ctsPin], PIN_FUNC_GPIO);
     esp_rom_gpio_connect_in_signal(GPIO_FUNC_IN_LOW, UART_PERIPH_SIGNAL(uart_num, SOC_UART_CTS_PIN_IDX), false);
     uart->_ctsPin = -1;  // -1 means unassigned/detached
     if (!perimanClearPinBus(ctsPin)) {
@@ -265,8 +253,7 @@ static bool _uartDetachPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t
     }
   }
   if (rtsPin >= 0 && uart->_rtsPin == rtsPin && perimanGetPinBusType(rtsPin) == ESP32_BUS_TYPE_UART_RTS) {
-    //gpio_hal_iomux_func_sel(GPIO_PIN_MUX_REG[rtsPin], PIN_FUNC_GPIO);
-    esp_rom_gpio_pad_select_gpio(rtsPin);
+    gpio_hal_iomux_func_sel(GPIO_PIN_MUX_REG[rtsPin], PIN_FUNC_GPIO);
     esp_rom_gpio_connect_out_signal(rtsPin, SIG_GPIO_OUT_IDX, false, false);
     uart->_rtsPin = -1;  // -1 means unassigned/detached
     if (!perimanClearPinBus(rtsPin)) {
@@ -677,40 +664,30 @@ uart_t *uartBegin(
   rxfifo_full_thrhd = uart_config.rx_flow_ctrl_thresh;  // makes sure that it will be set correctly in the struct
   uart_config.baud_rate = baudrate;
 #if SOC_UART_LP_NUM >= 1
-  if (uart_nr >= SOC_UART_HP_NUM) {  // it is a LP UART NUM
-    if (uart->_uart_clock_source > 0) {
-      uart_config.lp_source_clk = (soc_periph_lp_uart_clk_src_t)uart->_uart_clock_source;  // use user defined LP UART clock
-      log_v("Setting UART%d to user defined LP clock source (%d) ", uart_nr, uart->_uart_clock_source);
-    } else {
-      uart_config.lp_source_clk = LP_UART_SCLK_DEFAULT;  // use default LP clock
-      log_v("Setting UART%d to Default LP clock source", uart_nr);
-    }
+  if (uart_nr >= SOC_UART_HP_NUM) {                    // it is a LP UART NUM
+    uart_config.lp_source_clk = LP_UART_SCLK_DEFAULT;  // use default LP clock
+    log_v("Setting UART%d to use LP clock", uart_nr);
   } else
-#endif  // SOC_UART_LP_NUM >= 1
+#endif
   {
-    if (uart->_uart_clock_source >= 0) {
-      uart_config.source_clk = (soc_module_clk_t)uart->_uart_clock_source;  // use user defined HP UART clock
-      log_v("Setting UART%d to user defined HP clock source (%d) ", uart_nr, uart->_uart_clock_source);
-    } else {
-      // there is an issue when returning from light sleep with the C6 and H2: the uart baud rate is not restored
-      // therefore, uart clock source will set to XTAL for all SoC that support it. This fix solves the C6|H2 issue.
+    // there is an issue when returning from light sleep with the C6 and H2: the uart baud rate is not restored
+    // therefore, uart clock source will set to XTAL for all SoC that support it. This fix solves the C6|H2 issue.
 #if SOC_UART_SUPPORT_XTAL_CLK
-      uart_config.source_clk = UART_SCLK_XTAL;  // valid for C2, S3, C3, C6, H2 and P4
-      log_v("Setting UART%d to use XTAL clock", uart_nr);
+    uart_config.source_clk = UART_SCLK_XTAL;  // valid for C2, S3, C3, C6, H2 and P4
+    log_v("Setting UART%d to use XTAL clock", uart_nr);
 #elif SOC_UART_SUPPORT_REF_TICK
-      if (baudrate <= REF_TICK_BAUDRATE_LIMIT) {
-        uart_config.source_clk = UART_SCLK_REF_TICK;  // valid for ESP32, S2 - MAX supported baud rate is 250 Kbps
-        log_v("Setting UART%d to use REF_TICK clock", uart_nr);
-      } else {
-        uart_config.source_clk = UART_SCLK_APB;  // baudrate may change with the APB Frequency!
-        log_v("Setting UART%d to use APB clock", uart_nr);
-      }
-#else
-      // Default CLK Source: CLK_APB for ESP32|S2|S3|C3 -- CLK_PLL_F40M for C2 -- CLK_PLL_F48M for H2 -- CLK_PLL_F80M for C6|P4
-      uart_config.source_clk = UART_SCLK_DEFAULT;  // baudrate may change with the APB Frequency!
-      log_v("Setting UART%d to use DEFAULT clock", uart_nr);
-#endif  // SOC_UART_SUPPORT_XTAL_CLK
+    if (baudrate <= REF_TICK_BAUDRATE_LIMIT) {
+      uart_config.source_clk = UART_SCLK_REF_TICK;  // valid for ESP32, S2 - MAX supported baud rate is 250 Kbps
+      log_v("Setting UART%d to use REF_TICK clock", uart_nr);
+    } else {
+      uart_config.source_clk = UART_SCLK_APB;  // baudrate may change with the APB Frequency!
+      log_v("Setting UART%d to use APB clock", uart_nr);
     }
+#else
+    // Default CLK Source: CLK_APB for ESP32|S2|S3|C3 -- CLK_PLL_F40M for C2 -- CLK_PLL_F48M for H2 -- CLK_PLL_F80M for C6
+    uart_config.source_clk = UART_SCLK_DEFAULT;  // baudrate may change with the APB Frequency!
+    log_v("Setting UART%d to use DEFAULT clock", uart_nr);
+#endif
   }
 
   UART_MUTEX_LOCK();
@@ -739,14 +716,6 @@ uart_t *uartBegin(
     uart->_tx_buffer_size = tx_buffer_size;
     uart->has_peek = false;
     uart->peek_byte = 0;
-#if SOC_UART_LP_NUM >= 1
-    if (uart_nr >= SOC_UART_HP_NUM) {
-      uart->_uart_clock_source = uart_config.lp_source_clk;
-    } else
-#endif
-    {
-      uart->_uart_clock_source = uart_config.source_clk;
-    }
   }
   UART_MUTEX_UNLOCK();
 
@@ -1006,52 +975,22 @@ bool uartSetBaudRate(uart_t *uart, uint32_t baud_rate) {
     return false;
   }
   bool retCode = true;
-  soc_module_clk_t newClkSrc = UART_SCLK_DEFAULT;
-  int8_t previousClkSrc = uart->_uart_clock_source;
+  UART_MUTEX_LOCK();
+#if SOC_UART_SUPPORT_XTAL_CLK  // ESP32-S3, ESP32-C3, ESP32-C5, ESP32-C6, ESP32-H2 and ESP32-P4
+  soc_module_clk_t newClkSrc = UART_SCLK_XTAL;
 #if SOC_UART_LP_NUM >= 1
   if (uart->num >= SOC_UART_HP_NUM) {  // it is a LP UART NUM
-    if (uart->_uart_clock_source > 0) {
-      newClkSrc = (soc_periph_lp_uart_clk_src_t)uart->_uart_clock_source;  // use user defined LP UART clock
-      log_v("Setting UART%d to user defined LP clock source (%d) ", uart->num, newClkSrc);
-    } else {
-      newClkSrc = LP_UART_SCLK_DEFAULT;  // use default LP clock
-      log_v("Setting UART%d to Default LP clock source", uart->num);
-    }
-  } else
-#endif  // SOC_UART_LP_NUM >= 1
-  {
-    if (uart->_uart_clock_source >= 0) {
-      newClkSrc = (soc_module_clk_t)uart->_uart_clock_source;  // use user defined HP UART clock
-      log_v("Setting UART%d to use HP clock source (%d) ", uart->num, newClkSrc);
-    } else {
-      // there is an issue when returning from light sleep with the C6 and H2: the uart baud rate is not restored
-      // therefore, uart clock source will set to XTAL for all SoC that support it. This fix solves the C6|H2 issue.
-#if SOC_UART_SUPPORT_XTAL_CLK
-      newClkSrc = UART_SCLK_XTAL;  // valid for C2, S3, C3, C6, H2 and P4
-      log_v("Setting UART%d to use XTAL clock", uart->num);
-#elif SOC_UART_SUPPORT_REF_TICK
-      if (baud_rate <= REF_TICK_BAUDRATE_LIMIT) {
-        newClkSrc = UART_SCLK_REF_TICK;  // valid for ESP32, S2 - MAX supported baud rate is 250 Kbps
-        log_v("Setting UART%d to use REF_TICK clock", uart->num);
-      } else {
-        newClkSrc = UART_SCLK_APB;  // baudrate may change with the APB Frequency!
-        log_v("Setting UART%d to use APB clock", uart->num);
-      }
-#else
-      // Default CLK Source: CLK_APB for ESP32|S2|S3|C3 -- CLK_PLL_F40M for C2 -- CLK_PLL_F48M for H2 -- CLK_PLL_F80M for C6|P4
-      // using newClkSrc = UART_SCLK_DEFAULT as defined in the variable declaration
-      log_v("Setting UART%d to use DEFAULT clock", uart->num);
-#endif  // SOC_UART_SUPPORT_XTAL_CLK
-    }
+    newClkSrc = LP_UART_SCLK_DEFAULT;  // use default LP clock
   }
-  UART_MUTEX_LOCK();
-  // if necessary, set the correct UART Clock Source before changing the baudrate
-  if (previousClkSrc < 0 || previousClkSrc != newClkSrc) {
-    HP_UART_SRC_CLK_ATOMIC() {
-      uart_ll_set_sclk(UART_LL_GET_HW(uart->num), newClkSrc);
-    }
-    uart->_uart_clock_source = newClkSrc;
+#endif
+  // ESP32-P4 demands an atomic operation for setting the clock source
+  HP_UART_SRC_CLK_ATOMIC() {
+    uart_ll_set_sclk(UART_LL_GET_HW(uart->num), newClkSrc);
   }
+#else  // ESP32, ESP32-S2
+  soc_module_clk_t newClkSrc = baud_rate <= REF_TICK_BAUDRATE_LIMIT ? SOC_MOD_CLK_REF_TICK : SOC_MOD_CLK_APB;
+  uart_ll_set_sclk(UART_LL_GET_HW(uart->num), newClkSrc);
+#endif
   if (uart_set_baudrate(uart->num, baud_rate) == ESP_OK) {
     log_v("Setting UART%d baud rate to %ld.", uart->num, baud_rate);
     uart->_baudrate = baud_rate;
@@ -1143,31 +1082,6 @@ bool uartSetMode(uart_t *uart, uart_mode_t mode) {
   bool retCode = (ESP_OK == uart_set_mode(uart->num, mode));
   UART_MUTEX_UNLOCK();
   return retCode;
-}
-
-// this function will set the uart clock source
-// it must be called before uartBegin(), otherwise it won't change any thing.
-bool uartSetClockSource(uint8_t uartNum, uart_sclk_t clkSrc) {
-  if (uartNum >= SOC_UART_NUM) {
-    log_e("UART%d is invalid. This device has %d UARTs, from 0 to %d.", uartNum, SOC_UART_NUM, SOC_UART_NUM - 1);
-    return false;
-  }
-  uart_t *uart = &_uart_bus_array[uartNum];
-#if SOC_UART_LP_NUM >= 1
-  if (uart->num >= SOC_UART_HP_NUM) {
-    switch (clkSrc) {
-      case UART_SCLK_XTAL:    uart->_uart_clock_source = LP_UART_SCLK_XTAL_D2; break;
-      case UART_SCLK_RTC:     uart->_uart_clock_source = LP_UART_SCLK_LP_FAST; break;
-      case UART_SCLK_DEFAULT:
-      default:                uart->_uart_clock_source = LP_UART_SCLK_DEFAULT;
-    }
-  } else
-#endif
-  {
-    uart->_uart_clock_source = clkSrc;
-  }
-  //log_i("UART%d set clock source to %d", uart->num, uart->_uart_clock_source);
-  return true;
 }
 
 void uartSetDebug(uart_t *uart) {
