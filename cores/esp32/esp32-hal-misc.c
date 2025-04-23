@@ -25,9 +25,6 @@
 #include "esp_ota_ops.h"
 #endif  //CONFIG_APP_ROLLBACK_ENABLE
 #include "esp_private/startup_internal.h"
-#if defined(CONFIG_BT_BLUEDROID_ENABLED) && SOC_BT_SUPPORTED
-#include "esp_bt.h"
-#endif  //CONFIG_BT_BLUEDROID_ENABLED
 #include <sys/time.h>
 #include "soc/rtc.h"
 #if !defined(CONFIG_IDF_TARGET_ESP32C2) && !defined(CONFIG_IDF_TARGET_ESP32C6) && !defined(CONFIG_IDF_TARGET_ESP32H2) && !defined(CONFIG_IDF_TARGET_ESP32P4) && !defined(CONFIG_IDF_TARGET_ESP32C5)
@@ -245,19 +242,6 @@ bool verifyRollbackLater() {
 }
 #endif
 
-#ifdef CONFIG_BT_BLUEDROID_ENABLED
-#if CONFIG_IDF_TARGET_ESP32
-//overwritten in esp32-hal-bt.c
-bool btInUse() __attribute__((weak));
-bool btInUse() {
-  return false;
-}
-#else
-//from esp32-hal-bt.c
-extern bool btInUse();
-#endif
-#endif
-
 #if CONFIG_SPIRAM_SUPPORT || CONFIG_SPIRAM
 ESP_SYSTEM_INIT_FN(init_psram_new, CORE, BIT(0), 99) {
   psramInit();
@@ -307,11 +291,6 @@ void initArduino() {
   if (err) {
     log_e("Failed to initialize NVS! Error: %u", err);
   }
-#if defined(CONFIG_BT_BLUEDROID_ENABLED) && SOC_BT_SUPPORTED
-  if (!btInUse()) {
-    esp_bt_controller_mem_release(ESP_BT_MODE_BTDM);
-  }
-#endif
   init();
   initVariant();
 }
