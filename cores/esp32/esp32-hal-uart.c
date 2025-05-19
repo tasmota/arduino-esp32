@@ -439,17 +439,11 @@ uart_t *uartBegin(
       uartEnd(uart_nr);
     } else {
       bool retCode = true;
-      UART_MUTEX_LOCK();
       //User may just want to change some parameters, such as baudrate, data length, parity, stop bits or pins
       if (uart->_baudrate != baudrate) {
-        if (ESP_OK != uart_set_baudrate(uart_nr, baudrate)) {
-          log_e("UART%d changing baudrate failed.", uart_nr);
-          retCode = false;
-        } else {
-          log_v("UART%d changed baudrate to %d", uart_nr, baudrate);
-          uart->_baudrate = baudrate;
-        }
+      	retCode = uartSetBaudRate(uart, baudrate);
       }
+      UART_MUTEX_LOCK();
       uart_word_length_t data_bits = (config & 0xc) >> 2;
       uart_parity_t parity = config & 0x3;
       uart_stop_bits_t stop_bits = (config & 0x30) >> 4;
@@ -800,21 +794,25 @@ void uartFlushTxOnly(uart_t *uart, bool txOnly) {
   UART_MUTEX_UNLOCK();
 }
 
-void uartSetBaudRate(uart_t *uart, uint32_t baud_rate) {
+bool uartSetBaudRate(uart_t *uart, uint32_t baud_rate) {
   if (uart == NULL) {
-    return;
+    return false;
   }
+  bool retCode = true;
   UART_MUTEX_LOCK();
 #if !SOC_UART_SUPPORT_XTAL_CLK
   soc_module_clk_t newClkSrc = baud_rate <= REF_TICK_BAUDRATE_LIMIT ? SOC_MOD_CLK_REF_TICK : SOC_MOD_CLK_APB;
   uart_ll_set_sclk(UART_LL_GET_HW(uart->num), newClkSrc);
 #endif
   if (uart_set_baudrate(uart->num, baud_rate) == ESP_OK) {
+    log_v("Setting UART%d baud rate to %ld.", uart->num, baud_rate);
     uart->_baudrate = baud_rate;
   } else {
-    log_e("Setting UART%d baud rate to %d has failed.", uart->num, baud_rate);
+    retCode = false;
+    log_e("Setting UART%d baud rate to %ld has failed.", uart->num, baud_rate);
   }
   UART_MUTEX_UNLOCK();
+  return retCode;
 }
 
 uint32_t uartGetBaudRate(uart_t *uart) {
