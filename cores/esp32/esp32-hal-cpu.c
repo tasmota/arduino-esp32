@@ -26,6 +26,8 @@
 #include "soc/efuse_reg.h"
 #include "esp32-hal.h"
 #include "esp32-hal-cpu.h"
+#include "hal/timer_ll.h"
+#include "esp_private/systimer.h"
 
 #include "esp_system.h"
 #ifdef ESP_IDF_VERSION_MAJOR  // IDF 4+
@@ -246,7 +248,11 @@ bool setCpuFrequencyMhz(uint32_t cpu_freq_mhz) {
     //Update APB Freq REG
     rtc_clk_apb_freq_update(apb);
     //Update esp_timer divisor
+#if defined(LACT_MODULE) && defined(LACT_TICKS_PER_US)
+    timer_ll_set_lact_clock_prescale(TIMER_LL_GET_HW(LACT_MODULE), apb / MHZ / LACT_TICKS_PER_US);
+#else
     esp_timer_impl_update_apb_freq(apb / MHZ);
+#endif
   }
 #endif
   //Update FreeRTOS Tick Divisor
