@@ -250,7 +250,7 @@ bool setCpuFrequencyMhz(uint32_t cpu_freq_mhz) {
     //Update esp_timer divisor
 #if defined(LACT_MODULE) && defined(LACT_TICKS_PER_US)
     timer_ll_set_lact_clock_prescale(TIMER_LL_GET_HW(LACT_MODULE), apb / MHZ / LACT_TICKS_PER_US);
-#else
+#elif !defined(CONFIG_IDF_TARGET_ESP32S2)
     esp_timer_impl_update_apb_freq(apb / MHZ);
 #endif
   }
