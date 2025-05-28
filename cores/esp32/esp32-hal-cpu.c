@@ -175,7 +175,9 @@ static uint32_t calculateApb(rtc_cpu_freq_config_t *conf) {
 #endif
 }
 
+#if defined(CONFIG_IDF_TARGET_ESP32) && !defined(LACT_MODULE) && !defined(LACT_TICKS_PER_US)
 void esp_timer_impl_update_apb_freq(uint32_t apb_ticks_per_us);  //private in IDF
+#endif
 
 bool setCpuFrequencyMhz(uint32_t cpu_freq_mhz) {
   rtc_cpu_freq_config_t conf, cconf;
@@ -248,8 +250,12 @@ bool setCpuFrequencyMhz(uint32_t cpu_freq_mhz) {
     //Update APB Freq REG
     rtc_clk_apb_freq_update(apb);
     //Update esp_timer divisor
+#if CONFIG_IDF_TARGET_ESP32
 #if defined(LACT_MODULE) && defined(LACT_TICKS_PER_US)
     timer_ll_set_lact_clock_prescale(TIMER_LL_GET_HW(LACT_MODULE), apb / MHZ / LACT_TICKS_PER_US);
+#else
+    esp_timer_impl_update_apb_freq(apb / MHZ);
+#endif
 #endif
   }
 #endif
