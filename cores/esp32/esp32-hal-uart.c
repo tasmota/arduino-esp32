@@ -977,7 +977,6 @@ bool uartSetClockSource(uint8_t uartNum, uart_sclk_t clkSrc) {
 }
 
 void uartSetDebug(uart_t *uart) {
-  // LP UART is not supported for debug
   if (uart == NULL || uart->num >= SOC_UART_HP_NUM) {
     s_uart_debug_nr = -1;
   } else {
@@ -1199,11 +1198,6 @@ unsigned long uartDetectBaudrate(uart_t *uart) {
   return 0;
 #endif
 }
-
-/*
- * These functions are for testing purposes only and can be used in Arduino Sketches.
- * They are utilized in the UART examples and CI.
- */
 
 /*
    This function internally binds defined UARTs TX signal with defined RX pin of any UART (same or different).
