@@ -341,7 +341,7 @@ static bool _uartAttachPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t
       perimanClearPinBus(rxPin);
     }
     // connect RX Pad
-    bool ret = ESP_OK == uart_set_pin(uart->num, UART_PIN_NO_CHANGE, rxPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    bool ret = ESP_OK == _uartInternalSetPin(uart->num, UART_PIN_NO_CHANGE, rxPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
     if (ret) {
       ret &= perimanSetPinBus(rxPin, ESP32_BUS_TYPE_UART_RX, (void *)uart, uart_num, -1);
       if (ret) {
@@ -359,7 +359,7 @@ static bool _uartAttachPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t
       perimanClearPinBus(txPin);
     }
     // connect TX Pad
-    bool ret = ESP_OK == uart_set_pin(uart->num, txPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    bool ret = ESP_OK == _uartInternalSetPin(uart->num, txPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
     if (ret) {
       ret &= perimanSetPinBus(txPin, ESP32_BUS_TYPE_UART_TX, (void *)uart, uart_num, -1);
       if (ret) {
@@ -377,7 +377,7 @@ static bool _uartAttachPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t
       perimanClearPinBus(ctsPin);
     }
     // connect CTS Pad
-    bool ret = ESP_OK == uart_set_pin(uart->num, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, ctsPin);
+    bool ret = ESP_OK == _uartInternalSetPin(uart->num, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, ctsPin);
     if (ret) {
       ret &= perimanSetPinBus(ctsPin, ESP32_BUS_TYPE_UART_CTS, (void *)uart, uart_num, -1);
       if (ret) {
@@ -395,7 +395,7 @@ static bool _uartAttachPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t
       perimanClearPinBus(rtsPin);
     }
     // connect RTS Pad
-    bool ret = ESP_OK == uart_set_pin(uart->num, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, rtsPin, UART_PIN_NO_CHANGE);
+    bool ret = ESP_OK == _uartInternalSetPin(uart->num, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, rtsPin, UART_PIN_NO_CHANGE);
     if (ret) {
       ret &= perimanSetPinBus(rtsPin, ESP32_BUS_TYPE_UART_RTS, (void *)uart, uart_num, -1);
       if (ret) {
@@ -1328,11 +1328,13 @@ void uart_internal_loopback(uint8_t uartNum, int8_t rxPin) {
     log_e("UART%d is not supported for loopback or RX pin %d is invalid.", uartNum, rxPin);
     return;
   }
+#if 0 // leave this code here for future reference and need
   // forces rxPin to use GPIO Matrix and setup the pin to receive UART TX Signal - IDF 5.4.1 Change with uart_release_pin()
   gpio_func_sel((gpio_num_t) rxPin, PIN_FUNC_GPIO);
   gpio_pullup_en((gpio_num_t) rxPin);
   gpio_ll_input_enable(&GPIO, rxPin); // &GPIO ??
-  esp_rom_gpio_connect_in_signal(rxPin, uart_periph_signal[uartNum].pins[SOC_UART_RX_PIN_IDX].signal, false);  
+  esp_rom_gpio_connect_in_signal(rxPin, uart_periph_signal[uartNum].pins[SOC_UART_RX_PIN_IDX].signal, false);
+#endif
   esp_rom_gpio_connect_out_signal(rxPin, uart_periph_signal[uartNum].pins[SOC_UART_TX_PIN_IDX].signal, false, false);
 }
 
