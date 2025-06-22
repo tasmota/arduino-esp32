@@ -256,7 +256,7 @@ static esp_err_t _uartInternalSetPin(uart_port_t uart_num, int tx_io_num, int rx
 #endif
     if (tx_rx_same_io || !_uartTrySetIomuxPin(uart_num, rx_io_num, SOC_UART_RX_PIN_IDX)) {
       if (uart_num < SOC_UART_HP_NUM) {
-        gpio_input_enable(rx_io_num);
+        gpio_ll_input_enable(&GPIO, rx_io_num);
         esp_rom_gpio_connect_in_signal(rx_io_num, UART_PERIPH_SIGNAL(uart_num, SOC_UART_RX_PIN_IDX), 0);
        }
     }
@@ -273,7 +273,7 @@ static esp_err_t _uartInternalSetPin(uart_port_t uart_num, int tx_io_num, int rx
   if (cts_io_num >= 0  && !_uartTrySetIomuxPin(uart_num, cts_io_num, SOC_UART_CTS_PIN_IDX)) {
     if (uart_num < SOC_UART_HP_NUM) {
       gpio_pullup_en(cts_io_num);
-      gpio_input_enable(cts_io_num);
+      gpio_ll_input_enable(&GPIO, cts_io_num);
       esp_rom_gpio_connect_in_signal(cts_io_num, UART_PERIPH_SIGNAL(uart_num, SOC_UART_CTS_PIN_IDX), 0);
     }
   }
