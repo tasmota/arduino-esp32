@@ -74,20 +74,20 @@ struct spi_struct_t {
   int8_t miso;
   int8_t mosi;
   int8_t ss;
+  bool ss_invert;
 };
 
 #if CONFIG_IDF_TARGET_ESP32S2
 // ESP32S2
-#define SPI_COUNT (3)
+#define SPI_COUNT (2)
 
-#define SPI_CLK_IDX(p)  ((p == 0) ? SPICLK_OUT_MUX_IDX : ((p == 1) ? FSPICLK_OUT_MUX_IDX : ((p == 2) ? SPI3_CLK_OUT_MUX_IDX : 0)))
-#define SPI_MISO_IDX(p) ((p == 0) ? SPIQ_OUT_IDX : ((p == 1) ? FSPIQ_OUT_IDX : ((p == 2) ? SPI3_Q_OUT_IDX : 0)))
-#define SPI_MOSI_IDX(p) ((p == 0) ? SPID_IN_IDX : ((p == 1) ? FSPID_IN_IDX : ((p == 2) ? SPI3_D_IN_IDX : 0)))
+#define SPI_CLK_IDX(p)  ((p == 0) ? FSPICLK_OUT_MUX_IDX : ((p == 1) ? SPI3_CLK_OUT_MUX_IDX : 0))
+#define SPI_MISO_IDX(p) ((p == 0) ? FSPIQ_OUT_IDX : ((p == 1) ? SPI3_Q_OUT_IDX : 0))
+#define SPI_MOSI_IDX(p) ((p == 0) ? FSPID_IN_IDX : ((p == 1) ? SPI3_D_IN_IDX : 0))
 
-#define SPI_SPI_SS_IDX(n)  ((n == 0) ? SPICS0_OUT_IDX : ((n == 1) ? SPICS1_OUT_IDX : 0))
-#define SPI_HSPI_SS_IDX(n) ((n == 0) ? SPI3_CS0_OUT_IDX : ((n == 1) ? SPI3_CS1_OUT_IDX : ((n == 2) ? SPI3_CS2_OUT_IDX : SPI3_CS0_OUT_IDX)))
-#define SPI_FSPI_SS_IDX(n) ((n == 0) ? FSPICS0_OUT_IDX : ((n == 1) ? FSPICS1_OUT_IDX : ((n == 2) ? FSPICS2_OUT_IDX : FSPICS0_OUT_IDX)))
-#define SPI_SS_IDX(p, n)   ((p == 0) ? SPI_SPI_SS_IDX(n) : ((p == 1) ? SPI_SPI_SS_IDX(n) : ((p == 2) ? SPI_HSPI_SS_IDX(n) : 0)))
+#define SPI_HSPI_SS_IDX(n) ((n == 0) ? SPI3_CS0_OUT_IDX : ((n == 1) ? SPI3_CS1_OUT_IDX : ((n == 2) ? SPI3_CS2_OUT_IDX : 0)))
+#define SPI_FSPI_SS_IDX(n) ((n == 0) ? FSPICS0_OUT_IDX : ((n == 1) ? FSPICS1_OUT_IDX : ((n == 2) ? FSPICS2_OUT_IDX : 0)))
+#define SPI_SS_IDX(p, n)   ((p == 0) ? SPI_FSPI_SS_IDX(n) : ((p == 1) ? SPI_HSPI_SS_IDX(n) : 0))
 
 #elif CONFIG_IDF_TARGET_ESP32S3
 // ESP32S3
@@ -97,8 +97,8 @@ struct spi_struct_t {
 #define SPI_MISO_IDX(p) ((p == 0) ? FSPIQ_OUT_IDX : ((p == 1) ? SPI3_Q_OUT_IDX : 0))
 #define SPI_MOSI_IDX(p) ((p == 0) ? FSPID_IN_IDX : ((p == 1) ? SPI3_D_IN_IDX : 0))
 
-#define SPI_HSPI_SS_IDX(n) ((n == 0) ? SPI3_CS0_OUT_IDX : ((n == 1) ? SPI3_CS1_OUT_IDX : 0))
-#define SPI_FSPI_SS_IDX(n) ((n == 0) ? FSPICS0_OUT_IDX : ((n == 1) ? FSPICS1_OUT_IDX : 0))
+#define SPI_HSPI_SS_IDX(n) ((n == 0) ? SPI3_CS0_OUT_IDX : ((n == 1) ? SPI3_CS1_OUT_IDX : ((n == 2) ? SPI3_CS2_OUT_IDX : 0)))
+#define SPI_FSPI_SS_IDX(n) ((n == 0) ? FSPICS0_OUT_IDX : ((n == 1) ? FSPICS1_OUT_IDX : ((n == 2) ? FSPICS2_OUT_IDX : 0)))
 #define SPI_SS_IDX(p, n)   ((p == 0) ? SPI_FSPI_SS_IDX(n) : ((p == 1) ? SPI_HSPI_SS_IDX(n) : 0))
 
 #elif CONFIG_IDF_TARGET_ESP32P4
@@ -150,24 +150,20 @@ struct spi_struct_t {
 #define SPI_MUTEX_UNLOCK()
 // clang-format off
 static spi_t _spi_bus_array[] = {
-#if CONFIG_IDF_TARGET_ESP32S2
-  {(volatile spi_dev_t *)(DR_REG_SPI1_BASE), 0, -1, -1, -1, -1},
-  {(volatile spi_dev_t *)(DR_REG_SPI2_BASE), 1, -1, -1, -1, -1},
-  {(volatile spi_dev_t *)(DR_REG_SPI3_BASE), 2, -1, -1, -1, -1}
-#elif CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4
-  {(volatile spi_dev_t *)(DR_REG_SPI2_BASE), 0, -1, -1, -1, -1},
-  {(volatile spi_dev_t *)(DR_REG_SPI3_BASE), 1, -1, -1, -1, -1}
+#if CONFIG_IDF_TARGET_ESP32S2 ||CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4
+  {(volatile spi_dev_t *)(DR_REG_SPI2_BASE), 0, -1, -1, -1, -1, false},
+  {(volatile spi_dev_t *)(DR_REG_SPI3_BASE), 1, -1, -1, -1, -1, false}
 #elif CONFIG_IDF_TARGET_ESP32C2
-  {(volatile spi_dev_t *)(DR_REG_SPI2_BASE), 0, -1, -1, -1, -1}
+  {(volatile spi_dev_t *)(DR_REG_SPI2_BASE), 0, -1, -1, -1, -1, false}
 #elif CONFIG_IDF_TARGET_ESP32C3
-  {(volatile spi_dev_t *)(DR_REG_SPI2_BASE), 0, -1, -1, -1, -1}
+  {(volatile spi_dev_t *)(DR_REG_SPI2_BASE), 0, -1, -1, -1, -1, false}
 #elif CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32H2
-  {(spi_dev_t *)(DR_REG_SPI2_BASE), 0, -1, -1, -1, -1}
+  {(spi_dev_t *)(DR_REG_SPI2_BASE), 0, -1, -1, -1, -1, false}
 #else
-  {(volatile spi_dev_t *)(DR_REG_SPI0_BASE), 0, -1, -1, -1, -1},
-  {(volatile spi_dev_t *)(DR_REG_SPI1_BASE), 1, -1, -1, -1, -1},
-  {(volatile spi_dev_t *)(DR_REG_SPI2_BASE), 2, -1, -1, -1, -1},
-  {(volatile spi_dev_t *)(DR_REG_SPI3_BASE), 3, -1, -1, -1, -1}
+  {(volatile spi_dev_t *)(DR_REG_SPI0_BASE), 0, -1, -1, -1, -1, false},
+  {(volatile spi_dev_t *)(DR_REG_SPI1_BASE), 1, -1, -1, -1, -1, false},
+  {(volatile spi_dev_t *)(DR_REG_SPI2_BASE), 2, -1, -1, -1, -1, false},
+  {(volatile spi_dev_t *)(DR_REG_SPI3_BASE), 3, -1, -1, -1, -1, false}
 #endif
 };
 // clang-format on
@@ -178,23 +174,19 @@ static spi_t _spi_bus_array[] = {
 #define SPI_MUTEX_UNLOCK() xSemaphoreGive(spi->lock)
 
 static spi_t _spi_bus_array[] = {
-#if CONFIG_IDF_TARGET_ESP32S2
-  {(volatile spi_dev_t *)(DR_REG_SPI1_BASE), NULL, 0, -1, -1, -1, -1},
-  {(volatile spi_dev_t *)(DR_REG_SPI2_BASE), NULL, 1, -1, -1, -1, -1},
-  {(volatile spi_dev_t *)(DR_REG_SPI3_BASE), NULL, 2, -1, -1, -1, -1}
-#elif CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4
-  {(volatile spi_dev_t *)(DR_REG_SPI2_BASE), NULL, 0, -1, -1, -1, -1}, {(volatile spi_dev_t *)(DR_REG_SPI3_BASE), NULL, 1, -1, -1, -1, -1}
+#if CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4
+  {(volatile spi_dev_t *)(DR_REG_SPI2_BASE), NULL, 0, -1, -1, -1, -1, false}, {(volatile spi_dev_t *)(DR_REG_SPI3_BASE), NULL, 1, -1, -1, -1, -1, false}
 #elif CONFIG_IDF_TARGET_ESP32C2
-  {(volatile spi_dev_t *)(DR_REG_SPI2_BASE), NULL, 0, -1, -1, -1, -1}
+  {(volatile spi_dev_t *)(DR_REG_SPI2_BASE), NULL, 0, -1, -1, -1, -1, false}
 #elif CONFIG_IDF_TARGET_ESP32C3
-  {(volatile spi_dev_t *)(DR_REG_SPI2_BASE), NULL, 0, -1, -1, -1, -1}
+  {(volatile spi_dev_t *)(DR_REG_SPI2_BASE), NULL, 0, -1, -1, -1, -1, false}
 #elif CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32H2
-  {(spi_dev_t *)(DR_REG_SPI2_BASE), NULL, 0, -1, -1, -1, -1}
+  {(spi_dev_t *)(DR_REG_SPI2_BASE), NULL, 0, -1, -1, -1, -1, false}
 #else
-  {(volatile spi_dev_t *)(DR_REG_SPI0_BASE), NULL, 0, -1, -1, -1, -1},
-  {(volatile spi_dev_t *)(DR_REG_SPI1_BASE), NULL, 1, -1, -1, -1, -1},
-  {(volatile spi_dev_t *)(DR_REG_SPI2_BASE), NULL, 2, -1, -1, -1, -1},
-  {(volatile spi_dev_t *)(DR_REG_SPI3_BASE), NULL, 3, -1, -1, -1, -1}
+  {(volatile spi_dev_t *)(DR_REG_SPI0_BASE), NULL, 0, -1, -1, -1, -1, false},
+  {(volatile spi_dev_t *)(DR_REG_SPI1_BASE), NULL, 1, -1, -1, -1, -1, false},
+  {(volatile spi_dev_t *)(DR_REG_SPI2_BASE), NULL, 2, -1, -1, -1, -1, false},
+  {(volatile spi_dev_t *)(DR_REG_SPI3_BASE), NULL, 3, -1, -1, -1, -1, false}
 #endif
 };
 #endif
@@ -365,7 +357,7 @@ bool spiAttachSS(spi_t *spi, uint8_t ss_num, int8_t ss) {
     return false;
   }
   pinMode(ss, OUTPUT);
-  pinMatrixOutAttach(ss, SPI_SS_IDX(spi->num, ss_num), false, false);
+  pinMatrixOutAttach(ss, SPI_SS_IDX(spi->num, ss_num), spi->ss_invert, false);
   spiEnableSSPins(spi, (1 << ss_num));
   spi->ss = ss;
   if (!perimanSetPinBus(ss, ESP32_BUS_TYPE_SPI_MASTER_SS, (void *)(spi->num + 1), spi->num, -1)) {
@@ -433,6 +425,12 @@ void spiSSDisable(spi_t *spi) {
   spi->dev->user.cs_setup = 0;
   spi->dev->user.cs_hold = 0;
   SPI_MUTEX_UNLOCK();
+}
+
+void spiSSInvert(spi_t *spi, bool invert) {
+  if (spi) {
+    spi->ss_invert = invert;
+  }
 }
 
 void spiSSSet(spi_t *spi) {
@@ -614,6 +612,7 @@ void spiStopBus(spi_t *spi) {
 
 spi_t *spiStartBus(uint8_t spi_num, uint32_t clockDiv, uint8_t dataMode, uint8_t bitOrder) {
   if (spi_num >= SPI_COUNT) {
+    log_e("SPI bus index %d is out of range", spi_num);
     return NULL;
   }
 
