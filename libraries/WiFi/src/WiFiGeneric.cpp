@@ -253,7 +253,7 @@ typedef struct {
   uint8_t pin_d1;
   uint8_t pin_d2;
   uint8_t pin_d3;
-  uint8_t pin_reset;
+  //uint8_t pin_reset;
 } sdio_pin_config_t;
 
 static bool hosted_initialized = false;
@@ -265,7 +265,7 @@ static sdio_pin_config_t sdio_pin_config = {
     .pin_d1 = BOARD_SDIO_ESP_HOSTED_D1,
     .pin_d2 = BOARD_SDIO_ESP_HOSTED_D2,
     .pin_d3 = BOARD_SDIO_ESP_HOSTED_D3,
-    .pin_reset = BOARD_SDIO_ESP_HOSTED_RESET
+    //.pin_reset = BOARD_SDIO_ESP_HOSTED_RESET
 #else
     .pin_clk = CONFIG_ESP_SDIO_PIN_CLK,
     .pin_cmd = CONFIG_ESP_SDIO_PIN_CMD,
@@ -273,7 +273,7 @@ static sdio_pin_config_t sdio_pin_config = {
     .pin_d1 = CONFIG_ESP_SDIO_PIN_D1,
     .pin_d2 = CONFIG_ESP_SDIO_PIN_D2,
     .pin_d3 = CONFIG_ESP_SDIO_PIN_D3,
-    .pin_reset = CONFIG_ESP_SDIO_GPIO_RESET_SLAVE
+    //.pin_reset = CONFIG_ESP_SDIO_GPIO_RESET_SLAVE
 #endif
 };
 
@@ -292,7 +292,7 @@ bool WiFiGenericClass::setPins(int8_t clk, int8_t cmd, int8_t d0, int8_t d1, int
   sdio_pin_config.pin_d1 = d1;
   sdio_pin_config.pin_d2 = d2;
   sdio_pin_config.pin_d3 = d3;
-  sdio_pin_config.pin_reset = rst;
+  //sdio_pin_config.pin_reset = rst;
   return true;
 }
 
@@ -306,7 +306,7 @@ static bool wifiHostedInit() {
     conf.pin_d1.pin = sdio_pin_config.pin_d1;
     conf.pin_d2.pin = sdio_pin_config.pin_d2;
     conf.pin_d3.pin = sdio_pin_config.pin_d3;
-    // conf.pin_reset.pin = sdio_pin_config.pin_reset;
+    //conf.pin_reset.pin = sdio_pin_config.pin_reset;
     // esp_hosted_sdio_set_config() will fail on second attempt but here temporarily to not cause exception on reinit
     if (esp_hosted_sdio_set_config(&conf) != ESP_OK || esp_hosted_init() != ESP_OK) {
       log_e("esp_hosted_init failed!");
