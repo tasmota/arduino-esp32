@@ -246,19 +246,67 @@ extern "C" {
 extern esp_err_t esp_hosted_init();
 extern esp_err_t esp_hosted_deinit();
 };
+typedef struct {
+  uint8_t pin_clk;
+  uint8_t pin_cmd;
+  uint8_t pin_d0;
+  uint8_t pin_d1;
+  uint8_t pin_d2;
+  uint8_t pin_d3;
+  uint8_t pin_reset;
+} sdio_pin_config_t;
+
 static bool hosted_initialized = false;
+static sdio_pin_config_t sdio_pin_config = {
+#ifdef BOARD_HAS_SDIO_ESP_HOSTED
+    .pin_clk = BOARD_SDIO_ESP_HOSTED_CLK,
+    .pin_cmd = BOARD_SDIO_ESP_HOSTED_CMD,
+    .pin_d0 = BOARD_SDIO_ESP_HOSTED_D0,
+    .pin_d1 = BOARD_SDIO_ESP_HOSTED_D1,
+    .pin_d2 = BOARD_SDIO_ESP_HOSTED_D2,
+    .pin_d3 = BOARD_SDIO_ESP_HOSTED_D3,
+    .pin_reset = BOARD_SDIO_ESP_HOSTED_RESET
+#else
+    .pin_clk = CONFIG_ESP_SDIO_PIN_CLK,
+    .pin_cmd = CONFIG_ESP_SDIO_PIN_CMD,
+    .pin_d0 = CONFIG_ESP_SDIO_PIN_D0,
+    .pin_d1 = CONFIG_ESP_SDIO_PIN_D1,
+    .pin_d2 = CONFIG_ESP_SDIO_PIN_D2,
+    .pin_d3 = CONFIG_ESP_SDIO_PIN_D3,
+    .pin_reset = CONFIG_ESP_SDIO_GPIO_RESET_SLAVE
+#endif
+};
+
+bool WiFiGenericClass::setPins(int8_t clk, int8_t cmd, int8_t d0, int8_t d1, int8_t d2, int8_t d3, int8_t rst) {
+  if (clk < 0 || cmd < 0 || d0 < 0 || d1 < 0 || d2 < 0 || d3 < 0 || rst < 0) {
+    log_e("All SDIO pins must be defined");
+    return false;
+  }
+  if (hosted_initialized) {
+    log_e("SDIO pins must be set before WiFi is initialized");
+    return false;
+  }
+  sdio_pin_config.pin_clk = clk;
+  sdio_pin_config.pin_cmd = cmd;
+  sdio_pin_config.pin_d0 = d0;
+  sdio_pin_config.pin_d1 = d1;
+  sdio_pin_config.pin_d2 = d2;
+  sdio_pin_config.pin_d3 = d3;
+  sdio_pin_config.pin_reset = rst;
+  return true;
+}
 
 static bool wifiHostedInit() {
   if (!hosted_initialized) {
     hosted_initialized = true;
     struct esp_hosted_sdio_config conf = INIT_DEFAULT_HOST_SDIO_CONFIG();
-    conf.pin_clk.pin = CONFIG_ESP_SDIO_PIN_CLK;
-    conf.pin_cmd.pin = CONFIG_ESP_SDIO_PIN_CMD;
-    conf.pin_d0.pin = CONFIG_ESP_SDIO_PIN_D0;
-    conf.pin_d1.pin = CONFIG_ESP_SDIO_PIN_D1;
-    conf.pin_d2.pin = CONFIG_ESP_SDIO_PIN_D2;
-    conf.pin_d3.pin = CONFIG_ESP_SDIO_PIN_D3;
-    //conf.pin_rst.pin = CONFIG_ESP_SDIO_GPIO_RESET_SLAVE;
+    conf.pin_clk.pin = sdio_pin_config.pin_clk;
+    conf.pin_cmd.pin = sdio_pin_config.pin_cmd;
+    conf.pin_d0.pin = sdio_pin_config.pin_d0;
+    conf.pin_d1.pin = sdio_pin_config.pin_d1;
+    conf.pin_d2.pin = sdio_pin_config.pin_d2;
+    conf.pin_d3.pin = sdio_pin_config.pin_d3;
+    conf.pin_reset.pin = sdio_pin_config.pin_reset;
     // esp_hosted_sdio_set_config() will fail on second attempt but here temporarily to not cause exception on reinit
     if (esp_hosted_sdio_set_config(&conf) != ESP_OK || esp_hosted_init() != ESP_OK) {
       log_e("esp_hosted_init failed!");
@@ -269,13 +317,13 @@ static bool wifiHostedInit() {
   }
   // Attach pins to PeriMan here
   // Slave chip model is CONFIG_IDF_SLAVE_TARGET
-  // CONFIG_ESP_SDIO_PIN_CMD
-  // CONFIG_ESP_SDIO_PIN_CLK
-  // CONFIG_ESP_SDIO_PIN_D0
-  // CONFIG_ESP_SDIO_PIN_D1
-  // CONFIG_ESP_SDIO_PIN_D2
-  // CONFIG_ESP_SDIO_PIN_D3
-  // CONFIG_ESP_SDIO_GPIO_RESET_SLAVE
+  // sdio_pin_config.pin_clk
+  // sdio_pin_config.pin_cmd
+  // sdio_pin_config.pin_d0
+  // sdio_pin_config.pin_d1
+  // sdio_pin_config.pin_d2
+  // sdio_pin_config.pin_d3
+  // sdio_pin_config.pin_reset
 
   return true;
 }
@@ -308,7 +356,7 @@ bool wifiLowLevelInit(bool persistent) {
 
     esp_err_t err = esp_wifi_init(&cfg);
     if (err) {
-      log_e("esp_wifi_init %d", err);
+      log_e("esp_wifi_init 0x%x: %s", err, esp_err_to_name(err));
       lowLevelInitDone = false;
       return lowLevelInitDone;
     }
@@ -375,7 +423,7 @@ static bool espWiFiStart() {
   esp_err_t err = esp_wifi_start();
   if (err != ESP_OK) {
     _esp_wifi_started = false;
-    log_e("esp_wifi_start %d", err);
+    log_e("esp_wifi_start 0x%x: %s", err, esp_err_to_name(err));
     return _esp_wifi_started;
   }
   return _esp_wifi_started;
@@ -389,7 +437,7 @@ static bool espWiFiStop() {
   _esp_wifi_started = false;
   err = esp_wifi_stop();
   if (err) {
-    log_e("Could not stop WiFi! %d", err);
+    log_e("Could not stop WiFi! 0x%x: %s", err, esp_err_to_name(err));
     _esp_wifi_started = true;
     return false;
   }
@@ -478,7 +526,7 @@ int WiFiGenericClass::setChannel(uint8_t primary, wifi_second_chan_t secondary) 
 
   ret = esp_wifi_get_country(&country);
   if (ret != ESP_OK) {
-    log_e("Failed to get country info");
+    log_e("Failed to get country info 0x%x: %s", ret, esp_err_to_name(ret));
     return ret;
   }
 
@@ -492,7 +540,7 @@ int WiFiGenericClass::setChannel(uint8_t primary, wifi_second_chan_t secondary) 
 
   ret = esp_wifi_set_channel(primary, secondary);
   if (ret != ESP_OK) {
-    log_e("Failed to set channel");
+    log_e("Failed to set channel 0x%x: %s", ret, esp_err_to_name(ret));
     return ret;
   }
 
@@ -562,13 +610,13 @@ bool WiFiGenericClass::mode(wifi_mode_t m) {
   if (((m & WIFI_MODE_STA) != 0) && ((cm & WIFI_MODE_STA) == 0)) {
     err = esp_netif_set_hostname(esp_netifs[ESP_IF_WIFI_STA], NetworkManager::getHostname());
     if (err) {
-      log_e("Could not set hostname! %d", err);
+      log_e("Could not set hostname! 0x%x: %s", err, esp_err_to_name(err));
       return false;
     }
   }
   err = esp_wifi_set_mode(m);
   if (err) {
-    log_e("Could not set mode! %d", err);
+    log_e("Could not set mode! 0x%x: %s", err, esp_err_to_name(err));
     return false;
   }
 
@@ -585,15 +633,42 @@ bool WiFiGenericClass::mode(wifi_mode_t m) {
     if (m & WIFI_MODE_STA) {
       err = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_LR);
       if (err != ESP_OK) {
-        log_e("Could not enable long range on STA! %d", err);
+        log_e("Could not enable long range on STA! 0x%x: %s", err, esp_err_to_name(err));
         return false;
       }
     }
     if (m & WIFI_MODE_AP) {
       err = esp_wifi_set_protocol(WIFI_IF_AP, WIFI_PROTOCOL_LR);
       if (err != ESP_OK) {
-        log_e("Could not enable long range on AP! %d", err);
+        log_e("Could not enable long range on AP! 0x%x: %s", err, esp_err_to_name(err));
         return false;
+      }
+    }
+  } else {
+#if CONFIG_SOC_WIFI_HE_SUPPORT
+#define WIFI_PROTOCOL_DEFAULT (WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N | WIFI_PROTOCOL_11AX)
+#else
+#define WIFI_PROTOCOL_DEFAULT (WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N)
+#endif
+    uint32_t current_protocol = 0;
+    if (m & WIFI_MODE_STA) {
+      err = esp_wifi_get_protocol(WIFI_IF_STA, (uint8_t *)&current_protocol);
+      if (err == ESP_OK && current_protocol == WIFI_PROTOCOL_LR) {
+        log_v("Disabling long range on STA");
+        err = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_DEFAULT);
+        if (err != ESP_OK) {
+          log_e("Could not disable long range on STA! 0x%x: %s", err, esp_err_to_name(err));
+        }
+      }
+    }
+    if (m & WIFI_MODE_AP) {
+      err = esp_wifi_get_protocol(WIFI_IF_AP, (uint8_t *)&current_protocol);
+      if (err == ESP_OK && current_protocol == WIFI_PROTOCOL_LR) {
+        log_v("Disabling long range on AP");
+        err = esp_wifi_set_protocol(WIFI_IF_AP, WIFI_PROTOCOL_DEFAULT);
+        if (err != ESP_OK) {
+          log_e("Could not disable long range on AP! 0x%x: %s", err, esp_err_to_name(err));
+        }
       }
     }
   }
@@ -683,8 +758,9 @@ bool WiFiGenericClass::setSleep(wifi_ps_type_t sleepType) {
   if (sleepType != _sleepEnabled) {
     _sleepEnabled = sleepType;
     if (WiFi.STA.started()) {
-      if (esp_wifi_set_ps(_sleepEnabled) != ESP_OK) {
-        log_e("esp_wifi_set_ps failed!");
+      esp_err_t err = esp_wifi_set_ps(_sleepEnabled);
+      if (err != ESP_OK) {
+        log_e("esp_wifi_set_ps failed!: 0x%x: %s", err, esp_err_to_name(err));
         return false;
       }
     }
@@ -748,8 +824,9 @@ bool WiFiGenericClass::initiateFTM(uint8_t frm_count, uint16_t burst_period, uin
     memcpy(ftmi_cfg.resp_mac, mac, 6);
   }
   // Request FTM session with the Responder
-  if (ESP_OK != esp_wifi_ftm_initiate_session(&ftmi_cfg)) {
-    log_e("Failed to initiate FTM session");
+  esp_err_t err = esp_wifi_ftm_initiate_session(&ftmi_cfg);
+  if (ESP_OK != err) {
+    log_e("Failed to initiate FTM session: 0x%x: %s", err, esp_err_to_name(err));
     return false;
   }
   return true;
@@ -768,8 +845,9 @@ bool WiFiGenericClass::setDualAntennaConfig(uint8_t gpio_ant1, uint8_t gpio_ant2
 
   esp_phy_ant_gpio_config_t wifi_ant_io;
 
-  if (ESP_OK != esp_phy_get_ant_gpio(&wifi_ant_io)) {
-    log_e("Failed to get antenna configuration");
+  esp_err_t err = esp_phy_get_ant_gpio(&wifi_ant_io);
+  if (ESP_OK != err) {
+    log_e("Failed to get antenna configuration: 0x%x: %s", err, esp_err_to_name(err));
     return false;
   }
 
@@ -778,8 +856,9 @@ bool WiFiGenericClass::setDualAntennaConfig(uint8_t gpio_ant1, uint8_t gpio_ant2
   wifi_ant_io.gpio_cfg[1].gpio_num = gpio_ant2;
   wifi_ant_io.gpio_cfg[1].gpio_select = 1;
 
-  if (ESP_OK != esp_phy_set_ant_gpio(&wifi_ant_io)) {
-    log_e("Failed to set antenna GPIO configuration");
+  err = esp_phy_set_ant_gpio(&wifi_ant_io);
+  if (ESP_OK != err) {
+    log_e("Failed to set antenna GPIO configuration: 0x%x: %s", err, esp_err_to_name(err));
     return false;
   }
 
@@ -827,8 +906,9 @@ bool WiFiGenericClass::setDualAntennaConfig(uint8_t gpio_ant1, uint8_t gpio_ant2
   }
 
 set_ant:
-  if (ESP_OK != esp_phy_set_ant(&ant_config)) {
-    log_e("Failed to set antenna configuration");
+  err = esp_phy_set_ant(&ant_config);
+  if (ESP_OK != err) {
+    log_e("Failed to set antenna configuration: 0x%x: %s", err, esp_err_to_name(err));
     return false;
   }
 #endif
