@@ -306,7 +306,7 @@ static bool wifiHostedInit() {
     conf.pin_d1.pin = sdio_pin_config.pin_d1;
     conf.pin_d2.pin = sdio_pin_config.pin_d2;
     conf.pin_d3.pin = sdio_pin_config.pin_d3;
-    conf.pin_reset.pin = sdio_pin_config.pin_reset;
+    // conf.pin_reset.pin = sdio_pin_config.pin_reset;
     // esp_hosted_sdio_set_config() will fail on second attempt but here temporarily to not cause exception on reinit
     if (esp_hosted_sdio_set_config(&conf) != ESP_OK || esp_hosted_init() != ESP_OK) {
       log_e("esp_hosted_init failed!");
