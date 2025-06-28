@@ -3,7 +3,7 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-
+#if 0
 #include "esp32-hal-sigmadelta.h"
 
 #if SOC_SDM_SUPPORTED
@@ -80,4 +80,5 @@ bool sigmaDeltaDetach(uint8_t pin) {
   }
   return false;
 }
+#endif
 #endif
