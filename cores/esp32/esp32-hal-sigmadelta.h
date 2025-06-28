@@ -3,7 +3,7 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-
+#if 0
 #pragma once
 
 #include "soc/soc_caps.h"
@@ -26,3 +26,4 @@ bool sigmaDeltaDetach(uint8_t pin);
 #endif
 
 #endif /* SOC_SDM_SUPPORTED */
+#endif
