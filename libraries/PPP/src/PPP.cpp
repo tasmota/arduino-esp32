@@ -534,54 +534,54 @@ int PPPClass::BER() const {
 String PPPClass::IMSI() const {
   PPP_CMD_MODE_CHECK(String());
 
-  char imsi[32];
-  esp_err_t err = esp_modem_get_imsi(_dce, (std::string &)imsi);
+  std::string imsi;
+  esp_err_t err = esp_modem_get_imsi(_dce, imsi);
   if (err != ESP_OK) {
     log_e("esp_modem_get_imsi failed with %d %s", err, esp_err_to_name(err));
     return String();
   }
 
-  return String(imsi);
+  return String(imsi.c_str());
 }
 
 String PPPClass::IMEI() const {
   PPP_CMD_MODE_CHECK(String());
 
-  char imei[32];
-  esp_err_t err = esp_modem_get_imei(_dce, (std::string &)imei);
+  std::string imei;
+  esp_err_t err = esp_modem_get_imei(_dce, imei);
   if (err != ESP_OK) {
     log_e("esp_modem_get_imei failed with %d %s", err, esp_err_to_name(err));
     return String();
   }
 
-  return String(imei);
+  return String(imei.c_str());
 }
 
 String PPPClass::moduleName() const {
   PPP_CMD_MODE_CHECK(String());
 
-  char name[32];
-  esp_err_t err = esp_modem_get_module_name(_dce, (std::string &)name);
+  std::string name;
+  esp_err_t err = esp_modem_get_module_name(_dce, name);
   if (err != ESP_OK) {
     log_e("esp_modem_get_module_name failed with %d %s", err, esp_err_to_name(err));
     return String();
   }
 
-  return String(name);
+  return String(name.c_str());
 }
 
 String PPPClass::operatorName() const {
   PPP_CMD_MODE_CHECK(String());
 
-  char oper[32];
+  std::string oper;
   int act = 0;
-  esp_err_t err = esp_modem_get_operator_name(_dce, (std::string &)oper, act);
+  esp_err_t err = esp_modem_get_operator_name(_dce, oper, act);
   if (err != ESP_OK) {
     log_e("esp_modem_get_operator_name failed with %d %s", err, esp_err_to_name(err));
     return String();
   }
 
-  return String(oper);
+  return String(oper.c_str());
 }
 
 int PPPClass::networkMode() const {
