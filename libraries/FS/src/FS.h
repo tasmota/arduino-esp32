@@ -62,6 +62,8 @@ public:
     return read((uint8_t *)buffer, length);
   }
   size_t readBytes(uint8_t *buffer, size_t length);
+  String readString();
+  String readStringUntil(char terminator);
 
   bool seek(uint32_t pos, SeekMode mode);
   bool seek(uint32_t pos) {
