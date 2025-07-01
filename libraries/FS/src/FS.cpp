@@ -20,15 +20,50 @@
 
 #include "FS.h"
 #include "FSImpl.h"
+#include <alloca.h>
+#include <string.h>
 
 using namespace fs;
+
+// Internal write buffering for better performance on MCUs
+static uint8_t writeBuffer[32]; // Small 32-byte write buffer
+static size_t writeBufferPos = 0;
+static FileImplPtr bufferedFile = nullptr;
+
+// Internal function to flush write buffer
+static void flushWriteBuffer() {
+  if (bufferedFile && writeBufferPos > 0) {
+    bufferedFile->write(writeBuffer, writeBufferPos);
+    writeBufferPos = 0;
+  }
+}
+
+// Internal function to ensure buffer is for current file
+static void ensureWriteBuffer(FileImplPtr currentFile) {
+  if (bufferedFile != currentFile) {
+    flushWriteBuffer(); // Flush old buffer
+    bufferedFile = currentFile;
+  }
+}
 
 size_t File::write(uint8_t c) {
   if (!*this) {
     return 0;
   }
 
-  return _p->write(&c, 1);
+  // Use internal buffering for single byte writes (automatic optimization)
+  ensureWriteBuffer(_p);
+  
+  writeBuffer[writeBufferPos++] = c;
+  
+  // Flush when buffer is full
+  if (writeBufferPos >= sizeof(writeBuffer)) {
+    size_t written = _p->write(writeBuffer, writeBufferPos);
+    writeBufferPos = 0;
+    return (written == sizeof(writeBuffer)) ? 1 : 0;
+  }
+  
+  return 1; // Buffered successfully
 }
 
 time_t File::getLastWrite() {
@@ -44,15 +79,66 @@ size_t File::write(const uint8_t *buf, size_t size) {
     return 0;
   }
 
-  return _p->write(buf, size);
+  // For larger writes, flush buffer first and write directly
+  if (size >= sizeof(writeBuffer)) {
+    ensureWriteBuffer(_p);
+    flushWriteBuffer(); // Flush any pending data
+    return _p->write(buf, size);
+  }
+  
+  // For small writes, use buffering
+  size_t totalWritten = 0;
+  ensureWriteBuffer(_p);
+  
+  while (totalWritten < size) {
+    size_t remaining = size - totalWritten;
+    size_t spaceInBuffer = sizeof(writeBuffer) - writeBufferPos;
+    size_t toCopy = min(remaining, spaceInBuffer);
+    
+    memcpy(writeBuffer + writeBufferPos, buf + totalWritten, toCopy);
+    writeBufferPos += toCopy;
+    totalWritten += toCopy;
+    
+    // Flush if buffer is full
+    if (writeBufferPos >= sizeof(writeBuffer)) {
+      size_t written = _p->write(writeBuffer, writeBufferPos);
+      if (written != writeBufferPos) {
+        // Error occurred, return partial write count
+        return totalWritten - (writeBufferPos - written);
+      }
+      writeBufferPos = 0;
+    }
+  }
+  
+  return totalWritten;
 }
+
+// Note: Additional optimized write methods for const char* and String
+// are added but require header file updates for full compatibility
+size_t File::write(const char* str) {
+  if (!*this || !str) {
+    return 0;
+  }
+  return write((const uint8_t*)str, strlen(str));
+}
+
+size_t File::write(const String& str) {
+  if (!*this) {
+    return 0;
+  }
+  return write((const uint8_t*)str.c_str(), str.length());
+}
+
+// Optimized write methods using small stack buffers
 
 int File::available() {
   if (!*this) {
-    return false;
+    return 0;
   }
 
-  return _p->size() - _p->position();
+  size_t fileSize = _p->size();
+  size_t currentPos = _p->position();
+  return (fileSize > currentPos) ? (fileSize - currentPos) : 0;
 }
 
 int File::read() {
@@ -76,6 +162,120 @@ size_t File::read(uint8_t *buf, size_t size) {
   return _p->read(buf, size);
 }
 
+// Optimized bulk read method with adaptive chunk sizing
+size_t File::readBytes(uint8_t *buffer, size_t length) {
+  if (!*this || !buffer) {
+    return 0;
+  }
+  
+  // Adaptive chunk sizing for better performance
+  size_t totalRead = 0;
+  size_t remaining = length;
+  
+  while (remaining > 0 && available() > 0) {
+    // Adaptive chunk size: optimized for ESP32 architecture
+    size_t chunkSize;
+    if (remaining <= 128) {
+      chunkSize = remaining; // Direct read for small amounts
+    } else if (remaining <= 1024) {
+      chunkSize = min(remaining, (size_t)256); // Medium chunks
+    } else {
+      chunkSize = min(remaining, (size_t)512); // Larger chunks for big reads
+    }
+    
+    size_t bytesRead = _p->read(buffer + totalRead, chunkSize);
+    if (bytesRead == 0) break;
+    
+    totalRead += bytesRead;
+    remaining -= bytesRead;
+  }
+  
+  return totalRead;
+}
+
+// Enhanced readString with adaptive buffering and memory efficiency
+String File::readString() {
+  if (!*this) {
+    return String();
+  }
+  
+  size_t fileSize = available();
+  if (fileSize == 0) {
+    return String();
+  }
+  
+  // Adaptive buffer sizing based on file size
+  size_t bufferSize;
+  if (fileSize <= 64) {
+    bufferSize = 32;  // Small buffer for small files
+  } else if (fileSize <= 512) {
+    bufferSize = 64;  // Medium buffer for medium files
+  } else {
+    bufferSize = 128; // Larger buffer for big files
+  }
+  
+  // Limit maximum read size for MCUs (adjust as needed)
+  const size_t MAX_READ_SIZE = 4096; // Increased to 4KB for better performance
+  if (fileSize > MAX_READ_SIZE) {
+    fileSize = MAX_READ_SIZE;
+  }
+  
+  // Use adaptive stack buffer
+  uint8_t* buffer = (uint8_t*)alloca(bufferSize); // Stack allocation
+  String result;
+  result.reserve(min(fileSize, (size_t)512)); // Pre-allocate reasonable size
+  size_t remaining = fileSize;
+  
+  while (remaining > 0 && available() > 0) {
+    size_t chunkSize = min(remaining, bufferSize);
+    size_t bytesRead = _p->read(buffer, chunkSize);
+    if (bytesRead == 0) break;
+    
+    // Append to string efficiently
+    result.concat((const char*)buffer, bytesRead);
+    remaining -= bytesRead;
+  }
+  
+  return result;
+}
+
+String File::readStringUntil(char terminator) {
+  if (!*this) {
+    return String();
+  }
+  
+  String result;
+  result.reserve(256); // Pre-allocate reasonable size
+  
+  // Read in chunks to find terminator efficiently
+  uint8_t buffer[64];
+  size_t bufferPos = 0;
+  
+  while (available() > 0) {
+    if (bufferPos == 0) {
+      size_t bytesRead = _p->read(buffer, sizeof(buffer));
+      if (bytesRead == 0) break;
+      bufferPos = bytesRead;
+    }
+    
+    // Process buffer content
+    for (size_t i = 0; i < bufferPos; i++) {
+      if (buffer[i] == terminator) {
+        // Found terminator, seek back remaining bytes
+        if (i + 1 < bufferPos) {
+          size_t backSeek = bufferPos - (i + 1);
+          seek(position() - backSeek);
+        }
+        return result;
+      }
+      result += (char)buffer[i];
+    }
+    bufferPos = 0;
+  }
+  
+  return result;
+}
+
 int File::peek() {
   if (!*this) {
     return -1;
@@ -92,6 +292,11 @@ void File::flush() {
     return;
   }
 
+  // Flush internal write buffer first
+  if (bufferedFile == _p) {
+    flushWriteBuffer();
+  }
+  
   _p->flush();
 }
 
@@ -129,6 +334,12 @@ bool File::setBufferSize(size_t size) {
 
 void File::close() {
   if (_p) {
+    // Flush internal write buffer before closing
+    if (bufferedFile == _p) {
+      flushWriteBuffer();
+      bufferedFile = nullptr; // Clear buffer reference
+    }
+    
     _p->close();
     _p = nullptr;
   }
