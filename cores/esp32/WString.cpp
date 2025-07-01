@@ -26,6 +26,7 @@
 #include "stdlib_noniso.h"
 #include "esp32-hal-log.h"
 #include <stdint.h>
+#include <stddef.h>
 
 /*********************************************/
 /*  Constructors                             */
