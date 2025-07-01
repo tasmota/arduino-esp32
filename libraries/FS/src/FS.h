@@ -51,6 +51,8 @@ public:
 
   size_t write(uint8_t) override;
   size_t write(const uint8_t *buf, size_t size) override;
+  size_t write(const char* str);
+  size_t write(const String& str);
   int available() override;
   int read() override;
   int peek() override;
@@ -59,6 +61,7 @@ public:
   size_t readBytes(char *buffer, size_t length) {
     return read((uint8_t *)buffer, length);
   }
+  size_t readBytes(uint8_t *buffer, size_t length);
 
   bool seek(uint32_t pos, SeekMode mode);
   bool seek(uint32_t pos) {
