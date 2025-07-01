@@ -55,9 +55,9 @@ public:
   // fails, the string will be marked as invalid (i.e. "if (s)" will
   // be false).
   String(const char *cstr = "");
-  String(const char *cstr, unsigned int length);
+  String(const char *cstr, size_t length);
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
-  String(const uint8_t *cstr, unsigned int length) : String(reinterpret_cast<const char *>(cstr), length) {}
+  String(const uint8_t *cstr, size_t length) : String(reinterpret_cast<const char *>(cstr), length) {}
 #endif
   String(const String &str);
   String(const __FlashStringHelper *str) : String(reinterpret_cast<const char *>(str)) {}
@@ -71,8 +71,8 @@ public:
   explicit String(unsigned int, unsigned char base = 10);
   explicit String(long, unsigned char base = 10);
   explicit String(unsigned long, unsigned char base = 10);
-  explicit String(float, unsigned int decimalPlaces = 2);
-  explicit String(double, unsigned int decimalPlaces = 2);
+  explicit String(float, size_t decimalPlaces = 2);
+  explicit String(double, size_t decimalPlaces = 2);
   explicit String(long long, unsigned char base = 10);
   explicit String(unsigned long long, unsigned char base = 10);
   ~String(void);
@@ -81,8 +81,8 @@ public:
   // return true on success, false on failure (in which case, the string
   // is left unchanged).  reserve(0), if successful, will validate an
   // invalid string (i.e., "if (s)" will be true afterwards)
-  bool reserve(unsigned int size);
-  inline unsigned int length(void) const {
+  bool reserve(size_t size);
+  inline size_t length(void) const {
     if (buffer()) {
       return len();
     } else {
@@ -116,8 +116,8 @@ public:
   // concatenation is considered unsuccessful.
   bool concat(const String &str);
   bool concat(const char *cstr);
-  bool concat(const char *cstr, unsigned int length);
-  bool concat(const uint8_t *cstr, unsigned int length) {
+  bool concat(const char *cstr, size_t length);
+  bool concat(const uint8_t *cstr, size_t length) {
     return concat(reinterpret_cast<const char *>(cstr), length);
   }
   bool concat(char c);
@@ -233,7 +233,7 @@ public:
   bool startsWith(const __FlashStringHelper *prefix) const {
     return this->startsWith(reinterpret_cast<const char *>(prefix));
   }
-  bool startsWith(const String &prefix, unsigned int offset) const;
+  bool startsWith(const String &prefix, size_t offset) const;
   bool endsWith(const String &suffix) const;
   bool endsWith(const char *suffix) const {
     return this->endsWith(String(suffix));
@@ -243,12 +243,12 @@ public:
   }
 
   // character access
-  char charAt(unsigned int index) const;
-  void setCharAt(unsigned int index, char c);
-  char operator[](unsigned int index) const;
-  char &operator[](unsigned int index);
-  void getBytes(unsigned char *buf, unsigned int bufsize, unsigned int index = 0) const;
-  void toCharArray(char *buf, unsigned int bufsize, unsigned int index = 0) const {
+  char charAt(size_t index) const;
+  void setCharAt(size_t index, char c);
+  char operator[](size_t index) const;
+  char &operator[](size_t index);
+  void getBytes(unsigned char *buf, size_t bufsize, size_t index = 0) const;
+  void toCharArray(char *buf, size_t bufsize, size_t index = 0) const {
     getBytes((unsigned char *)buf, bufsize, index);
   }
   const char *c_str() const {
@@ -269,17 +269,17 @@ public:
 
   // search
   int indexOf(char ch) const;
-  int indexOf(char ch, unsigned int fromIndex) const;
+  int indexOf(char ch, size_t fromIndex) const;
   int indexOf(const String &str) const;
-  int indexOf(const String &str, unsigned int fromIndex) const;
+  int indexOf(const String &str, size_t fromIndex) const;
   int lastIndexOf(char ch) const;
-  int lastIndexOf(char ch, unsigned int fromIndex) const;
+  int lastIndexOf(char ch, size_t fromIndex) const;
   int lastIndexOf(const String &str) const;
-  int lastIndexOf(const String &str, unsigned int fromIndex) const;
-  String substring(unsigned int beginIndex) const {
+  int lastIndexOf(const String &str, size_t fromIndex) const;
+  String substring(size_t beginIndex) const {
     return substring(beginIndex, len());
   }
-  String substring(unsigned int beginIndex, unsigned int endIndex) const;
+  String substring(size_t beginIndex, size_t endIndex) const;
 
   // modification
   void replace(char find, char replace);
@@ -299,8 +299,8 @@ public:
   void replace(const __FlashStringHelper *find, const __FlashStringHelper *replace) {
     this->replace(reinterpret_cast<const char *>(find), reinterpret_cast<const char *>(replace));
   }
-  void remove(unsigned int index);
-  void remove(unsigned int index, unsigned int count);
+  void remove(size_t index);
+  void remove(size_t index, size_t count);
   void toLowerCase(void);
   void toUpperCase(void);
   void trim(void);
@@ -314,8 +314,8 @@ protected:
   // Contains the string info when we're not in SSO mode
   struct _ptr {
     char *buff;
-    uint32_t cap;
-    uint32_t len;
+    size_t cap;
+    size_t len;
   };
   // This allows strings up up to 11 (10 + \0 termination) without any extra space.
   enum {
@@ -343,16 +343,16 @@ protected:
   inline bool isSSO() const {
     return sso.isSSO;
   }
-  inline unsigned int len() const {
+  inline size_t len() const {
     return isSSO() ? sso.len : ptr.len;
   }
-  inline unsigned int capacity() const {
-    return isSSO() ? (unsigned int)SSOSIZE - 1 : ptr.cap;
+  inline size_t capacity() const {
+    return isSSO() ? (size_t)SSOSIZE - 1 : ptr.cap;
   }  // Size of max string not including terminal NUL
   inline void setSSO(bool set) {
     sso.isSSO = set;
   }
-  inline void setLen(int len) {
+  inline void setLen(size_t len) {
     if (isSSO()) {
       sso.len = len;
       sso.buff[len] = 0;
@@ -363,7 +363,7 @@ protected:
       }
     }
   }
-  inline void setCapacity(int cap) {
+  inline void setCapacity(size_t cap) {
     if (!isSSO()) {
       ptr.cap = cap;
     }
@@ -384,11 +384,11 @@ protected:
 protected:
   void init(void);
   void invalidate(void);
-  bool changeBuffer(unsigned int maxStrLen);
+  bool changeBuffer(size_t maxStrLen);
 
   // copy and move
-  String &copy(const char *cstr, unsigned int length);
-  String &copy(const __FlashStringHelper *pstr, unsigned int length) {
+  String &copy(const char *cstr, size_t length);
+  String &copy(const __FlashStringHelper *pstr, size_t length) {
     return copy(reinterpret_cast<const char *>(pstr), length);
   }
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
