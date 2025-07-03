@@ -7,10 +7,10 @@ targets:
   - esp32s3
   - esp32c2
   - esp32c3
+  - esp32c5
   - esp32c6
   - esp32h2
   - esp32p4
-  - esp32c5
 tags:
   - arduino
 files:
@@ -20,10 +20,10 @@ files:
     - "variants/esp32s3/**/*"
     - "variants/esp32c2/**/*"
     - "variants/esp32c3/**/*"
+    - "variants/esp32c5/**/*"
     - "variants/esp32c6/**/*"
     - "variants/esp32h2/**/*"
     - "variants/esp32p4/**/*"
-    - "variants/esp32c5/**/*"
   exclude:
     - "docs/"
     - "docs/**/*"
@@ -53,59 +53,10 @@ dependencies:
     require: public
   espressif/esp_modem:
     version: "^1.1.0"
-  espressif/esp-zboss-lib:
-    version: "==1.6.4" # compatible with esp-zigbee-lib 1.6.5
-    require: public
     rules:
-      - if: "target not in [esp32c2, esp32p4]"
-  espressif/esp-zigbee-lib:
-    version: "==1.6.5"
-    require: public
-    rules:
-      - if: "target not in [esp32c2, esp32p4]"
+      - if: "target != esp32c2"
   espressif/esp-dsp:
-    version: "^1.3.4"
-    rules:
-      - if: "target != esp32c2"
-  # RainMaker Start (Fixed versions, because Matter supports only Insights 1.0.1)
-  espressif/network_provisioning:
-    version: "1.0.2"
-    rules:
-      - if: "target != esp32c2"
-  espressif/esp_rainmaker:
-    version: "1.5.2"
-    rules:
-      - if: "target not in [esp32c2, esp32p4]"
-  espressif/rmaker_common:
-    version: "1.4.6"
-    rules:
-      - if: "target not in [esp32c2, esp32p4]"
-  espressif/esp_insights:
-    version: "1.2.2"
-    rules:
-      - if: "target not in [esp32c2, esp32p4]"
-  # New version breaks esp_insights 1.0.1
-  espressif/esp_diag_data_store:
-    version: "1.0.2"
-    rules:
-      - if: "target not in [esp32c2, esp32p4]"
-  espressif/esp_diagnostics:
-    version: "1.2.1"
-    rules:
-      - if: "target not in [esp32c2, esp32p4]"
-  espressif/cbor:
-    version: "0.6.0~1"
-    rules:
-      - if: "target not in [esp32c2, esp32p4]"
-  espressif/qrcode:
-    version: "0.1.0~2"
-    rules:
-      - if: "target not in [esp32c2, esp32p4]"
-  # RainMaker End
-  espressif/esp-sr:
-    version: "^1.4.2"
-    rules:
-      - if: "target in [esp32s3]"
+    version: "^1.4.12"
   espressif/esp_hosted:
     version: "^2.0.12"
     rules:
@@ -114,18 +65,11 @@ dependencies:
     version: "^0.13.0"
     rules:
       - if: "target == esp32p4"
-  espressif/libsodium:
-    version: "^1.0.20~1"
-    require: public
-  espressif/esp-modbus:
-    version: "^1.0.15"
-    require: public
   joltwallet/littlefs:
-    version: "^1.10.2"
-  chmorgan/esp-libhelix-mp3:
-    version: "1.0.3"
+    version: "^1.14.1"
+  espressif/esp32-camera:
+    version: "master"
+    git: https://github.com/espressif/esp32-camera.git
     require: public
-examples:
-  - path: ./idf_component_examples/hello_world
-  - path: ./idf_component_examples/hw_cdc_hello_world
-  - path: ./idf_component_examples/esp_matter_light
+    rules:
+      - if: "target in [esp32, esp32s2, esp32s3, esp32p4]"
