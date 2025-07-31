@@ -63,10 +63,10 @@ dependencies:
     require: public
     rules:
       - if: "target == esp32p4"
-  espressif/esp_wifi_remote:
-    version: "^0.14.4"
-    rules:
-      - if: "target == esp32p4"
+#  espressif/esp_wifi_remote:
+#    version: "^0.14.4"
+#    rules:
+#      - if: "target == esp32p4"
   joltwallet/littlefs:
     version: "^1.14.1"
   espressif/esp32-camera:
