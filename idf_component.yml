@@ -58,15 +58,11 @@ dependencies:
   espressif/esp-dsp:
     version: "^1.4.12"
   espressif/esp_hosted:
-    version: "master"
-    git: https://github.com/Jason2866/esp-hosted-mcu.git
-    require: public
+    version: "^2.1.6"
     rules:
       - if: "target == esp32p4"
   espressif/esp_wifi_remote:
-    version: "main"
-    git: https://github.com/espressif/esp-wifi-remote.git
-    path: "components/esp_wifi_remote"
+    version: "^0.14.4"
     rules:
       - if: "target == esp32p4"
   joltwallet/littlefs:
