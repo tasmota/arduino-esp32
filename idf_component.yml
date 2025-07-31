@@ -58,7 +58,9 @@ dependencies:
   espressif/esp-dsp:
     version: "^1.4.12"
   espressif/esp_hosted:
-    version: "^2.1.6"
+    version: "master"
+    git: https://github.com/Jason2866/esp-hosted-mcu.git
+    require: public
     rules:
       - if: "target == esp32p4"
   espressif/esp_wifi_remote:
