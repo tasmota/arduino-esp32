@@ -66,6 +66,7 @@ dependencies:
   espressif/esp_wifi_remote:
     version: "main"
     git: https://github.com/espressif/esp-wifi-remote.git
+    path: "components/esp_wifi_remote"
     rules:
       - if: "target == esp32p4"
   joltwallet/littlefs:
