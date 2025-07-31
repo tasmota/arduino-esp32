@@ -57,7 +57,7 @@ dependencies:
       - if: "target != esp32c2"
   espressif/esp-dsp:
     version: "^1.4.12"
-  espressif/esp_hosted:
+  Jason2866/esp_hosted:
     version: "master"
     git: https://github.com/Jason2866/esp-hosted-mcu.git
     require: public
