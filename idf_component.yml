@@ -72,4 +72,4 @@ dependencies:
     git: https://github.com/espressif/esp32-camera.git
     require: public
     rules:
-      - if: "target in [esp32, esp32s2, esp32s3, esp32p4]"
+      - if: "target in [esp32, esp32s2, esp32s3]"
