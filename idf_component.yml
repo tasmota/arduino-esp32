@@ -57,9 +57,8 @@ dependencies:
       - if: "target != esp32c2"
   espressif/esp-dsp:
     version: "^1.4.12"
-  # actual 2.3.1 does not compile issue: https://github.com/espressif/esp-hosted-mcu/issues/96
   espressif/esp_hosted:
-    version: "^2.3.1"
+    version: "^2.3.2"
     rules:
       - if: "target == esp32p4"
   espressif/esp_wifi_remote:
