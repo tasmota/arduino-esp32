@@ -232,7 +232,7 @@ set(priv_includes cores/esp32/libb64)
 set(requires spi_flash esp_partition mbedtls wpa_supplicant esp_adc esp_eth http_parser esp_ringbuf esp_driver_gptimer esp_driver_usb_serial_jtag driver esp_http_client esp_https_ota)
 set(priv_requires fatfs nvs_flash app_update bootloader_support bt esp_hid usb esp_psram ${ARDUINO_LIBRARIES_REQUIRES})
 
-if(IDF_TARGET STREQUAL "esp32p4")
+if(IDF_TARGET STREQUAL "esp32" OR IDF_TARGET STREQUAL "esp32s2" OR IDF_TARGET STREQUAL "esp32s3" OR IDF_TARGET STREQUAL "esp32p4")
   list(APPEND requires esp_driver_touch_sens)
 endif()
 
