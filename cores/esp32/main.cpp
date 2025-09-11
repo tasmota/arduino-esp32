@@ -10,7 +10,9 @@
 #endif
 #endif
 
+#if defined __has_include && __has_include("chip-debug-report.h")
 #include "chip-debug-report.h"
+#endif
 
 #ifndef ARDUINO_LOOP_STACK_SIZE
 #ifndef CONFIG_ARDUINO_LOOP_STACK_SIZE
@@ -57,6 +59,7 @@ void loopTask(void *pvParameters) {
   // usually done for opening the Serial Monitor and seeing all debug messages
   delay(getArduinoSetupWaitTime_ms());
 #endif
+#if defined __has_include && __has_include("chip-debug-report.h")
 #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_DEBUG
   printBeforeSetupInfo();
 #else
@@ -64,13 +67,16 @@ void loopTask(void *pvParameters) {
     printBeforeSetupInfo();
   }
 #endif
+#endif
   setup();
+#if defined __has_include && __has_include("chip-debug-report.h")
 #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_DEBUG
   printAfterSetupInfo();
 #else
   if (shouldPrintChipDebugReport()) {
     printAfterSetupInfo();
   }
+#endif
 #endif
   for (;;) {
 #if CONFIG_FREERTOS_UNICORE
