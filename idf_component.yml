@@ -73,3 +73,7 @@ dependencies:
     require: public
     rules:
       - if: "target in [esp32, esp32s2, esp32s3]"
+  espressif/lan867x:
+    version: "^2.0.0"
+    rules:
+      - if: "target in [esp32, esp32p4]"
