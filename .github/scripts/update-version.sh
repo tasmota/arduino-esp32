@@ -24,15 +24,19 @@ ESP_ARDUINO_VERSION_MINOR="$2"
 ESP_ARDUINO_VERSION_PATCH="$3"
 ESP_ARDUINO_VERSION="$ESP_ARDUINO_VERSION_MAJOR.$ESP_ARDUINO_VERSION_MINOR.$ESP_ARDUINO_VERSION_PATCH"
 
-# Get ESP-IDF version from push.yml (this way we can ensure that the version is correct even if the local libs are not up to date)
-ESP_IDF_VERSION=$(grep "idf_ver:" .github/workflows/push.yml | sed 's/.*release-v\([^"]*\).*/\1/')
+# Get ESP-IDF version from build_component.yml (this way we can ensure that the version is correct even if the local libs are not up to date)
+ESP_IDF_VERSION=$(grep -m 1 "default:" .github/workflows/build_component.yml | sed 's/.*release-v\([^"]*\).*/\1/')
 if [ -z "$ESP_IDF_VERSION" ]; then
-    echo "Error: ESP-IDF version not found in push.yml" >&2
+    echo "Error: ESP-IDF version not found in build_component.yml" >&2
     exit 1
 fi
 
 echo "New Arduino Version: $ESP_ARDUINO_VERSION"
 echo "ESP-IDF Version: $ESP_IDF_VERSION"
+
+echo "Updating issue template..."
+cat .github/ISSUE_TEMPLATE/Issue-report.yml | \
+sed "s/.*\- latest master .*/        - latest master \(checkout manually\)\\n        - v$ESP_ARDUINO_VERSION/g" > __issue-report.yml && mv __issue-report.yml .github/ISSUE_TEMPLATE/Issue-report.yml
 
 echo "Updating platform.txt..."
 cat platform.txt | sed "s/version=.*/version=$ESP_ARDUINO_VERSION/g" > __platform.txt && mv __platform.txt platform.txt
