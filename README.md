@@ -2,6 +2,14 @@
 
 ### [![GitHub Releases](https://img.shields.io/github/downloads/tasmota/arduino-esp32/total?label=downloads)](https://github.com/tasmota/arduino-esp32/releases/latest)
 
+### Development Status
+
+#### Latest Stable Release
+
+[![Release Version](https://img.shields.io/github/release/tasmota/arduino-esp32.svg)](https://github.com/tasmota/arduino-esp32/releases/latest/)
+[![Release Date](https://img.shields.io/github/release-date/tasmota/arduino-esp32.svg)](https://github.com/tasmota/arduino-esp32/releases/latest/)
+[![Downloads](https://img.shields.io/github/downloads/tasmota/arduino-esp32/latest/total.svg)](https://github.com/tasmota/arduino-esp32/releases/latest/)
+
 ### Documentation
 
 You can use the [Arduino-ESP32 Online Documentation](https://docs.espressif.com/projects/arduino-esp32/en/latest/) to get all information about this project.
