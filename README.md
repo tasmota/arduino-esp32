@@ -2,9 +2,7 @@
 
 ### [![GitHub Releases](https://img.shields.io/github/downloads/tasmota/arduino-esp32/total?label=downloads)](https://github.com/tasmota/arduino-esp32/releases/latest)
 
-### Development Status
-
-#### Latest Stable Release
+### Latest Stable Release
 
 [![Release Version](https://img.shields.io/github/release/tasmota/arduino-esp32.svg)](https://github.com/tasmota/arduino-esp32/releases/latest/)
 [![Release Date](https://img.shields.io/github/release-date/tasmota/arduino-esp32.svg)](https://github.com/tasmota/arduino-esp32/releases/latest/)
