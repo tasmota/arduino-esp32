@@ -52,11 +52,6 @@ __attribute__((weak)) uint64_t getArduinoSetupWaitTime_ms(void) {
 }
 
 void loopTask(void *pvParameters) {
-#if !defined(NO_GLOBAL_INSTANCES) && !defined(NO_GLOBAL_SERIAL)
-  // sets UART0 (default console) RX/TX pins as already configured in boot or as defined in variants/pins_arduino.h
-  Serial0.setPins(gpioNumberToDigitalPin(SOC_RX0), gpioNumberToDigitalPin(SOC_TX0));
-  // time in ms that the sketch may wait before starting its execution - default is zero
-  // usually done for opening the Serial Monitor and seeing all debug messages
   delay(getArduinoSetupWaitTime_ms());
 #endif
 #if defined __has_include && __has_include("chip-debug-report.h")
@@ -67,6 +62,11 @@ void loopTask(void *pvParameters) {
     printBeforeSetupInfo();
   }
 #endif
+#if !defined(NO_GLOBAL_INSTANCES) && !defined(NO_GLOBAL_SERIAL)
+  // sets UART0 (default console) RX/TX pins as already configured in boot or as defined in variants/pins_arduino.h
+  Serial0.setPins(gpioNumberToDigitalPin(SOC_RX0), gpioNumberToDigitalPin(SOC_TX0));
+  // time in ms that the sketch may wait before starting its execution - default is zero
+  // usually done for opening the Serial Monitor and seeing all debug messages
 #endif
   setup();
 #if defined __has_include && __has_include("chip-debug-report.h")
