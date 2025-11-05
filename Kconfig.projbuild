@@ -363,11 +363,6 @@ config ARDUINO_SELECTIVE_NetBIOS
     depends on ARDUINO_SELECTIVE_COMPILATION && ARDUINO_SELECTIVE_Network
     default y
 
-config ARDUINO_SELECTIVE_Hash
-    bool "Enable Hash"
-    depends on ARDUINO_SELECTIVE_COMPILATION
-    default y
-
 config ARDUINO_SELECTIVE_WebServer
     bool "Enable WebServer"
     depends on ARDUINO_SELECTIVE_COMPILATION && ARDUINO_SELECTIVE_Network
