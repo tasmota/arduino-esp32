@@ -272,6 +272,8 @@ private:
   bool _setLinkSpeed(uint16_t speed);
   bool _setAutoNegotiation(bool on);
 
+  void _delMacAndPhy();
+
   friend class EthernetClass;  // to access beginSPI
 };
 
