@@ -25,6 +25,12 @@ files:
     - "variants/esp32h2/**/*"
     - "variants/esp32p4/**/*"
   exclude:
+    - ".*" # All files in the root directory that start with a dot.
+    - ".gitlab/"
+    - ".gitlab/**/*"
+    - ".gitignore"
+    - ".gitmodules"
+    - ".readthedocs.yaml"
     - "docs/"
     - "docs/**/*"
     - "idf_component_examples/"
@@ -36,9 +42,6 @@ files:
     - "tools/"
     - "tools/**/*"
     - "variants/**/*"
-    - ".gitignore"
-    - ".gitmodules"
-    - ".readthedocs.yaml"
     - "boards.txt"
     - "CODE_OF_CONDUCT.md"
     - "LICENSE.md"
