@@ -1,4 +1,4 @@
-description: "Arduino core for ESP32, ESP32-S and ESP32-C series of SoCs"
+description: "Arduino core for ESP32, ESP32-C, ESP32-H, ESP32-P, ESP32-S series of SoCs"
 url: "https://github.com/espressif/arduino-esp32"
 license: "LGPL-2.1"
 targets:
@@ -9,6 +9,7 @@ targets:
   - esp32c3
   - esp32c5
   - esp32c6
+  - esp32c61
   - esp32h2
   - esp32p4
 tags:
@@ -22,6 +23,7 @@ files:
     - "variants/esp32c3/**/*"
     - "variants/esp32c5/**/*"
     - "variants/esp32c6/**/*"
+    - "variants/esp32c61/**/*"
     - "variants/esp32h2/**/*"
     - "variants/esp32p4/**/*"
   exclude:
