@@ -87,6 +87,7 @@ set(ARDUINO_ALL_LIBRARIES
   AsyncUDP
   DNSServer
   EEPROM
+  ESP_HostedOTA
   ESPmDNS
   Ethernet
   FFat
@@ -119,6 +120,9 @@ set(ARDUINO_LIBRARY_AsyncUDP_SRCS libraries/AsyncUDP/src/AsyncUDP.cpp)
 set(ARDUINO_LIBRARY_DNSServer_SRCS libraries/DNSServer/src/DNSServer.cpp)
 
 set(ARDUINO_LIBRARY_EEPROM_SRCS libraries/EEPROM/src/EEPROM.cpp)
+
+set(ARDUINO_LIBRARY_ESP_HostedOTA_SRCS
+  libraries/ESP_HostedOTA/src/ESP_HostedOTA.cpp)
 
 set(ARDUINO_LIBRARY_ESPmDNS_SRCS libraries/ESPmDNS/src/ESPmDNS.cpp)
 
