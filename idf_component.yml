@@ -57,7 +57,7 @@ dependencies:
     version: "^1.2.3"
     require: public
   espressif/esp_modem:
-    version: "^1.1.0"
+    version: "^2.0.0"
     rules:
       - if: "target != esp32c2"
   espressif/esp-dsp:
