@@ -63,11 +63,11 @@ dependencies:
   espressif/esp-dsp:
     version: "^1.4.12"
   espressif/esp_hosted:
-    version: "^2.6.6"
+    version: "^2.7.3"
     rules:
       - if: "target == esp32p4"
   espressif/esp_wifi_remote:
-    version: "^0.14.4"
+    version: "^1.2.2"
     rules:
       - if: "target == esp32p4"
   joltwallet/littlefs:
