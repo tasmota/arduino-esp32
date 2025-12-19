@@ -134,7 +134,8 @@ set(ARDUINO_LIBRARY_Hash_SRCS
   libraries/Hash/src/SHA1Builder.cpp
   libraries/Hash/src/SHA2Builder.cpp
   libraries/Hash/src/SHA3Builder.cpp
-  libraries/Hash/src/PBKDF2_HMACBuilder.cpp)
+  libraries/Hash/src/PBKDF2_HMACBuilder.cpp
+  )
 
 set(ARDUINO_LIBRARY_HTTPClient_SRCS libraries/HTTPClient/src/HTTPClient.cpp)
 
