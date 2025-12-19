@@ -161,7 +161,8 @@ set(ARDUINO_LIBRARY_Ticker_SRCS libraries/Ticker/src/Ticker.cpp)
 
 set(ARDUINO_LIBRARY_Update_SRCS
   libraries/Update/src/Updater.cpp
-  libraries/Update/src/HttpsOTAUpdate.cpp)
+  libraries/Update/src/HttpsOTAUpdate.cpp
+  libraries/Update/src/Updater_Signing.cpp)
 
 if(IDF_TARGET MATCHES "esp32s2|esp32s3|esp32p4" AND CONFIG_TINYUSB_ENABLED)
   set(ARDUINO_LIBRARY_USB_SRCS

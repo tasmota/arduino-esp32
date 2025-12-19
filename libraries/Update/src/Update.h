@@ -15,6 +15,9 @@
 #include <MD5Builder.h>
 #include <functional>
 #include "esp_partition.h"
+#ifdef UPDATE_SIGN
+#include "Updater_Signing.h"
+#endif /* UPDATE_SIGN */
 
 #define UPDATE_ERROR_OK           (0)
 #define UPDATE_ERROR_WRITE        (1)
@@ -30,6 +33,7 @@
 #define UPDATE_ERROR_BAD_ARGUMENT (11)
 #define UPDATE_ERROR_ABORT        (12)
 #define UPDATE_ERROR_DECRYPT      (13)
+#define UPDATE_ERROR_SIGN         (14)
 
 #define UPDATE_SIZE_UNKNOWN 0xFFFFFFFF
 
@@ -172,6 +176,16 @@ public:
     return _md5.getBytes(result);
   }
 
+#ifdef UPDATE_SIGN
+  /*
+      Install signature verification for the update
+      Call this before begin() to enable signature verification
+      sign: Signature verifier to use (e.g., UpdaterRSAVerifier or UpdaterECDSAVerifier)
+            The hash type is determined from the verifier's configuration
+    */
+  bool installSignature(UpdaterVerifyClass *sign);
+#endif /* UPDATE_SIGN */
+
   //Helpers
   uint8_t getError() {
     return _error;
@@ -291,6 +305,14 @@ private:
   size_t _cryptAddress;
   uint8_t _cryptCfg;
 #endif /* UPDATE_NOCRYPT */
+
+#ifdef UPDATE_SIGN
+  SHA2Builder *_hash;
+  UpdaterVerifyClass *_sign;
+  uint8_t *_signatureBuffer;
+  size_t _signatureSize;
+  int _hashType;
+#endif /* UPDATE_SIGN */
 };
 
 #if !defined(NO_GLOBAL_INSTANCES) && !defined(NO_GLOBAL_UPDATE)
