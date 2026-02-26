@@ -177,6 +177,7 @@ if(IDF_TARGET MATCHES "esp32s2|esp32s3|esp32p4" AND CONFIG_TINYUSB_ENABLED)
     libraries/USB/src/keyboardLayout/KeyboardLayout_de_DE.cpp
     libraries/USB/src/keyboardLayout/KeyboardLayout_en_US.cpp
     libraries/USB/src/keyboardLayout/KeyboardLayout_es_ES.cpp
+    libraries/USB/src/keyboardLayout/KeyboardLayout_fr_CH.cpp
     libraries/USB/src/keyboardLayout/KeyboardLayout_fr_FR.cpp
     libraries/USB/src/keyboardLayout/KeyboardLayout_hu_HU.cpp
     libraries/USB/src/keyboardLayout/KeyboardLayout_it_IT.cpp
