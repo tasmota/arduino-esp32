@@ -67,6 +67,7 @@ set(CORE_SRCS
   cores/esp32/stdlib_noniso.c
   cores/esp32/Stream.cpp
   cores/esp32/StreamString.cpp
+  cores/esp32/StringUtils.cpp
   cores/esp32/Tone.cpp
   cores/esp32/HWCDC.cpp
   cores/esp32/FirmwareMSC.cpp
