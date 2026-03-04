@@ -1675,19 +1675,6 @@ void uart_internal_loopback(uint8_t uartNum, int8_t rxPin) {
 }
 
 /*
-   This function internally binds defined UARTs CTS signal with defined RTS pin of any UART (same or different).
-   This creates a internal connection of CTS to RTS used when testing Hardware Flow Control without external wires.
-*/
-void uart_internal_hw_flow_ctrl_loopback(uint8_t uartNum, int8_t ctsPin) {
-  // LP UART is not supported for hw flow ctrl loopback
-  if (uartNum >= SOC_UART_HP_NUM || !GPIO_IS_VALID_GPIO(ctsPin)) {
-    log_e("UART%u is not supported for hw flow ctrl loopback or CTS pin %d is invalid.", uartNum, ctsPin);
-    return;
-  }
-  esp_rom_gpio_connect_out_signal(ctsPin, uart_periph_signal[uartNum].pins[SOC_UART_RTS_PIN_IDX].signal, false, false);
-}
-
-/*
     This is intended to generate BREAK in an UART line
 */
 
