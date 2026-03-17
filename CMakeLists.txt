@@ -394,7 +394,7 @@ set(priv_requires fatfs nvs_flash app_update spiffs bootloader_support bt esp_hi
 if(IDF_VERSION_MAJOR LESS 6)
   list(APPEND priv_requires usb)
 else()
-  list(APPEND requires esp_hal_uart esp_hal_ledc)
+  list(APPEND requires esp_hal_uart esp_hal_ledc esp_hal_ana_conv esp_hal_gpio esp_hal_i2c esp_hal_timg esp_driver_i2c esp_driver_dac)
 endif()
 
 if(NOT CONFIG_ARDUINO_SELECTIVE_COMPILATION OR CONFIG_ARDUINO_SELECTIVE_OpenThread)
