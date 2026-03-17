@@ -21,10 +21,8 @@
 #define Character_h
 
 #include <ctype.h>
-#ifndef isascii
+#if !defined(__PICOLIBC__)
 #define isascii(__c) ((unsigned)(__c) <= 0177)
-#endif
-#ifndef toascii
 #define toascii(__c) ((__c) & 0177)
 #endif
 

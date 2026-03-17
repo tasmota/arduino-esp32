@@ -11,6 +11,6 @@
   "license": "LGPL-2.1-or-later",
   "repository": {
     "type": "git",
-    "url": "https://github.com/swoboda1337/arduino-esp32"
+    "url": "https://github.com/tasmota/arduino-esp32"
   }
 }
