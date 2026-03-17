@@ -287,7 +287,7 @@ int start_ssl_client(
 
     log_v("Loading private key");
 #if MBEDTLS_VERSION_MAJOR >= 4
-    ret = mbedtls_pk_parse_key(&ssl_client->client_key, (const unsigned char *)cli_key, strlen(cli_key) + 1, NULL, 0, NULL, NULL);
+    ret = mbedtls_pk_parse_key(&ssl_client->client_key, (const unsigned char *)cli_key, strlen(cli_key) + 1, NULL, 0);
 #else
     mbedtls_ctr_drbg_context ctr_drbg;
     mbedtls_ctr_drbg_init(&ctr_drbg);
