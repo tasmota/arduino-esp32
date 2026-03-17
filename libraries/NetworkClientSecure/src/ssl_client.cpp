@@ -12,8 +12,13 @@
 #include <lwip/sockets.h>
 #include <lwip/sys.h>
 #include <lwip/netdb.h>
-#include <mbedtls/sha256.h>
 #include <mbedtls/oid.h>
+#include "mbedtls/version.h"
+#if MBEDTLS_VERSION_MAJOR >= 4
+#include <psa/crypto.h>
+#else
+#include <mbedtls/sha256.h>
+#endif
 #include <algorithm>
 #include <string>
 #include "ssl_client.h"
@@ -605,11 +610,20 @@ bool get_peer_fingerprint(sslclient_context *ssl_client, uint8_t sha256[32]) {
     return false;
   };
 
+#if MBEDTLS_VERSION_MAJOR >= 4
+  size_t hash_len = 0;
+  psa_status_t status = psa_hash_compute(PSA_ALG_SHA_256, crt->raw.p, crt->raw.len, sha256, 32, &hash_len);
+  if (status != PSA_SUCCESS) {
+    log_d("SHA256 hash failed: %d", (int)status);
+    return false;
+  }
+#else
   mbedtls_sha256_context sha256_ctx;
   mbedtls_sha256_init(&sha256_ctx);
   mbedtls_sha256_starts(&sha256_ctx, false);
   mbedtls_sha256_update(&sha256_ctx, crt->raw.p, crt->raw.len);
   mbedtls_sha256_finish(&sha256_ctx, sha256);
+#endif
 
   return true;
 }
