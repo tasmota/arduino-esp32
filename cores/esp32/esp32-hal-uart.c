@@ -25,7 +25,7 @@
 #include "hal/uart_ll.h"
 #include "soc/soc_caps.h"
 #include "soc/uart_struct.h"
-#include "soc/uart_periph.h"
+#include "hal/uart_periph.h"
 #include "rom/ets_sys.h"
 #include "rom/gpio.h"
 
