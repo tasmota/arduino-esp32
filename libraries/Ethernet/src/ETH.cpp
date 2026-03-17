@@ -297,6 +297,7 @@ bool ETHClass::begin(eth_phy_type_t type, int32_t phy_addr, int mdc, int mdio, i
     case ETH_PHY_TLK110:
     case ETH_PHY_RTL8201:
     case ETH_PHY_DP83848:
+    case ETH_PHY_JL1101:
     case ETH_PHY_KSZ8041:
     case ETH_PHY_KSZ8081:
       _phy = esp_eth_phy_new_generic(&phy_config); break;
