@@ -21,8 +21,12 @@
 #define Character_h
 
 #include <ctype.h>
+#ifndef isascii
 #define isascii(__c) ((unsigned)(__c) <= 0177)
+#endif
+#ifndef toascii
 #define toascii(__c) ((__c) & 0177)
+#endif
 
 // WCharacter.h prototypes
 inline boolean isAlphaNumeric(int c) __attribute__((always_inline));

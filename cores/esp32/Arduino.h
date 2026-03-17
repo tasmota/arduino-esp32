@@ -205,8 +205,10 @@ void shiftOut(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder, uint8_t val);
 
 // Use float-compatible stl abs() and round(), we don't use Arduino macros to avoid issues with the C++ libraries
 using std::abs;
+#if !__has_include(<picolibc.h>)
 using std::isinf;
 using std::isnan;
+#endif
 using std::max;
 using std::min;
 using std::round;
