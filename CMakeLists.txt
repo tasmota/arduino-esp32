@@ -393,6 +393,8 @@ set(requires spi_flash esp_partition mbedtls wpa_supplicant esp_adc esp_eth http
 set(priv_requires fatfs nvs_flash app_update spiffs bootloader_support bt esp_hid esp_psram ${ARDUINO_LIBRARIES_REQUIRES})
 if(IDF_VERSION_MAJOR LESS 6)
   list(APPEND priv_requires usb)
+else()
+  list(APPEND requires esp_hal_uart)
 endif()
 
 if(NOT CONFIG_ARDUINO_SELECTIVE_COMPILATION OR CONFIG_ARDUINO_SELECTIVE_OpenThread)
