@@ -229,10 +229,10 @@ bool ETHClass::begin(eth_phy_type_t type, int32_t phy_addr, int mdc, int mdio, i
   eth_esp32_emac_config_t mac_config = ETH_EMAC_DEFAULT_CONFIG();
 #if CONFIG_IDF_TARGET_ESP32
   mac_config.clock_config.rmii.clock_mode = (clock_mode) ? EMAC_CLK_OUT : EMAC_CLK_EXT_IN;
-  mac_config.clock_config.rmii.clock_gpio = (1 == clock_mode)   ? EMAC_APPL_CLK_OUT_GPIO
-                                            : (2 == clock_mode) ? EMAC_CLK_OUT_GPIO
-                                            : (3 == clock_mode) ? EMAC_CLK_OUT_180_GPIO
-                                                                : EMAC_CLK_IN_GPIO;
+  mac_config.clock_config.rmii.clock_gpio = (1 == clock_mode)   ? 0   // APLL clock out on GPIO0
+                                            : (2 == clock_mode) ? 16  // CLK_OUT on GPIO16
+                                            : (3 == clock_mode) ? 17  // CLK_OUT_180 on GPIO17
+                                                                : 0;  // CLK_IN on GPIO0
 #elif CONFIG_IDF_TARGET_ESP32P4
   mac_config.clock_config.rmii.clock_mode = (emac_rmii_clock_mode_t)clock_mode;
 #endif
