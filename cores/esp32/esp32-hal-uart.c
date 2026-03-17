@@ -186,23 +186,23 @@ static bool lp_uart_config_io(uint8_t uart_num, int8_t pin, rtc_gpio_mode_t dire
 static bool lpuartCheckPins(int8_t rxPin, int8_t txPin, int8_t ctsPin, int8_t rtsPin, uint8_t uart_nr) {
 // check if LP UART is being used and if the pins are valid
 #if !SOC_LP_GPIO_MATRIX_SUPPORTED  // ESP32-C6/C61/C5
-  uint16_t lp_uart_fixed_pin = uart_periph_signal[uart_nr].pins[SOC_UART_RX_PIN_IDX].default_gpio;
+  uint16_t lp_uart_fixed_pin = uart_periph_signal[uart_nr].pins[SOC_UART_PERIPH_SIGNAL_RX].default_gpio;
   if (uart_nr >= SOC_UART_HP_NUM) {  // it is a LP UART NUM
     if (rxPin > 0 && rxPin != lp_uart_fixed_pin) {
       log_e("UART%u LP UART requires RX pin to be set to %u", uart_nr, lp_uart_fixed_pin);
       return false;
     }
-    lp_uart_fixed_pin = uart_periph_signal[uart_nr].pins[SOC_UART_TX_PIN_IDX].default_gpio;
+    lp_uart_fixed_pin = uart_periph_signal[uart_nr].pins[SOC_UART_PERIPH_SIGNAL_TX].default_gpio;
     if (txPin > 0 && txPin != lp_uart_fixed_pin) {
       log_e("UART%u LP UART requires TX pin to be set to %u", uart_nr, lp_uart_fixed_pin);
       return false;
     }
-    lp_uart_fixed_pin = uart_periph_signal[uart_nr].pins[SOC_UART_CTS_PIN_IDX].default_gpio;
+    lp_uart_fixed_pin = uart_periph_signal[uart_nr].pins[SOC_UART_PERIPH_SIGNAL_CTS].default_gpio;
     if (ctsPin > 0 && ctsPin != lp_uart_fixed_pin) {
       log_e("UART%u LP UART requires CTS pin to be set to %u", uart_nr, lp_uart_fixed_pin);
       return false;
     }
-    lp_uart_fixed_pin = uart_periph_signal[uart_nr].pins[SOC_UART_RTS_PIN_IDX].default_gpio;
+    lp_uart_fixed_pin = uart_periph_signal[uart_nr].pins[SOC_UART_PERIPH_SIGNAL_RTS].default_gpio;
     if (rtsPin > 0 && rtsPin != lp_uart_fixed_pin) {
       log_e("UART%u LP UART requires RTS pin to be set to %u", uart_nr, lp_uart_fixed_pin);
       return false;
@@ -242,9 +242,9 @@ static bool _uartDetachPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t
     esp_rom_gpio_pad_select_gpio(rxPin);
     // avoids causing BREAK in the UART line
     if (uart->_inverted) {
-      esp_rom_gpio_connect_in_signal(GPIO_FUNC_IN_LOW, UART_PERIPH_SIGNAL(uart_num, SOC_UART_RX_PIN_IDX), false);
+      esp_rom_gpio_connect_in_signal(GPIO_FUNC_IN_LOW, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_RX), false);
     } else {
-      esp_rom_gpio_connect_in_signal(GPIO_FUNC_IN_HIGH, UART_PERIPH_SIGNAL(uart_num, SOC_UART_RX_PIN_IDX), false);
+      esp_rom_gpio_connect_in_signal(GPIO_FUNC_IN_HIGH, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_RX), false);
     }
     uart->_rxPin = -1;  // -1 means unassigned/detached
     if (!perimanClearPinBus(rxPin)) {
@@ -265,7 +265,7 @@ static bool _uartDetachPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t
   if (ctsPin >= 0 && uart->_ctsPin == ctsPin && perimanGetPinBusType(ctsPin) == ESP32_BUS_TYPE_UART_CTS) {
     //gpio_hal_iomux_func_sel(GPIO_PIN_MUX_REG[ctsPin], PIN_FUNC_GPIO);
     esp_rom_gpio_pad_select_gpio(ctsPin);
-    esp_rom_gpio_connect_in_signal(GPIO_FUNC_IN_LOW, UART_PERIPH_SIGNAL(uart_num, SOC_UART_CTS_PIN_IDX), false);
+    esp_rom_gpio_connect_in_signal(GPIO_FUNC_IN_LOW, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_CTS), false);
     uart->_ctsPin = -1;  // -1 means unassigned/detached
     if (!perimanClearPinBus(ctsPin)) {
       retCode = false;
@@ -376,7 +376,7 @@ static bool _uartAttachPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t
     bool ret = ESP_OK == uart_set_pin(uart->num, UART_PIN_NO_CHANGE, rxPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 #if SOC_UART_LP_NUM >= 1
     if (ret && uart_num >= SOC_UART_HP_NUM) {  // it is a LP UART NUM
-      ret &= lp_uart_config_io(uart->num, rxPin, RTC_GPIO_MODE_INPUT_ONLY, SOC_UART_RX_PIN_IDX);
+      ret &= lp_uart_config_io(uart->num, rxPin, RTC_GPIO_MODE_INPUT_ONLY, SOC_UART_PERIPH_SIGNAL_RX);
     }
 #endif
     if (ret) {
@@ -403,7 +403,7 @@ static bool _uartAttachPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t
     bool ret = ESP_OK == uart_set_pin(uart->num, txPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 #if SOC_UART_LP_NUM >= 1
     if (ret && uart_num >= SOC_UART_HP_NUM) {  // it is a LP UART NUM
-      ret &= lp_uart_config_io(uart->num, txPin, RTC_GPIO_MODE_OUTPUT_ONLY, SOC_UART_TX_PIN_IDX);
+      ret &= lp_uart_config_io(uart->num, txPin, RTC_GPIO_MODE_OUTPUT_ONLY, SOC_UART_PERIPH_SIGNAL_TX);
     }
 #endif
     if (ret) {
@@ -430,7 +430,7 @@ static bool _uartAttachPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t
     bool ret = ESP_OK == uart_set_pin(uart->num, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, ctsPin);
 #if SOC_UART_LP_NUM >= 1
     if (ret && uart_num >= SOC_UART_HP_NUM) {  // it is a LP UART NUM
-      ret &= lp_uart_config_io(uart->num, ctsPin, RTC_GPIO_MODE_INPUT_ONLY, SOC_UART_CTS_PIN_IDX);
+      ret &= lp_uart_config_io(uart->num, ctsPin, RTC_GPIO_MODE_INPUT_ONLY, SOC_UART_PERIPH_SIGNAL_CTS);
     }
 #endif
     if (ret) {
@@ -457,7 +457,7 @@ static bool _uartAttachPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t
     bool ret = ESP_OK == uart_set_pin(uart->num, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, rtsPin, UART_PIN_NO_CHANGE);
 #if SOC_UART_LP_NUM >= 1
     if (ret && uart_num >= SOC_UART_HP_NUM) {  // it is a LP UART NUM
-      ret &= lp_uart_config_io(uart->num, rtsPin, RTC_GPIO_MODE_OUTPUT_ONLY, SOC_UART_RTS_PIN_IDX);
+      ret &= lp_uart_config_io(uart->num, rtsPin, RTC_GPIO_MODE_OUTPUT_ONLY, SOC_UART_PERIPH_SIGNAL_RTS);
     }
 #endif
     if (ret) {
@@ -1531,9 +1531,9 @@ void uart_internal_loopback(uint8_t uartNum, int8_t rxPin) {
   gpio_func_sel((gpio_num_t)rxPin, PIN_FUNC_GPIO);
   gpio_pullup_en((gpio_num_t)rxPin);
   gpio_input_enable((gpio_num_t)rxPin);
-  esp_rom_gpio_connect_in_signal(rxPin, uart_periph_signal[uartNum].pins[SOC_UART_RX_PIN_IDX].signal, false);
+  esp_rom_gpio_connect_in_signal(rxPin, uart_periph_signal[uartNum].pins[SOC_UART_PERIPH_SIGNAL_RX].signal, false);
 #endif
-  esp_rom_gpio_connect_out_signal(rxPin, uart_periph_signal[uartNum].pins[SOC_UART_TX_PIN_IDX].signal, false, false);
+  esp_rom_gpio_connect_out_signal(rxPin, uart_periph_signal[uartNum].pins[SOC_UART_PERIPH_SIGNAL_TX].signal, false, false);
 }
 
 /*
@@ -1546,7 +1546,7 @@ void uart_internal_hw_flow_ctrl_loopback(uint8_t uartNum, int8_t ctsPin) {
     log_e("UART%u is not supported for hw flow ctrl loopback or CTS pin %d is invalid.", uartNum, ctsPin);
     return;
   }
-  esp_rom_gpio_connect_out_signal(ctsPin, uart_periph_signal[uartNum].pins[SOC_UART_RTS_PIN_IDX].signal, false, false);
+  esp_rom_gpio_connect_out_signal(ctsPin, uart_periph_signal[uartNum].pins[SOC_UART_PERIPH_SIGNAL_RTS].signal, false, false);
 }
 
 /*
