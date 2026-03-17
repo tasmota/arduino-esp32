@@ -60,7 +60,7 @@ static void _ip_event_cb(void *arg, esp_event_base_t event_base, int32_t event_i
       ip_event_got_ip6_t *event = (ip_event_got_ip6_t *)event_data;
       netif = getNetifByEspNetif(event->esp_netif);
     } else if (event_id == IP_EVENT_AP_STAIPASSIGNED) {
-      ip_event_ap_staipassigned_t *event = (ip_event_ap_staipassigned_t *)event_data;
+      ip_event_assigned_ip_to_client_t *event = (ip_event_assigned_ip_to_client_t *)event_data;
       netif = getNetifByEspNetif(event->esp_netif);
     }
     if (netif != NULL) {
@@ -142,14 +142,14 @@ void NetworkInterface::_onIpEvent(int32_t event_id, void *event_data) {
   } else if (event_id == IP_EVENT_AP_STAIPASSIGNED && _interface_id == ESP_NETIF_ID_AP) {
     setStatusBits(ESP_NETIF_HAS_IP_BIT);
 #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_VERBOSE
-    ip_event_ap_staipassigned_t *event = (ip_event_ap_staipassigned_t *)event_data;
+    ip_event_assigned_ip_to_client_t *event = (ip_event_assigned_ip_to_client_t *)event_data;
     log_v(
       "%s Assigned IP: " IPSTR " to MAC: %02X:%02X:%02X:%02X:%02X:%02X", desc(), IP2STR(&event->ip), event->mac[0], event->mac[1], event->mac[2], event->mac[3],
       event->mac[4], event->mac[5]
     );
 #endif
     arduino_event.event_id = ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED;
-    memcpy(&arduino_event.event_info.wifi_ap_staipassigned, event_data, sizeof(ip_event_ap_staipassigned_t));
+    memcpy(&arduino_event.event_info.wifi_ap_staipassigned, event_data, sizeof(ip_event_assigned_ip_to_client_t));
 #endif
   }
 
