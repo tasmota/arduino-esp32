@@ -286,10 +286,14 @@ int start_ssl_client(
     }
 
     log_v("Loading private key");
+#if MBEDTLS_VERSION_MAJOR >= 4
+    ret = mbedtls_pk_parse_key(&ssl_client->client_key, (const unsigned char *)cli_key, strlen(cli_key) + 1, NULL, 0, NULL, NULL);
+#else
     mbedtls_ctr_drbg_context ctr_drbg;
     mbedtls_ctr_drbg_init(&ctr_drbg);
     ret = mbedtls_pk_parse_key(&ssl_client->client_key, (const unsigned char *)cli_key, strlen(cli_key) + 1, NULL, 0, mbedtls_ctr_drbg_random, &ctr_drbg);
     mbedtls_ctr_drbg_free(&ctr_drbg);
+#endif
 
     if (ret != 0) {
       mbedtls_x509_crt_free(&ssl_client->client_cert);  // cert+key are free'd in pair
