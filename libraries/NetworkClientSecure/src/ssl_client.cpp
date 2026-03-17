@@ -47,7 +47,9 @@ void ssl_init(sslclient_context *ssl_client) {
   memset(ssl_client, 0, sizeof(sslclient_context));
   mbedtls_ssl_init(&ssl_client->ssl_ctx);
   mbedtls_ssl_config_init(&ssl_client->ssl_conf);
+#if MBEDTLS_VERSION_MAJOR < 4
   mbedtls_ctr_drbg_init(&ssl_client->drbg_ctx);
+#endif
   ssl_client->peek_buf = -1;
 }
 
@@ -167,6 +169,7 @@ int start_ssl_client(
   ROE(lwip_setsockopt(ssl_client->socket, IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(enable)), "TCP_NODELAY");
   ROE(lwip_setsockopt(ssl_client->socket, SOL_SOCKET, SO_KEEPALIVE, &enable, sizeof(enable)), "SO_KEEPALIVE");
 
+#if MBEDTLS_VERSION_MAJOR < 4
   log_v("Seeding the random number generator");
   mbedtls_entropy_init(&ssl_client->entropy_ctx);
 
@@ -174,6 +177,7 @@ int start_ssl_client(
   if (ret < 0) {
     return handle_error(ret);
   }
+#endif
 
   log_v("Setting up the SSL/TLS structure...");
 
@@ -297,7 +301,9 @@ int start_ssl_client(
     return handle_error(ret);
   }
 
+#if MBEDTLS_VERSION_MAJOR < 4
   mbedtls_ssl_conf_rng(&ssl_client->ssl_conf, mbedtls_ctr_drbg_random, &ssl_client->drbg_ctx);
+#endif
 
   if ((ret = mbedtls_ssl_setup(&ssl_client->ssl_ctx, &ssl_client->ssl_conf)) != 0) {
     return handle_error(ret);
@@ -379,8 +385,10 @@ void stop_ssl_socket(sslclient_context *ssl_client) {
   // }
   mbedtls_ssl_free(&ssl_client->ssl_ctx);
   mbedtls_ssl_config_free(&ssl_client->ssl_conf);
+#if MBEDTLS_VERSION_MAJOR < 4
   mbedtls_ctr_drbg_free(&ssl_client->drbg_ctx);
   mbedtls_entropy_free(&ssl_client->entropy_ctx);
+#endif
 
   // save only interesting fields
   int handshake_timeout = ssl_client->handshake_timeout;
