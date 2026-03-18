@@ -246,7 +246,7 @@ set(priv_requires fatfs nvs_flash app_update spiffs bootloader_support bt esp_hi
 if(IDF_VERSION_MAJOR LESS 6)
   list(APPEND priv_requires usb)
 else()
-  list(APPEND requires esp_hal_uart esp_hal_ledc esp_hal_ana_conv esp_hal_gpio esp_hal_i2c esp_hal_timg esp_driver_i2c esp_driver_ledc esp_driver_dac esp_driver_sdm esp_driver_uart esp_driver_rmt esp_driver_tsens)
+  list(APPEND requires esp_hal_uart esp_hal_ledc esp_hal_ana_conv esp_hal_gpio esp_hal_i2c esp_hal_gpspi esp_hal_timg esp_driver_i2c esp_driver_ledc esp_driver_dac esp_driver_sdm esp_driver_uart esp_driver_rmt esp_driver_tsens)
 endif()
 
 set(priv_requires fatfs nvs_flash app_update bootloader_support bt esp_hid usb esp_psram ${ARDUINO_LIBRARIES_REQUIRES})
