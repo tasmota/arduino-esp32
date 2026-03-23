@@ -796,7 +796,12 @@ bool sdcard_mount(uint8_t pdrv, const char *path, uint8_t max_files, bool format
 
   FATFS *fs;
   char drv[3] = {(char)('0' + pdrv), ':', 0};
-  esp_err_t err = esp_vfs_fat_register(path, drv, max_files, &fs);
+  esp_vfs_fat_conf_t conf = {
+    .base_path = path,
+    .fat_drive = drv,
+    .max_files = (size_t)max_files,
+  };
+  esp_err_t err = esp_vfs_fat_register(&conf, &fs);
   if (err == ESP_ERR_INVALID_STATE) {
     log_e("esp_vfs_fat_register failed 0x(%x): SD is registered.", err);
     return false;
