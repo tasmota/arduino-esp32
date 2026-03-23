@@ -796,7 +796,7 @@ bool sdcard_mount(uint8_t pdrv, const char *path, uint8_t max_files, bool format
 
   FATFS *fs;
   char drv[3] = {(char)('0' + pdrv), ':', 0};
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
+#if ESP_IDF_VERSION_MAJOR >= 6
   esp_vfs_fat_conf_t conf = {
     .base_path = path,
     .fat_drive = drv,
