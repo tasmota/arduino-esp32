@@ -783,6 +783,21 @@ uint8_t sdcard_unmount(uint8_t pdrv) {
   return 0;
 }
 
+// SFINAE helpers to detect esp_vfs_fat_register signature (old 4-arg vs new struct-based)
+template <typename T = FATFS, typename = decltype(esp_vfs_fat_register((const char *)0, (const char *)0, (size_t)0, (T **)0))>
+static esp_err_t sd_fat_register(const char *path, const char *drv, size_t max_files, FATFS **fs, int) {
+  return esp_vfs_fat_register(path, drv, max_files, fs);
+}
+
+template <typename T = esp_vfs_fat_conf_t>
+static esp_err_t sd_fat_register(const char *path, const char *drv, size_t max_files, FATFS **fs, long) {
+  T conf = {};
+  conf.base_path = path;
+  conf.fat_drive = drv;
+  conf.max_files = max_files;
+  return esp_vfs_fat_register(&conf, fs);
+}
+
 bool sdcard_mount(uint8_t pdrv, const char *path, uint8_t max_files, bool format_if_empty) {
   ardu_sdcard_t *card = s_cards[pdrv];
   if (pdrv >= FF_VOLUMES || card == NULL) {
@@ -796,16 +811,7 @@ bool sdcard_mount(uint8_t pdrv, const char *path, uint8_t max_files, bool format
 
   FATFS *fs;
   char drv[3] = {(char)('0' + pdrv), ':', 0};
-#if ESP_IDF_VERSION_MAJOR >= 6
-  esp_vfs_fat_conf_t conf = {
-    .base_path = path,
-    .fat_drive = drv,
-    .max_files = (size_t)max_files,
-  };
-  esp_err_t err = esp_vfs_fat_register(&conf, &fs);
-#else
-  esp_err_t err = esp_vfs_fat_register(path, drv, max_files, &fs);
-#endif
+  esp_err_t err = sd_fat_register(path, drv, max_files, &fs, 0);
   if (err == ESP_ERR_INVALID_STATE) {
     log_e("esp_vfs_fat_register failed 0x(%x): SD is registered.", err);
     return false;
