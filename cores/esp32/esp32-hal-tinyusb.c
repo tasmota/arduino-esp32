@@ -599,8 +599,8 @@ static void IRAM_ATTR usb_persist_shutdown_handler(void) {
         chip_usb_set_persist_flags(USBDC_PERSIST_ENA);
 #if CONFIG_IDF_TARGET_ESP32S2
       } else {
-        periph_ll_reset(PERIPH_USB_MODULE);
-        periph_ll_enable_clk_clear_rst(PERIPH_USB_MODULE);
+        periph_ll_reset(PERIPH_RNG_MODULE);
+        periph_ll_enable_clk_clear_rst(PERIPH_RNG_MODULE);
 #endif
       }
       REG_WRITE(RTC_CNTL_OPTION1_REG, RTC_CNTL_FORCE_DOWNLOAD_BOOT);
