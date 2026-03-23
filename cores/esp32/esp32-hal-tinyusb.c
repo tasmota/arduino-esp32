@@ -22,6 +22,7 @@
 #endif
 
 #include "soc/periph_defs.h"
+#include "esp_private/periph_ctrl.h"
 #include "soc/timer_group_struct.h"
 #include "soc/system_reg.h"
 
@@ -525,8 +526,10 @@ static void hw_cdc_reset_handler(void *arg) {
 static void usb_switch_to_cdc_jtag() {
   // Disable USB-OTG
   deinit_usb_hal();
-  usb_wrap_ll_reset_register();
-  usb_wrap_ll_enable_bus_clock(false);
+  PERIPH_RCC_ATOMIC() {
+    usb_wrap_ll_reset_register();
+    usb_wrap_ll_enable_bus_clock(false);
+  }
 
   // Switch to hardware CDC+JTAG
   CLEAR_PERI_REG_MASK(RTC_CNTL_USB_CONF_REG, (RTC_CNTL_SW_HW_USB_PHY_SEL | RTC_CNTL_SW_USB_PHY_SEL | RTC_CNTL_USB_PAD_ENABLE));
@@ -852,8 +855,10 @@ esp_err_t tinyusb_init(tinyusb_device_config_t *config) {
   //} else
   if (!usb_did_persist || !usb_persist_enabled) {
     // Reset USB module
-    usb_wrap_ll_reset_register();
-    usb_wrap_ll_enable_bus_clock(true);
+    PERIPH_RCC_ATOMIC() {
+      usb_wrap_ll_reset_register();
+      usb_wrap_ll_enable_bus_clock(true);
+    }
   }
 #endif
 
