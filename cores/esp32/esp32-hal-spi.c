@@ -29,6 +29,7 @@
 #if !defined(CONFIG_IDF_TARGET_ESP32C5) && !defined(CONFIG_IDF_TARGET_ESP32C61)
 #include "hal/clk_gate_ll.h"
 #endif
+#include "hal/spi_ll.h"
 #include "esp32-hal-periman.h"
 #include "esp_private/periph_ctrl.h"
 
@@ -63,7 +64,6 @@
 #elif CONFIG_IDF_TARGET_ESP32P4
 #include "esp32p4/rom/ets_sys.h"
 #include "esp32p4/rom/gpio.h"
-#include "hal/spi_ll.h"
 #include "hal/clk_tree_ll.h"
 
 // ESP32P4 SPI clock source frequencies
