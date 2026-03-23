@@ -580,7 +580,7 @@ static void _spiSetClockDivInternal(spi_t *spi, uint32_t clockDiv) {
 
     PERIPH_RCC_ATOMIC() {
       spi_ll_enable_clock(host, false);
-      spi_ll_set_clk_source(spi->dev, new_clk_src ? SPI_CLK_SRC_SPLL : SPI_CLK_SRC_XTAL);
+      spi_ll_set_clk_source((spi_dev_t *)spi->dev, new_clk_src ? SPI_CLK_SRC_SPLL : SPI_CLK_SRC_XTAL);
       spi_ll_enable_clock(host, true);
     }
     spi->clk_src = new_clk_src;
@@ -797,30 +797,19 @@ spi_t *spiStartBus(uint8_t spi_num, uint32_t clockDiv, uint8_t dataMode, uint8_t
     DPORT_CLEAR_PERI_REG_MASK(DPORT_PERIP_RST_EN_REG, DPORT_SPI01_RST);
   }
 #elif CONFIG_IDF_TARGET_ESP32P4
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-variable"
   if (spi_num == FSPI) {
-    PERIPH_RCC_ACQUIRE_ATOMIC(PERIPH_GPSPI2_MODULE, ref_count) {
-      if (ref_count == 0) {
-        PERIPH_RCC_ATOMIC() {
-          spi_ll_enable_bus_clock(SPI2_HOST, true);
-          spi_ll_reset_register(SPI2_HOST);
-          spi_ll_enable_clock(SPI2_HOST, true);
-        }
-      }
+    PERIPH_RCC_ATOMIC() {
+      spi_ll_enable_bus_clock(SPI2_HOST, true);
+      spi_ll_reset_register(SPI2_HOST);
+      spi_ll_enable_clock(SPI2_HOST, true);
     }
   } else if (spi_num == HSPI) {
-    PERIPH_RCC_ACQUIRE_ATOMIC(PERIPH_GPSPI3_MODULE, ref_count) {
-      if (ref_count == 0) {
-        PERIPH_RCC_ATOMIC() {
-          spi_ll_enable_bus_clock(SPI3_HOST, true);
-          spi_ll_reset_register(SPI3_HOST);
-          spi_ll_enable_clock(SPI3_HOST, true);
-        }
-      }
+    PERIPH_RCC_ATOMIC() {
+      spi_ll_enable_bus_clock(SPI3_HOST, true);
+      spi_ll_reset_register(SPI3_HOST);
+      spi_ll_enable_clock(SPI3_HOST, true);
     }
   }
-#pragma GCC diagnostic pop
 #elif defined(__PERIPH_CTRL_ALLOW_LEGACY_API)
   PERIPH_RCC_ATOMIC() {
     spi_ll_enable_bus_clock(SPI2_HOST, true);
