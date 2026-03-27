@@ -108,7 +108,7 @@ char *hostedGetUpdateURL() {
   // https://espressif.github.io/arduino-esp32/hosted/esp32c6-v1.2.3.bin
   static char url[92] = {0};
   snprintf(
-    url, 92, "https://espressif.github.io/arduino-esp32/hosted/%s-v%" PRIu32 ".%" PRIu32 ".%" PRIu32 ".bin", CONFIG_ESP_HOSTED_SDIO_SLOT_1,
+    url, 92, "https://espressif.github.io/arduino-esp32/hosted/%s-v%" PRIu32 ".%" PRIu32 ".%" PRIu32 ".bin", CONFIG_ESP_HOSTED_IDF_SLAVE_TARGET,
     host_version_struct.major1, host_version_struct.minor1, host_version_struct.patch1
   );
   return url;
