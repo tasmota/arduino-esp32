@@ -212,7 +212,7 @@ static tusb_desc_device_t tinyusb_device_descriptor = {
   .bDeviceClass = 0,
   .bDeviceSubClass = 0,
   .bDeviceProtocol = 0,
-  .bMaxPacketSize0 = CFG_TUD_ENDOINT0_SIZE,
+  .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE,
 
   .idVendor = 0,
   .idProduct = 0,
