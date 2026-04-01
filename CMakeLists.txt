@@ -170,6 +170,7 @@ set(ARDUINO_LIBRARY_Update_SRCS
 
 if(IDF_TARGET MATCHES "esp32s2|esp32s3|esp32p4" AND CONFIG_TINYUSB_ENABLED)
   set(ARDUINO_LIBRARY_USB_SRCS
+    libraries/USB/src/USBAudioCard.cpp
     libraries/USB/src/USBHID.cpp
     libraries/USB/src/USBMIDI.cpp
     libraries/USB/src/USBHIDMouse.cpp
