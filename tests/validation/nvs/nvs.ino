@@ -82,16 +82,15 @@ void setup() {
   // the Wokwi simulator (which only advances UART simulation when the CPU yields via RTOS) would otherwise
   // stall with undelivered bytes in the FIFO, causing the test to time out.
   Serial.printf(
-    "Values from Preferences: char: %c | uchar: %u | short: %d | ushort: %u | int: %" PRIi32 " | uint: %" PRIu32 "\n",
-    val_char, val_uchar, val_short, val_ushort, val_int, val_uint
+    "Values from Preferences: char: %c | uchar: %u | short: %d | ushort: %u | int: %" PRIi32 " | uint: %" PRIu32 "\n", val_char, val_uchar, val_short,
+    val_ushort, val_int, val_uint
   );
   Serial.printf(
-    "long: %" PRIi32 " | ulong: %" PRIu32 " | long64: %" PRIi64 " | ulong64: %" PRIu64 " | float: %.2f | double: %.2f\n",
-    val_long, val_ulong, val_long64, val_ulong64, val_float, val_double
+    "long: %" PRIi32 " | ulong: %" PRIu32 " | long64: %" PRIi64 " | ulong64: %" PRIu64 " | float: %.2f | double: %.2f\n", val_long, val_ulong, val_long64,
+    val_ulong64, val_float, val_double
   );
   Serial.printf(
-    "bool: %s | str: %s | strLen: %s | struct: {id:%u,val:%u}\n", val_bool ? "true" : "false", val_string.c_str(), val_string_buf, test_data.id,
-    test_data.value
+    "bool: %s | str: %s | strLen: %s | struct: {id:%u,val:%u}\n", val_bool ? "true" : "false", val_string.c_str(), val_string_buf, test_data.id, test_data.value
   );
   Serial.flush();  // Drain the UART FIFO before flash writes occupy the CPU
 
