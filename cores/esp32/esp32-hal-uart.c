@@ -499,7 +499,7 @@ static bool _uartInternalSetPin(uart_port_t uart_num, int tx_io_num, int rx_io_n
   if (rts_io_num >= 0 && !_uartTrySetIomuxPin(uart_num, rts_io_num, SOC_UART_PERIPH_SIGNAL_RTS)) {
     if (uart_num < SOC_UART_HP_NUM) {
       retCode &= ESP_OK == gpio_func_sel(rts_io_num, PIN_FUNC_GPIO);
-      esp_rom_gpio_connect_out_signal(rts_io_num, UART_PERIPH_SIGNAL(uart_num, SOC_UART_RTS_PIN_IDX), 0, 0);
+      esp_rom_gpio_connect_out_signal(rts_io_num, UART_PERIPH_SIGNAL(uart_num, SOC_UART_PERIPH_SIGNAL_RTS), 0, 0);
     } else {
       // LP UART couldn't attach pin, therefore it has failed
       retCode = false;
