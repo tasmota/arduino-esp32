@@ -58,6 +58,7 @@ public:
     spi.reset();
     sd.reset();
     Serial.printf("SPI and SD card for [%s] cleaned up\n", name.c_str());
+    Serial.flush();
   }
 };
 
@@ -68,6 +69,7 @@ void run_init_continuous(SpiTestFunction test_function, uint8_t max_files, bool 
   for (auto &ref : spiTestConfigs) {
     SPITestConfig &config = *ref;
     Serial.printf("Running test with SPI configuration: SCK=%d, MISO=%d, MOSI=%d, SS=%d\n", config.sck, config.miso, config.mosi, config.ss);
+    Serial.flush();
     config.begin(max_files, format_if_empty);
     test_function(config);
     config.end();
@@ -148,6 +150,7 @@ void test_sd_open_limit(void) {
   run_init_continuous(
     [](SPITestConfig &config) {
       Serial.printf("Testing file open limit with SPI configuration: SCK=%d, MISO=%d, MOSI=%d, SS=%d\n", config.sck, config.miso, config.mosi, config.ss);
+      Serial.flush();
 
       // Open multiple files to test the limit
       File file1 = config.sd->open("/file1.txt", FILE_WRITE);
