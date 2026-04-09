@@ -38,6 +38,7 @@
 #include "driver/lp_io.h"
 #include "soc/uart_pins.h"
 #include "esp_private/uart_share_hw_ctrl.h"
+#include "esp_private/esp_clk_tree_common.h"
 
 // Weak function that is overridden by Arduino layer when HardwareSerial.cpp is linked
 // This removes the upward dependency from HAL to Arduino (HAL calls weak, Arduino provides strong implementation)
@@ -238,9 +239,9 @@ static bool _uartValidatePins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8
     return false;
   }
 #endif
-  
+
   bool allPinsAreGood = true;
-  
+
   // Validate RX pin (input, any valid GPIO)
   if (rxPin >= 0) {
     if (!GPIO_IS_VALID_GPIO(rxPin)) {
@@ -248,7 +249,7 @@ static bool _uartValidatePins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8
       allPinsAreGood = false;
     }
   }
-  
+
   // Validate TX pin (output capable)
   if (txPin >= 0) {
     if (!GPIO_IS_VALID_OUTPUT_GPIO(txPin)) {
@@ -256,7 +257,7 @@ static bool _uartValidatePins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8
       allPinsAreGood = false;
     }
   }
-  
+
   // Validate CTS pin (input, any valid GPIO)
   if (ctsPin >= 0) {
     if (!GPIO_IS_VALID_GPIO(ctsPin)) {
@@ -264,7 +265,7 @@ static bool _uartValidatePins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8
       allPinsAreGood = false;
     }
   }
-  
+
   // Validate RTS pin (output capable)
   if (rtsPin >= 0) {
     if (!GPIO_IS_VALID_OUTPUT_GPIO(rtsPin)) {
@@ -272,7 +273,7 @@ static bool _uartValidatePins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8
       allPinsAreGood = false;
     }
   }
-  
+
   return allPinsAreGood;
 }
 
@@ -499,10 +500,10 @@ static bool _uartInternalSetPin(uart_port_t uart_num, int tx_io_num, int rx_io_n
     if (uart_num < SOC_UART_HP_NUM) {
       retCode &= ESP_OK == gpio_func_sel(rts_io_num, PIN_FUNC_GPIO);
       esp_rom_gpio_connect_out_signal(rts_io_num, UART_PERIPH_SIGNAL(uart_num, SOC_UART_RTS_PIN_IDX), 0, 0);
-      } else {
-        // LP UART couldn't attach pin, therefore it has failed
-        retCode = false;
-      }
+    } else {
+      // LP UART couldn't attach pin, therefore it has failed
+      retCode = false;
+    }
   }
 
   if (cts_io_num >= 0 && !_uartTrySetIomuxPin(uart_num, cts_io_num, SOC_UART_CTS_PIN_IDX)) {
@@ -800,7 +801,7 @@ uart_t *uartBegin(
 ) {
   log_v("UART%u baud(%" PRIu32 ") Mode(0x%" PRIx32 ") rxPin(%d) txPin(%d)", uart_nr, baudrate, config, rxPin, txPin);
 
-  // check uart_nr, rx and tx pins, if necessary log error message and return a valid value 
+  // check uart_nr, rx and tx pins, if necessary log error message and return a valid value
   if (!_uartValidatePins(uart_nr, rxPin, txPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE)) {
     if (uart_nr < SOC_UART_NUM && uart_is_driver_installed(uart_nr)) {
       return &_uart_bus_array[uart_nr];  // keep the same installed driver
@@ -808,7 +809,7 @@ uart_t *uartBegin(
       return NULL;  // no new driver was installed
     }
   }
-  
+
   // get the uart internal information
   uart_t *uart = &_uart_bus_array[uart_nr];
 
@@ -1336,13 +1337,33 @@ uint32_t uartGetBaudRate(uart_t *uart) {
   uint32_t baud_rate = 0;
 
   if (uart == NULL) {
-    return 0;
+    return 0;  // TBD in Arduino Core 4.x (uint32_t)-1;  // return value when failed;
   }
 
+  soc_module_clk_t src_clk;
+  uint32_t sclk_freq;
+  uart_dev_t *hw = UART_LL_GET_HW(uart->num);
+
   UART_MUTEX_LOCK();
-  if (uart_get_baudrate(uart->num, &baud_rate) != ESP_OK) {
-    log_e("Getting UART%u baud rate has failed.", uart->num);
+  uart_ll_get_sclk(hw, &src_clk);
+  if (esp_clk_tree_src_get_freq_hz(src_clk, ESP_CLK_TREE_SRC_FREQ_PRECISION_CACHED, &sclk_freq) != ESP_OK) {
+    log_e("Getting UART%u source clock frequency has failed.", uart->num);
     baud_rate = (uint32_t)-1;  // return value when failed
+  } else {
+    log_v("UART%u source clock frequency is %u Hz", uart->num, sclk_freq);
+#if CONFIG_IDF_TARGET_ESP32S3
+    if (hw->clkdiv.val == 0) {
+#elif CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C2 || CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32
+    if (hw->clk_div.val == 0) {
+#else  // C5, C6, C61, H2, H21, H4, P4 and future SoCs
+    if (hw->clkdiv_sync.val == 0) {
+#endif
+      log_e("Getting UART%u baud rate has failed. UART Clock not set or invalid.", uart->num);
+      baud_rate = (uint32_t)-1;  // return value when failed
+    } else {
+      baud_rate = uart_ll_get_baudrate(hw, sclk_freq);
+      log_v("UART%u baud rate is %" PRIu32, uart->num, baud_rate);
+    }
   }
   UART_MUTEX_UNLOCK();
   return baud_rate;
