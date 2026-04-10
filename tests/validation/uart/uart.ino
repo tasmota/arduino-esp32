@@ -1,4 +1,3 @@
-
 /* UART test
  *
  * This test is using UART0 (Serial) only for reporting test status and helping with the auto
