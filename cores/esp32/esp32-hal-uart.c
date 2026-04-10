@@ -725,6 +725,7 @@ static bool _uartDetachConflictingPin(int8_t pin, uint8_t target_uart_num, const
     log_d("Detaching pin %d (%s function) from UART%d before using as %s", pin, currentFuncName, prevUART, target_func_name);
   }
   (void)currentFuncName;  // Suppress unused variable warning when log_d is compiled out
+  (void)currentFuncName;  // Suppress unused variable warning when log_d is compiled out
   return _uartDetachPins(prevUART, d_rx, d_tx, d_cts, d_rts);
 }
 
