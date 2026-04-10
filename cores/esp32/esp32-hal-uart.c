@@ -705,6 +705,10 @@ bool uartSetPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t ctsPin, in
   perimanClearBusDeinit(ESP32_BUS_TYPE_UART_CTS);
   perimanClearBusDeinit(ESP32_BUS_TYPE_UART_RTS);
 
+  // Track original pins to detect if UART lost RX/TX capability
+  int8_t originalRxPin = uart->_rxPin;
+  int8_t originalTxPin = uart->_txPin;
+
   peripheral_bus_type_t rxPinPeripheralType = ESP32_BUS_TYPE_INIT, txPinPeripheralType = ESP32_BUS_TYPE_INIT;
   peripheral_bus_type_t ctsPinPeripheralType = ESP32_BUS_TYPE_INIT, rtsPinPeripheralType = ESP32_BUS_TYPE_INIT;
   int8_t rxPinPrevUART = -1, txPinPrevUART = -1, ctsPinPrevUART = -1, rtsPinPrevUART = -1;
@@ -970,26 +974,59 @@ bool uartSetPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t ctsPin, in
     retCode &= _uartAttachPins(uart_num, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, rtsPin);
   }
 
+  // Collect UARTs that need to be terminated (will be done after releasing the mutex)
+  int8_t uartsToTerminate[SOC_UART_NUM];
+  // Initialize array
+  for (int i = 0; i < SOC_UART_NUM; i++) {
+    uartsToTerminate[i] = -1;
+  }
+  int terminateCount = 0;
+
   // Check termination: Only terminate UARTs that lost both RX/TX pins AND don't have new pins being set
   // Check the UARTs that had RX or TX pins detached from them
   if (rxPin >= 0 && rxPinPrevUART >= 0 && rxPinPrevUART != uart_num) {
     // rxPin was detached from a different UART
     uart_t *prevUart = &_uart_bus_array[rxPinPrevUART];
     if (prevUart->_rxPin < 0 && prevUart->_txPin < 0) {
-      log_d("Terminating UART%d driver since both RX and TX pins were detached", rxPinPrevUART);
-      hardware_serial_end(rxPinPrevUART);
+      log_d("UART%d marked for termination (RX pin detached)", rxPinPrevUART);
+      uartsToTerminate[terminateCount++] = rxPinPrevUART;
     }
   }
   if (txPin >= 0 && txPinPrevUART >= 0 && txPinPrevUART != uart_num && txPinPrevUART != rxPinPrevUART) {
     // txPin was detached from a different UART (and not the same one already checked for rxPin)
     uart_t *prevUart = &_uart_bus_array[txPinPrevUART];
     if (prevUart->_rxPin < 0 && prevUart->_txPin < 0) {
-      log_d("Terminating UART%d driver since both RX and TX pins were detached", txPinPrevUART);
-      hardware_serial_end(txPinPrevUART);
+      log_d("UART%d marked for termination (TX pin detached)", txPinPrevUART);
+      uartsToTerminate[terminateCount++] = txPinPrevUART;
     }
   }
 
-  // Restore peripheral manager callbacks after all pin operations and termination are complete
+  // Also check UARTs that lost RX/TX pins when those pins were moved to CTS/RTS functions
+  if (ctsPin >= 0 && ctsPinPrevUART >= 0 && ctsPinPrevUART != uart_num && ctsPinPrevUART != rxPinPrevUART && ctsPinPrevUART != txPinPrevUART) {
+    // ctsPin was detached from a different UART (not already terminated above)
+    uart_t *prevUart = &_uart_bus_array[ctsPinPrevUART];
+    if (prevUart->_rxPin < 0 && prevUart->_txPin < 0) {
+      log_d("UART%d marked for termination (CTS pin detached)", ctsPinPrevUART);
+      uartsToTerminate[terminateCount++] = ctsPinPrevUART;
+    }
+  }
+  if (rtsPin >= 0 && rtsPinPrevUART >= 0 && rtsPinPrevUART != uart_num && rtsPinPrevUART != rxPinPrevUART && rtsPinPrevUART != txPinPrevUART && rtsPinPrevUART != ctsPinPrevUART) {
+    // rtsPin was detached from a different UART (not already terminated above)
+    uart_t *prevUart = &_uart_bus_array[rtsPinPrevUART];
+    if (prevUart->_rxPin < 0 && prevUart->_txPin < 0) {
+      log_d("UART%d marked for termination (RTS pin detached)", rtsPinPrevUART);
+      uartsToTerminate[terminateCount++] = rtsPinPrevUART;
+    }
+  }
+
+  // Check if current UART lost both RX and TX pins (was functional, now not)
+  bool terminateCurrentUart = false;
+  if ((originalRxPin >= 0 || originalTxPin >= 0) && rxPin < 0 && txPin < 0 && uart->_rxPin < 0 && uart->_txPin < 0) {
+    log_d("UART%d marked for termination (RX/TX pins removed)", uart_num);
+    terminateCurrentUart = true;
+  }
+
+  // Restore peripheral manager callbacks after all pin operations
   if (rxDeinit != NULL) {
     perimanSetBusDeinit(ESP32_BUS_TYPE_UART_RX, rxDeinit);
   }
@@ -1008,6 +1045,20 @@ bool uartSetPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t ctsPin, in
   if (!retCode) {
     log_e("UART%u set pins failed.", uart_num);
   }
+
+  // Execute terminations AFTER releasing the mutex to avoid deadlock
+  for (int i = 0; i < terminateCount; i++) {
+    if (uartsToTerminate[i] >= 0) {
+      log_d("Terminating UART%d driver since both RX and TX pins were detached", uartsToTerminate[i]);
+      hardware_serial_end(uartsToTerminate[i]);
+    }
+  }
+
+  if (terminateCurrentUart) {
+    log_d("Terminating UART%d driver since all RX/TX pins were removed and no new pins were set", uart_num);
+    hardware_serial_end(uart_num);
+  }
+
   return retCode;
 }
 
