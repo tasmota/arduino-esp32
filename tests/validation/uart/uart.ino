@@ -603,8 +603,20 @@ void same_uart_pin_swap_test(void) {
   TEST_ASSERT_EQUAL(orig_tx, uart_get_RxPin(config.uart_num));
   TEST_ASSERT_EQUAL(orig_rx, uart_get_TxPin(config.uart_num));
 
-  // Confirm transmission still works with swapped pins (re-set loopback for swapped RX)
-  uart_internal_loopback(config.uart_num, orig_tx);
+  // Swap back to the original pin configuration.
+  // The test config intentionally inverts RX1/TX1 so that the loopback trick
+  // (uart_internal_loopback) works on all boards including ESP32-P4, where the
+  // default IOMUX pin for UART1 RX cannot be used for GPIO-matrix-based loopback.
+  // After the forward swap the new RX would be that problematic pin, so we
+  // restore the original assignment before verifying transmission.
+  ret = config.serial.setPins(orig_rx, orig_tx);
+  TEST_ASSERT_TRUE(ret);
+  TEST_ASSERT_TRUE(config.serial);
+  TEST_ASSERT_EQUAL(orig_rx, uart_get_RxPin(config.uart_num));
+  TEST_ASSERT_EQUAL(orig_tx, uart_get_TxPin(config.uart_num));
+
+  // Verify transmission still works with the restored (original) pin configuration
+  uart_internal_loopback(config.uart_num, orig_rx);
   config.transmit_and_check_msg("after pin swap");
 
   Serial.println("Same UART pin swap test successful");
