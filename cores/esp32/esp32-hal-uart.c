@@ -709,7 +709,6 @@ bool uartSetPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t ctsPin, in
   peripheral_bus_type_t ctsPinPeripheralType = ESP32_BUS_TYPE_INIT, rtsPinPeripheralType = ESP32_BUS_TYPE_INIT;
   int8_t rxPinPrevUART = -1, txPinPrevUART = -1, ctsPinPrevUART = -1, rtsPinPrevUART = -1;
 
-  bool rxDetach = false, txDetach = false, ctsDetach = false, rtsDetach = false;
   bool rxAttach = false, txAttach = false, ctsAttach = false, rtsAttach = false;
 
   if (rxPin >= 0) {
@@ -720,11 +719,8 @@ bool uartSetPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t ctsPin, in
     // Attach is needed if: pin is not already assigned as RX to this UART
     rxAttach = rxPinPeripheralType != ESP32_BUS_TYPE_UART_RX || uart_num != rxPinPrevUART;
 
-    // Detach is needed if: pin is already in use by a UART OR if we're replacing the old RX pin
-    rxDetach = rxPinIsPeriTypeUART || (rxPin != uart->_rxPin && uart->_rxPin >= 0);
-
-    log_v("RX: pin %d -> UART%d: currently [%s in UART%d], attach=%s, detach=%s", 
-          rxPin, uart_num, rxPinIsPeriTypeUART ? "UART" : "GPIO", rxPinPrevUART, rxAttach ? "YES" : "NO", rxAttach && rxDetach ? "YES" : "NO");
+    log_v("RX: pin %d -> UART%d: currently [%s in UART%d], attach=%s", 
+          rxPin, uart_num, rxPinIsPeriTypeUART ? "UART" : "GPIO", rxPinPrevUART, rxAttach ? "YES" : "NO");
   }
 
   if (txPin >= 0) {
@@ -735,11 +731,8 @@ bool uartSetPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t ctsPin, in
     // Attach is needed if: pin is not already assigned as TX to this UART
     txAttach = txPinPeripheralType != ESP32_BUS_TYPE_UART_TX || uart_num != txPinPrevUART;
 
-    // Detach is needed if: pin is already in use by a UART OR if we're replacing the old TX pin
-    txDetach = txPinIsPeriTypeUART || (txPin != uart->_txPin && uart->_txPin >= 0);
-
-    log_v("TX: pin %d -> UART%d: currently [%s in UART%d], attach=%s, detach=%s", 
-          txPin, uart_num, txPinIsPeriTypeUART ? "UART" : "GPIO", txPinPrevUART, txAttach ? "YES" : "NO", txAttach && txDetach ? "YES" : "NO");
+    log_v("TX: pin %d -> UART%d: currently [%s in UART%d], attach=%s", 
+          txPin, uart_num, txPinIsPeriTypeUART ? "UART" : "GPIO", txPinPrevUART, txAttach ? "YES" : "NO");
   }
 
   if (ctsPin >= 0) {
@@ -750,11 +743,8 @@ bool uartSetPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t ctsPin, in
     // Attach is needed if: pin is not already assigned as CTS to this UART
     ctsAttach = ctsPinPeripheralType != ESP32_BUS_TYPE_UART_CTS || uart_num != ctsPinPrevUART;
 
-    // Detach is needed if: pin is already in use by a UART OR if we're replacing the old CTS pin
-    ctsDetach = ctsPinIsPeriTypeUART || (ctsPin != uart->_ctsPin && uart->_ctsPin >= 0);
-
-    log_v("CTS: pin %d -> UART%d: currently [%s in UART%d], attach=%s, detach=%s",
-          ctsPin, uart_num, ctsPinIsPeriTypeUART ? "UART" : "GPIO", ctsPinPrevUART, ctsAttach ? "YES" : "NO", ctsAttach && ctsDetach ? "YES" : "NO");
+    log_v("CTS: pin %d -> UART%d: currently [%s in UART%d], attach=%s",
+          ctsPin, uart_num, ctsPinIsPeriTypeUART ? "UART" : "GPIO", ctsPinPrevUART, ctsAttach ? "YES" : "NO");
   }
 
   if (rtsPin >= 0) {
@@ -765,11 +755,8 @@ bool uartSetPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t ctsPin, in
     // Attach is needed if: pin is not already assigned as RTS to this UART
     rtsAttach = rtsPinPeripheralType != ESP32_BUS_TYPE_UART_RTS || uart_num != rtsPinPrevUART;
 
-    // Detach is needed if: pin is already in use by a UART OR if we're replacing the old RTS pin
-    rtsDetach = rtsPinIsPeriTypeUART || (rtsPin != uart->_rtsPin && uart->_rtsPin >= 0);
-
-    log_v("RTS: pin %d -> UART%d: currently [%s in UART%d], attach=%s, detach=%s",
-          rtsPin, uart_num, rtsPinIsPeriTypeUART ? "UART" : "GPIO", rtsPinPrevUART, rtsAttach ? "YES" : "NO", rtsAttach && rtsDetach ? "YES" : "NO");
+    log_v("RTS: pin %d -> UART%d: currently [%s in UART%d], attach=%s",
+          rtsPin, uart_num, rtsPinIsPeriTypeUART ? "UART" : "GPIO", rtsPinPrevUART, rtsAttach ? "YES" : "NO");
   }
 
   // First step: detaches all pins that conflict
