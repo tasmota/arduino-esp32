@@ -723,7 +723,7 @@ bool uartSetPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t ctsPin, in
     // Detach is needed if: pin is already in use by a UART OR if we're replacing the old RX pin
     rxDetach = rxPinIsPeriTypeUART || (rxPin != uart->_rxPin && uart->_rxPin >= 0);
 
-    log_i("RX: pin %d -> UART%d: currently [%s in UART%d], attach=%s, detach=%s", 
+    log_v("RX: pin %d -> UART%d: currently [%s in UART%d], attach=%s, detach=%s", 
           rxPin, uart_num, rxPinIsPeriTypeUART ? "UART" : "GPIO", rxPinPrevUART, rxAttach ? "YES" : "NO", rxAttach && rxDetach ? "YES" : "NO");
   }
 
@@ -738,7 +738,7 @@ bool uartSetPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t ctsPin, in
     // Detach is needed if: pin is already in use by a UART OR if we're replacing the old TX pin
     txDetach = txPinIsPeriTypeUART || (txPin != uart->_txPin && uart->_txPin >= 0);
 
-    log_i("TX: pin %d -> UART%d: currently [%s in UART%d], attach=%s, detach=%s", 
+    log_v("TX: pin %d -> UART%d: currently [%s in UART%d], attach=%s, detach=%s", 
           txPin, uart_num, txPinIsPeriTypeUART ? "UART" : "GPIO", txPinPrevUART, txAttach ? "YES" : "NO", txAttach && txDetach ? "YES" : "NO");
   }
 
@@ -753,7 +753,7 @@ bool uartSetPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t ctsPin, in
     // Detach is needed if: pin is already in use by a UART OR if we're replacing the old CTS pin
     ctsDetach = ctsPinIsPeriTypeUART || (ctsPin != uart->_ctsPin && uart->_ctsPin >= 0);
 
-    log_i("CTS: pin %d -> UART%d: currently [%s in UART%d], attach=%s, detach=%s",
+    log_v("CTS: pin %d -> UART%d: currently [%s in UART%d], attach=%s, detach=%s",
           ctsPin, uart_num, ctsPinIsPeriTypeUART ? "UART" : "GPIO", ctsPinPrevUART, ctsAttach ? "YES" : "NO", ctsAttach && ctsDetach ? "YES" : "NO");
   }
 
@@ -768,7 +768,7 @@ bool uartSetPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t ctsPin, in
     // Detach is needed if: pin is already in use by a UART OR if we're replacing the old RTS pin
     rtsDetach = rtsPinIsPeriTypeUART || (rtsPin != uart->_rtsPin && uart->_rtsPin >= 0);
 
-    log_i("RTS: pin %d -> UART%d: currently [%s in UART%d], attach=%s, detach=%s",
+    log_v("RTS: pin %d -> UART%d: currently [%s in UART%d], attach=%s, detach=%s",
           rtsPin, uart_num, rtsPinIsPeriTypeUART ? "UART" : "GPIO", rtsPinPrevUART, rtsAttach ? "YES" : "NO", rtsAttach && rtsDetach ? "YES" : "NO");
   }
 
@@ -787,28 +787,28 @@ bool uartSetPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t ctsPin, in
       if (rxPinPrevUART != uart_num) {
         // Pin is in a different UART - detach it from there
         if (currentFunc == ESP32_BUS_TYPE_UART_RX) {
-          log_i("Detaching pin %d (RX function) from UART%d", rxPin, rxPinPrevUART);
+          log_d("Detaching pin %d (RX function) from UART%d", rxPin, rxPinPrevUART);
           retCode &= _uartDetachPins(rxPinPrevUART, rxPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
         } else if (currentFunc == ESP32_BUS_TYPE_UART_TX) {
-          log_i("Detaching pin %d (TX function) from UART%d", rxPin, rxPinPrevUART);
+          log_d("Detaching pin %d (TX function) from UART%d", rxPin, rxPinPrevUART);
           retCode &= _uartDetachPins(rxPinPrevUART, UART_PIN_NO_CHANGE, rxPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
         } else if (currentFunc == ESP32_BUS_TYPE_UART_CTS) {
-          log_i("Detaching pin %d (CTS function) from UART%d", rxPin, rxPinPrevUART);
+          log_d("Detaching pin %d (CTS function) from UART%d", rxPin, rxPinPrevUART);
           retCode &= _uartDetachPins(rxPinPrevUART, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, rxPin, UART_PIN_NO_CHANGE);
         } else if (currentFunc == ESP32_BUS_TYPE_UART_RTS) {
-          log_i("Detaching pin %d (RTS function) from UART%d", rxPin, rxPinPrevUART);
+          log_d("Detaching pin %d (RTS function) from UART%d", rxPin, rxPinPrevUART);
           retCode &= _uartDetachPins(rxPinPrevUART, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, rxPin);
         }
       } else {
         // Pin is in the same UART but different function - detach it first
         if (currentFunc == ESP32_BUS_TYPE_UART_TX) {
-          log_i("Detaching pin %d (TX function) from UART%d before using as RX", rxPin, uart_num);
+          log_d("Detaching pin %d (TX function) from UART%d before using as RX", rxPin, uart_num);
           retCode &= _uartDetachPins(uart_num, UART_PIN_NO_CHANGE, rxPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
         } else if (currentFunc == ESP32_BUS_TYPE_UART_CTS) {
-          log_i("Detaching pin %d (CTS function) from UART%d before using as RX", rxPin, uart_num);
+          log_d("Detaching pin %d (CTS function) from UART%d before using as RX", rxPin, uart_num);
           retCode &= _uartDetachPins(uart_num, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, rxPin, UART_PIN_NO_CHANGE);
         } else if (currentFunc == ESP32_BUS_TYPE_UART_RTS) {
-          log_i("Detaching pin %d (RTS function) from UART%d before using as RX", rxPin, uart_num);
+          log_d("Detaching pin %d (RTS function) from UART%d before using as RX", rxPin, uart_num);
           retCode &= _uartDetachPins(uart_num, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, rxPin);
         }
       }
@@ -816,7 +816,7 @@ bool uartSetPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t ctsPin, in
 
     // If old RX pin exists and is being replaced, detach it
     if (rxPin != uart->_rxPin && uart->_rxPin >= 0) {
-      log_i("Detaching old RX pin %d from UART%d", uart->_rxPin, uart_num);
+      log_d("Detaching old RX pin %d from UART%d", uart->_rxPin, uart_num);
       retCode &= _uartDetachPins(uart_num, uart->_rxPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
     }
   }
@@ -835,28 +835,28 @@ bool uartSetPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t ctsPin, in
       if (txPinPrevUART != uart_num) {
         // Pin is in a different UART - detach it from there
         if (currentFunc == ESP32_BUS_TYPE_UART_RX) {
-          log_i("Detaching pin %d (RX function) from UART%d", txPin, txPinPrevUART);
+          log_d("Detaching pin %d (RX function) from UART%d", txPin, txPinPrevUART);
           retCode &= _uartDetachPins(txPinPrevUART, txPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
         } else if (currentFunc == ESP32_BUS_TYPE_UART_TX) {
-          log_i("Detaching pin %d (TX function) from UART%d", txPin, txPinPrevUART);
+          log_d("Detaching pin %d (TX function) from UART%d", txPin, txPinPrevUART);
           retCode &= _uartDetachPins(txPinPrevUART, UART_PIN_NO_CHANGE, txPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
         } else if (currentFunc == ESP32_BUS_TYPE_UART_CTS) {
-          log_i("Detaching pin %d (CTS function) from UART%d", txPin, txPinPrevUART);
+          log_d("Detaching pin %d (CTS function) from UART%d", txPin, txPinPrevUART);
           retCode &= _uartDetachPins(txPinPrevUART, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, txPin, UART_PIN_NO_CHANGE);
         } else if (currentFunc == ESP32_BUS_TYPE_UART_RTS) {
-          log_i("Detaching pin %d (RTS function) from UART%d", txPin, txPinPrevUART);
+          log_d("Detaching pin %d (RTS function) from UART%d", txPin, txPinPrevUART);
           retCode &= _uartDetachPins(txPinPrevUART, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, txPin);
         }
       } else {
         // Pin is in the same UART but different function - detach it first
         if (currentFunc == ESP32_BUS_TYPE_UART_RX) {
-          log_i("Detaching pin %d (RX function) from UART%d before using as TX", txPin, uart_num);
+          log_d("Detaching pin %d (RX function) from UART%d before using as TX", txPin, uart_num);
           retCode &= _uartDetachPins(uart_num, txPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
         } else if (currentFunc == ESP32_BUS_TYPE_UART_CTS) {
-          log_i("Detaching pin %d (CTS function) from UART%d before using as TX", txPin, uart_num);
+          log_d("Detaching pin %d (CTS function) from UART%d before using as TX", txPin, uart_num);
           retCode &= _uartDetachPins(uart_num, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, txPin, UART_PIN_NO_CHANGE);
         } else if (currentFunc == ESP32_BUS_TYPE_UART_RTS) {
-          log_i("Detaching pin %d (RTS function) from UART%d before using as TX", txPin, uart_num);
+          log_d("Detaching pin %d (RTS function) from UART%d before using as TX", txPin, uart_num);
           retCode &= _uartDetachPins(uart_num, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, txPin);
         }
       }
@@ -864,7 +864,7 @@ bool uartSetPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t ctsPin, in
 
     // If old TX pin exists and is being replaced, detach it
     if (txPin != uart->_txPin && uart->_txPin >= 0) {
-      log_i("Detaching old TX pin %d from UART%d", uart->_txPin, uart_num);
+      log_d("Detaching old TX pin %d from UART%d", uart->_txPin, uart_num);
       retCode &= _uartDetachPins(uart_num, UART_PIN_NO_CHANGE, uart->_txPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
     }
   }
@@ -883,28 +883,28 @@ bool uartSetPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t ctsPin, in
       if (ctsPinPrevUART != uart_num) {
         // Pin is in a different UART - detach it from there
         if (currentFunc == ESP32_BUS_TYPE_UART_RX) {
-          log_i("Detaching pin %d (RX function) from UART%d", ctsPin, ctsPinPrevUART);
+          log_d("Detaching pin %d (RX function) from UART%d", ctsPin, ctsPinPrevUART);
           retCode &= _uartDetachPins(ctsPinPrevUART, ctsPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
         } else if (currentFunc == ESP32_BUS_TYPE_UART_TX) {
-          log_i("Detaching pin %d (TX function) from UART%d", ctsPin, ctsPinPrevUART);
+          log_d("Detaching pin %d (TX function) from UART%d", ctsPin, ctsPinPrevUART);
           retCode &= _uartDetachPins(ctsPinPrevUART, UART_PIN_NO_CHANGE, ctsPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
         } else if (currentFunc == ESP32_BUS_TYPE_UART_CTS) {
-          log_i("Detaching pin %d (CTS function) from UART%d", ctsPin, ctsPinPrevUART);
+          log_d("Detaching pin %d (CTS function) from UART%d", ctsPin, ctsPinPrevUART);
           retCode &= _uartDetachPins(ctsPinPrevUART, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, ctsPin, UART_PIN_NO_CHANGE);
         } else if (currentFunc == ESP32_BUS_TYPE_UART_RTS) {
-          log_i("Detaching pin %d (RTS function) from UART%d", ctsPin, ctsPinPrevUART);
+          log_d("Detaching pin %d (RTS function) from UART%d", ctsPin, ctsPinPrevUART);
           retCode &= _uartDetachPins(ctsPinPrevUART, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, ctsPin);
         }
       } else {
         // Pin is in the same UART but different function - detach it first
         if (currentFunc == ESP32_BUS_TYPE_UART_RX) {
-          log_i("Detaching pin %d (RX function) from UART%d before using as CTS", ctsPin, uart_num);
+          log_d("Detaching pin %d (RX function) from UART%d before using as CTS", ctsPin, uart_num);
           retCode &= _uartDetachPins(uart_num, ctsPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
         } else if (currentFunc == ESP32_BUS_TYPE_UART_TX) {
-          log_i("Detaching pin %d (TX function) from UART%d before using as CTS", ctsPin, uart_num);
+          log_d("Detaching pin %d (TX function) from UART%d before using as CTS", ctsPin, uart_num);
           retCode &= _uartDetachPins(uart_num, UART_PIN_NO_CHANGE, ctsPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
         } else if (currentFunc == ESP32_BUS_TYPE_UART_RTS) {
-          log_i("Detaching pin %d (RTS function) from UART%d before using as CTS", ctsPin, uart_num);
+          log_d("Detaching pin %d (RTS function) from UART%d before using as CTS", ctsPin, uart_num);
           retCode &= _uartDetachPins(uart_num, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, ctsPin);
         }
       }
@@ -912,7 +912,7 @@ bool uartSetPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t ctsPin, in
 
     // If old CTS pin exists and is being replaced, detach it
     if (ctsPin != uart->_ctsPin && uart->_ctsPin >= 0) {
-      log_i("Detaching old CTS pin %d from UART%d", uart->_ctsPin, uart_num);
+      log_d("Detaching old CTS pin %d from UART%d", uart->_ctsPin, uart_num);
       retCode &= _uartDetachPins(uart_num, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, uart->_ctsPin, UART_PIN_NO_CHANGE);
     }
   }
@@ -931,28 +931,28 @@ bool uartSetPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t ctsPin, in
       if (rtsPinPrevUART != uart_num) {
         // Pin is in a different UART - detach it from there
         if (currentFunc == ESP32_BUS_TYPE_UART_RX) {
-          log_i("Detaching pin %d (RX function) from UART%d", rtsPin, rtsPinPrevUART);
+          log_d("Detaching pin %d (RX function) from UART%d", rtsPin, rtsPinPrevUART);
           retCode &= _uartDetachPins(rtsPinPrevUART, rtsPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
         } else if (currentFunc == ESP32_BUS_TYPE_UART_TX) {
-          log_i("Detaching pin %d (TX function) from UART%d", rtsPin, rtsPinPrevUART);
+          log_d("Detaching pin %d (TX function) from UART%d", rtsPin, rtsPinPrevUART);
           retCode &= _uartDetachPins(rtsPinPrevUART, UART_PIN_NO_CHANGE, rtsPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
         } else if (currentFunc == ESP32_BUS_TYPE_UART_CTS) {
-          log_i("Detaching pin %d (CTS function) from UART%d", rtsPin, rtsPinPrevUART);
+          log_d("Detaching pin %d (CTS function) from UART%d", rtsPin, rtsPinPrevUART);
           retCode &= _uartDetachPins(rtsPinPrevUART, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, rtsPin, UART_PIN_NO_CHANGE);
         } else if (currentFunc == ESP32_BUS_TYPE_UART_RTS) {
-          log_i("Detaching pin %d (RTS function) from UART%d", rtsPin, rtsPinPrevUART);
+          log_d("Detaching pin %d (RTS function) from UART%d", rtsPin, rtsPinPrevUART);
           retCode &= _uartDetachPins(rtsPinPrevUART, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, rtsPin);
         }
       } else {
         // Pin is in the same UART but different function - detach it first
         if (currentFunc == ESP32_BUS_TYPE_UART_RX) {
-          log_i("Detaching pin %d (RX function) from UART%d before using as RTS", rtsPin, uart_num);
+          log_d("Detaching pin %d (RX function) from UART%d before using as RTS", rtsPin, uart_num);
           retCode &= _uartDetachPins(uart_num, rtsPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
         } else if (currentFunc == ESP32_BUS_TYPE_UART_TX) {
-          log_i("Detaching pin %d (TX function) from UART%d before using as RTS", rtsPin, uart_num);
+          log_d("Detaching pin %d (TX function) from UART%d before using as RTS", rtsPin, uart_num);
           retCode &= _uartDetachPins(uart_num, UART_PIN_NO_CHANGE, rtsPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
         } else if (currentFunc == ESP32_BUS_TYPE_UART_CTS) {
-          log_i("Detaching pin %d (CTS function) from UART%d before using as RTS", rtsPin, uart_num);
+          log_d("Detaching pin %d (CTS function) from UART%d before using as RTS", rtsPin, uart_num);
           retCode &= _uartDetachPins(uart_num, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, rtsPin, UART_PIN_NO_CHANGE);
         }
       }
@@ -960,26 +960,26 @@ bool uartSetPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t ctsPin, in
 
     // If old RTS pin exists and is being replaced, detach it
     if (rtsPin != uart->_rtsPin && uart->_rtsPin >= 0) {
-      log_i("Detaching old RTS pin %d from UART%d", uart->_rtsPin, uart_num);
+      log_d("Detaching old RTS pin %d from UART%d", uart->_rtsPin, uart_num);
       retCode &= _uartDetachPins(uart_num, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, uart->_rtsPin);
     }
   }
 
   // Second step: attach all UART new pins
   if (rxAttach) {
-    log_i("Attaching pin %d to UART%d as RX", rxPin, uart_num);
+    log_d("Attaching pin %d to UART%d as RX", rxPin, uart_num);
     retCode &= _uartAttachPins(uart_num, rxPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
   }    
   if (txAttach) {
-    log_i("Attaching pin %d to UART%d as TX", txPin, uart_num);
+    log_d("Attaching pin %d to UART%d as TX", txPin, uart_num);
     retCode &= _uartAttachPins(uart_num, UART_PIN_NO_CHANGE, txPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
   }
   if (ctsAttach) {
-    log_i("Attaching pin %d to UART%d as CTS", ctsPin, uart_num);
+    log_d("Attaching pin %d to UART%d as CTS", ctsPin, uart_num);
     retCode &= _uartAttachPins(uart_num, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, ctsPin, UART_PIN_NO_CHANGE);
   }
   if (rtsAttach) {
-    log_i("Attaching pin %d to UART%d as RTS", rtsPin, uart_num);
+    log_d("Attaching pin %d to UART%d as RTS", rtsPin, uart_num);
     retCode &= _uartAttachPins(uart_num, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, rtsPin);
   }
 
@@ -989,7 +989,7 @@ bool uartSetPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t ctsPin, in
     // rxPin was detached from a different UART
     uart_t *prevUart = &_uart_bus_array[rxPinPrevUART];
     if (prevUart->_rxPin < 0 && prevUart->_txPin < 0) {
-      log_i("Terminating UART%d driver since both RX and TX pins were detached", rxPinPrevUART);
+      log_d("Terminating UART%d driver since both RX and TX pins were detached", rxPinPrevUART);
       hardware_serial_end(rxPinPrevUART);
     }
   }
@@ -997,7 +997,7 @@ bool uartSetPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t ctsPin, in
     // txPin was detached from a different UART (and not the same one already checked for rxPin)
     uart_t *prevUart = &_uart_bus_array[txPinPrevUART];
     if (prevUart->_rxPin < 0 && prevUart->_txPin < 0) {
-      log_i("Terminating UART%d driver since both RX and TX pins were detached", txPinPrevUART);
+      log_d("Terminating UART%d driver since both RX and TX pins were detached", txPinPrevUART);
       hardware_serial_end(txPinPrevUART);
     }
   }
