@@ -93,9 +93,9 @@ public:
       c = (char)serial.read();
       if (c >= 32 && c <= 128) {
         recv_msg += c;
-      } else {
-        Serial.printf("UART%d onReceive() got a non readable character 0x%x='%c'\r\n", uart_num, c, c);
-        Serial.flush();
+//      } else {
+//        Serial.printf("UART%d onReceive() got a non readable character 0x%x='%c'\r\n", uart_num, c, c);
+//        Serial.flush();
       }
     }
   }
