@@ -690,26 +690,25 @@ bool uartIsDriverInstalled(uart_t *uart) {
 //   target_uart  - The target UART number where we want to assign this pin
 //   needsAttach  - Output: true if pin needs to be attached to target UART
 //   prevUARTOut  - Output: UART number that currently owns this pin (-1 if none or not UART)
-static void _uartDetectPin(int8_t pin, const char *funcName, peripheral_bus_type_t expectedType,
-                           uint8_t target_uart, bool *needsAttach, int8_t *prevUARTOut) {
+static void _uartDetectPin(int8_t pin, const char *funcName, peripheral_bus_type_t expectedType, uint8_t target_uart, bool *needsAttach, int8_t *prevUARTOut) {
   *needsAttach = false;
   if (prevUARTOut != NULL) {
     *prevUARTOut = -1;
   }
-  
+
   if (pin < 0) {
     return;  // Pin not being changed
   }
-  
+
   peripheral_bus_type_t t = perimanGetPinBusType(pin);
   bool isUART = (t >= ESP32_BUS_TYPE_UART_RX && t <= ESP32_BUS_TYPE_UART_RTS);
   int8_t prevU = isUART ? perimanGetPinBusNum(pin) : -1;
-  
+
   *needsAttach = (t != expectedType || target_uart != prevU);
   if (prevUARTOut != NULL) {
     *prevUARTOut = prevU;  // Set to actual UART if owned, -1 otherwise
   }
-  
+
   if (isUART) {
     log_v("%s: pin %d -> UART%d: currently [UART%d], attach=%s", funcName, pin, target_uart, prevU, *needsAttach ? "YES" : "NO");
   } else {
@@ -722,28 +721,27 @@ static void _uartDetectPin(int8_t pin, const char *funcName, peripheral_bus_type
 // If the pin was taken from a *different* UART than 'target_uart_num', stores that UART in
 // '*prevOtherUARTOut' (for later termination check); sets it to -1 otherwise.
 // Returns false if a detach operation failed.
-static bool _uartDetachConflictingPin(int8_t pin, uint8_t target_uart_num, const char *target_func_name,
-                                      bool needsAttach, int8_t *prevOtherUARTOut) {
+static bool _uartDetachConflictingPin(int8_t pin, uint8_t target_uart_num, const char *target_func_name, bool needsAttach, int8_t *prevOtherUARTOut) {
   if (prevOtherUARTOut != NULL) {
     *prevOtherUARTOut = -1;
   }
   if (pin < 0 || !needsAttach) {
     return true;
   }
-  
+
   peripheral_bus_type_t currentType = perimanGetPinBusType(pin);
   bool isPeriTypeUART = (currentType >= ESP32_BUS_TYPE_UART_RX && currentType <= ESP32_BUS_TYPE_UART_RTS);
   if (!isPeriTypeUART) {
     return true;  // Pin not assigned to any UART; nothing to detach
   }
-  
+
   int8_t prevUART = perimanGetPinBusNum(pin);
 
   // Build _uartDetachPins arguments from the pin's current function
   int8_t d_rx = UART_PIN_NO_CHANGE, d_tx = UART_PIN_NO_CHANGE;
   int8_t d_cts = UART_PIN_NO_CHANGE, d_rts = UART_PIN_NO_CHANGE;
   const char *currentFuncName;
-  
+
   if (currentType == ESP32_BUS_TYPE_UART_RX) {
     d_rx = pin;
     currentFuncName = "RX";
@@ -766,7 +764,7 @@ static bool _uartDetachConflictingPin(int8_t pin, uint8_t target_uart_num, const
   } else {
     log_d("Detaching pin %d (%s function) from UART%d before using as %s", pin, currentFuncName, prevUART, target_func_name);
   }
-  
+
   (void)currentFuncName;  // Suppress unused variable warning when log_d is compiled out
   return _uartDetachPins(prevUART, d_rx, d_tx, d_cts, d_rts);
 }
