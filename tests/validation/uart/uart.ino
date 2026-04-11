@@ -76,7 +76,7 @@ public:
     delay(50);
     serial.print("Hello from Serial" + String(uart_num) + " " + msg_append);
     serial.flush();
-    delay(10);
+    delay(50);
     if (perform_assert) {
       TEST_ASSERT_EQUAL_STRING(("Hello from Serial" + String(uart_num) + " " + msg_append).c_str(), recv_msg.c_str());
       log_d("UART%d received message: %s\n", uart_num, recv_msg.c_str());
