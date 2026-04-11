@@ -119,7 +119,7 @@ extern "C" int8_t uart_get_TxPin(uint8_t uart_num);
 // This task is used to send a message after a delay to test the auto baudrate detection
 void task_delayed_msg(void *pvParameters) {
   HardwareSerial &selected_serial = uart_test_configs.size() == 1 ? Serial : Serial1;
-  delay(1000);
+  delay(1500);
   selected_serial.println("Hello to detect baudrate");
   selected_serial.flush();
   vTaskDelete(NULL);
