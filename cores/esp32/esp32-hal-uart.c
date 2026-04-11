@@ -1,4 +1,4 @@
-// Copyright 2015-2025 Espressif Systems (Shanghai) PTE LTD
+// Copyright 2015-2026 Espressif Systems (Shanghai) PTE LTD
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -678,6 +678,45 @@ bool uartIsDriverInstalled(uart_t *uart) {
   return false;
 }
 
+// Negative Pin Number will keep it unmodified, thus this function can set individual pins
+// When pins are changed, it will detach the previous one
+
+// Helper function to detect if a pin needs to be attached and log the detection
+// Eliminates duplication in detection phase for RX/TX/CTS/RTS
+// Parameters:
+//   pin          - The GPIO pin number to check (-1 means no change)
+//   funcName     - String name of the function: "RX", "TX", "CTS", or "RTS"
+//   expectedType - The ESP32_BUS_TYPE_UART_* constant for this function type
+//   target_uart  - The target UART number where we want to assign this pin
+//   needsAttach  - Output: true if pin needs to be attached to target UART
+//   prevUARTOut  - Output: UART number that currently owns this pin (-1 if none or not UART)
+static void _uartDetectPin(int8_t pin, const char *funcName, peripheral_bus_type_t expectedType,
+                           uint8_t target_uart, bool *needsAttach, int8_t *prevUARTOut) {
+  *needsAttach = false;
+  if (prevUARTOut != NULL) {
+    *prevUARTOut = -1;
+  }
+  
+  if (pin < 0) {
+    return;  // Pin not being changed
+  }
+  
+  peripheral_bus_type_t t = perimanGetPinBusType(pin);
+  bool isUART = (t >= ESP32_BUS_TYPE_UART_RX && t <= ESP32_BUS_TYPE_UART_RTS);
+  int8_t prevU = isUART ? perimanGetPinBusNum(pin) : -1;
+  
+  *needsAttach = (t != expectedType || target_uart != prevU);
+  if (prevUARTOut != NULL) {
+    *prevUARTOut = prevU;  // Set to actual UART if owned, -1 otherwise
+  }
+  
+  if (isUART) {
+    log_v("%s: pin %d -> UART%d: currently [UART%d], attach=%s", funcName, pin, target_uart, prevU, *needsAttach ? "YES" : "NO");
+  } else {
+    log_v("%s: pin %d -> UART%d: currently [GPIO], attach=%s", funcName, pin, target_uart, *needsAttach ? "YES" : "NO");
+  }
+}
+
 // Detaches 'pin' from its current UART assignment (if any) before reusing it for a new function.
 // Only acts when 'needsAttach' is true (pin is being reassigned).
 // If the pin was taken from a *different* UART than 'target_uart_num', stores that UART in
@@ -691,17 +730,20 @@ static bool _uartDetachConflictingPin(int8_t pin, uint8_t target_uart_num, const
   if (pin < 0 || !needsAttach) {
     return true;
   }
+  
   peripheral_bus_type_t currentType = perimanGetPinBusType(pin);
   bool isPeriTypeUART = (currentType >= ESP32_BUS_TYPE_UART_RX && currentType <= ESP32_BUS_TYPE_UART_RTS);
   if (!isPeriTypeUART) {
     return true;  // Pin not assigned to any UART; nothing to detach
   }
+  
   int8_t prevUART = perimanGetPinBusNum(pin);
 
   // Build _uartDetachPins arguments from the pin's current function
   int8_t d_rx = UART_PIN_NO_CHANGE, d_tx = UART_PIN_NO_CHANGE;
   int8_t d_cts = UART_PIN_NO_CHANGE, d_rts = UART_PIN_NO_CHANGE;
   const char *currentFuncName;
+  
   if (currentType == ESP32_BUS_TYPE_UART_RX) {
     d_rx = pin;
     currentFuncName = "RX";
@@ -724,12 +766,11 @@ static bool _uartDetachConflictingPin(int8_t pin, uint8_t target_uart_num, const
   } else {
     log_d("Detaching pin %d (%s function) from UART%d before using as %s", pin, currentFuncName, prevUART, target_func_name);
   }
+  
   (void)currentFuncName;  // Suppress unused variable warning when log_d is compiled out
   return _uartDetachPins(prevUART, d_rx, d_tx, d_cts, d_rts);
 }
 
-// Negative Pin Number will keep it unmodified, thus this function can set individual pins
-// When pins are changed, it will detach the previous one
 bool uartSetPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t ctsPin, int8_t rtsPin) {
   // check uart_num and pins
   if (!_uartValidatePins(uart_num, rxPin, txPin, ctsPin, rtsPin)) {
@@ -762,53 +803,10 @@ bool uartSetPins(uint8_t uart_num, int8_t rxPin, int8_t txPin, int8_t ctsPin, in
   // Determine whether each pin needs to be (re)attached and log verbose info
   bool rxAttach = false, txAttach = false, ctsAttach = false, rtsAttach = false;
 
-  if (rxPin >= 0) {
-    peripheral_bus_type_t t = perimanGetPinBusType(rxPin);
-    bool isUART = (t >= ESP32_BUS_TYPE_UART_RX && t <= ESP32_BUS_TYPE_UART_RTS);
-    int8_t prevU = isUART ? perimanGetPinBusNum(rxPin) : -1;
-    rxAttach = (t != ESP32_BUS_TYPE_UART_RX || uart_num != prevU);
-    if (isUART) {
-      log_v("RX: pin %d -> UART%d: currently [UART%d], attach=%s", rxPin, uart_num, prevU, rxAttach ? "YES" : "NO");
-    } else {
-      log_v("RX: pin %d -> UART%d: currently [GPIO], attach=%s", rxPin, uart_num, rxAttach ? "YES" : "NO");
-    }
-  }
-
-  if (txPin >= 0) {
-    peripheral_bus_type_t t = perimanGetPinBusType(txPin);
-    bool isUART = (t >= ESP32_BUS_TYPE_UART_RX && t <= ESP32_BUS_TYPE_UART_RTS);
-    int8_t prevU = isUART ? perimanGetPinBusNum(txPin) : -1;
-    txAttach = (t != ESP32_BUS_TYPE_UART_TX || uart_num != prevU);
-    if (isUART) {
-      log_v("TX: pin %d -> UART%d: currently [UART%d], attach=%s", txPin, uart_num, prevU, txAttach ? "YES" : "NO");
-    } else {
-      log_v("TX: pin %d -> UART%d: currently [GPIO], attach=%s", txPin, uart_num, txAttach ? "YES" : "NO");
-    }
-  }
-
-  if (ctsPin >= 0) {
-    peripheral_bus_type_t t = perimanGetPinBusType(ctsPin);
-    bool isUART = (t >= ESP32_BUS_TYPE_UART_RX && t <= ESP32_BUS_TYPE_UART_RTS);
-    int8_t prevU = isUART ? perimanGetPinBusNum(ctsPin) : -1;
-    ctsAttach = (t != ESP32_BUS_TYPE_UART_CTS || uart_num != prevU);
-    if (isUART) {
-      log_v("CTS: pin %d -> UART%d: currently [UART%d], attach=%s", ctsPin, uart_num, prevU, ctsAttach ? "YES" : "NO");
-    } else {
-      log_v("CTS: pin %d -> UART%d: currently [GPIO], attach=%s", ctsPin, uart_num, ctsAttach ? "YES" : "NO");
-    }
-  }
-
-  if (rtsPin >= 0) {
-    peripheral_bus_type_t t = perimanGetPinBusType(rtsPin);
-    bool isUART = (t >= ESP32_BUS_TYPE_UART_RX && t <= ESP32_BUS_TYPE_UART_RTS);
-    int8_t prevU = isUART ? perimanGetPinBusNum(rtsPin) : -1;
-    rtsAttach = (t != ESP32_BUS_TYPE_UART_RTS || uart_num != prevU);
-    if (isUART) {
-      log_v("RTS: pin %d -> UART%d: currently [UART%d], attach=%s", rtsPin, uart_num, prevU, rtsAttach ? "YES" : "NO");
-    } else {
-      log_v("RTS: pin %d -> UART%d: currently [GPIO], attach=%s", rtsPin, uart_num, rtsAttach ? "YES" : "NO");
-    }
-  }
+  _uartDetectPin(rxPin, "RX", ESP32_BUS_TYPE_UART_RX, uart_num, &rxAttach, NULL);
+  _uartDetectPin(txPin, "TX", ESP32_BUS_TYPE_UART_TX, uart_num, &txAttach, NULL);
+  _uartDetectPin(ctsPin, "CTS", ESP32_BUS_TYPE_UART_CTS, uart_num, &ctsAttach, NULL);
+  _uartDetectPin(rtsPin, "RTS", ESP32_BUS_TYPE_UART_RTS, uart_num, &rtsAttach, NULL);
 
   // Track which other UARTs had their pins taken (for termination check after attach)
   int8_t rxPinPrevUART = -1, txPinPrevUART = -1, ctsPinPrevUART = -1, rtsPinPrevUART = -1;
