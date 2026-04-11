@@ -549,7 +549,7 @@ void hardware_flow_control_test(void) {
     TEST_ASSERT_TRUE(flow_ctrl_disabled);
 
     // Test transmission still works after disabling flow control
-    delay(10);
+    delay(50);
     config.transmit_and_check_msg("Hardware Flow Control OFF");
   }
 
