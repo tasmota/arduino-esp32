@@ -73,10 +73,10 @@ public:
 
   void transmit_and_check_msg(const String &msg_append, bool perform_assert = true) {
     reset_buffers();
-    delay(100);
+    delay(2);
     serial.print("Hello from Serial" + String(uart_num) + " " + msg_append);
     serial.flush();
-    delay(100);
+    delay(10);
     if (perform_assert) {
       TEST_ASSERT_EQUAL_STRING(("Hello from Serial" + String(uart_num) + " " + msg_append).c_str(), recv_msg.c_str());
       log_d("UART%d received message: %s\n", uart_num, recv_msg.c_str());
@@ -119,7 +119,7 @@ extern "C" int8_t uart_get_TxPin(uint8_t uart_num);
 // This task is used to send a message after a delay to test the auto baudrate detection
 void task_delayed_msg(void *pvParameters) {
   HardwareSerial &selected_serial = uart_test_configs.size() == 1 ? Serial : Serial1;
-  delay(2000);
+  delay(1000);
   selected_serial.println("Hello to detect baudrate");
   selected_serial.flush();
   vTaskDelete(NULL);
@@ -540,7 +540,7 @@ void hardware_flow_control_test(void) {
     uart_internal_loopback(config.uart_num, config.default_rx_pin);
     uart_internal_hw_flow_ctrl_loopback(config.uart_num, TEST_CTS_PIN);
 
-    delay(100);
+    delay(10);
     config.transmit_and_check_msg("Hardware Flow Control ON");
 
     // Test that flow control can be disabled
@@ -549,7 +549,7 @@ void hardware_flow_control_test(void) {
     TEST_ASSERT_TRUE(flow_ctrl_disabled);
 
     // Test transmission still works after disabling flow control
-    delay(100);
+    delay(10);
     config.transmit_and_check_msg("Hardware Flow Control OFF");
   }
 
