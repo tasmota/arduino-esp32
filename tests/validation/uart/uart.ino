@@ -706,6 +706,9 @@ void setup() {
 
   log_d("Setup done. Starting tests");
 
+  Serial.println("UART_TEST_READY");
+  Serial.flush();
+
   UNITY_BEGIN();
   RUN_TEST(begin_when_running_test);
   RUN_TEST(basic_transmission_test);
