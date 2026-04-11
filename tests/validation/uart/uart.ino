@@ -73,7 +73,7 @@ public:
 
   void transmit_and_check_msg(const String &msg_append, bool perform_assert = true) {
     reset_buffers();
-    delay(2);
+    delay(50);
     serial.print("Hello from Serial" + String(uart_num) + " " + msg_append);
     serial.flush();
     delay(10);
