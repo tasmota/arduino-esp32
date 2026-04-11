@@ -540,7 +540,7 @@ void hardware_flow_control_test(void) {
     uart_internal_loopback(config.uart_num, config.default_rx_pin);
     uart_internal_hw_flow_ctrl_loopback(config.uart_num, TEST_CTS_PIN);
 
-    delay(10);
+    delay(50);
     config.transmit_and_check_msg("Hardware Flow Control ON");
 
     // Test that flow control can be disabled
