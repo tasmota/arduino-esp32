@@ -74,6 +74,10 @@ bool UpdaterRSAVerifier::verify(SHA2Builder *hash, const void *signature, size_t
   }
 
   int key_len = (int)mbedtls_rsa_get_len(rsa_ctx);
+  if ((size_t)key_len > signatureLen) {
+    log_e("Signature buffer (%u bytes) smaller than RSA key length (%d bytes)", (unsigned)signatureLen, key_len);
+    return false;
+  }
   // PSS.MAX_LENGTH salt = key_len - hash_size - 2
   int expected_salt_len = key_len - (int)hash_size - 2;
   if (expected_salt_len < 0) {
@@ -155,20 +159,19 @@ bool UpdaterECDSAVerifier::verify(SHA2Builder *hash, const void *signature, size
   // The buffer may be zero-padded to a larger size (e.g. 512), so determine
   // the actual DER-encoded signature length from the ASN.1 header to avoid
   // MBEDTLS_ERR_PK_SIG_LEN_MISMATCH.
-  const uint8_t *sig = (const uint8_t *)signature;
+  const unsigned char *sig_start = (const unsigned char *)signature;
   size_t actualSigLen = signatureLen;
-  unsigned char *p = (unsigned char *)sig;
-  const unsigned char *end = p + signatureLen;
+  unsigned char *p = (unsigned char *)sig_start;
+  const unsigned char *end = sig_start + signatureLen;
   size_t seq_len = 0;
   if (mbedtls_asn1_get_tag(&p, end, &seq_len, MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE) == 0) {
-    // actualSigLen = header bytes (p advanced past them) + content length
-    size_t parsed = (size_t)(p - sig) + seq_len;
+    size_t parsed = (size_t)(p - sig_start) + seq_len;
     if (parsed <= signatureLen) {
       actualSigLen = parsed;
     }
   }
 
-  int ret = mbedtls_pk_verify((mbedtls_pk_context *)_ctx, md_type, hashBytes, hash->getHashSize(), sig, actualSigLen);
+  int ret = mbedtls_pk_verify((mbedtls_pk_context *)_ctx, md_type, hashBytes, hash->getHashSize(), sig_start, actualSigLen);
 
   if (ret == 0) {
     log_i("ECDSA signature verified successfully");
