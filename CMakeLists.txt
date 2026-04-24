@@ -249,7 +249,7 @@ set(min_v6_idf_version "6.0.0")
 if (idf_version VERSION_LESS min_v6_idf_version)
   list(APPEND priv_requires usb)
 else()
-  list(APPEND requires esp_hal_ledc esp_driver_i2c esp_driver_ledc esp_driver_sdm esp_driver_tsens esp_driver_rmt esp_driver_i2s esp_driver_dac)
+  list(APPEND requires esp_hal_uart esp_hal_ledc esp_hal_ana_conv esp_hal_gpio esp_hal_i2c esp_hal_gpspi esp_hal_timg esp_driver_i2c esp_driver_ledc esp_driver_sdm esp_driver_tsens esp_driver_rmt esp_driver_i2s esp_driver_uart esp_driver_dac)
 endif()
 
 if(IDF_TARGET STREQUAL "esp32" OR IDF_TARGET STREQUAL "esp32s2" OR IDF_TARGET STREQUAL "esp32s3" OR IDF_TARGET STREQUAL "esp32p4")
