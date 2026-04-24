@@ -55,6 +55,7 @@
 #define esp_eth_phy_new_ip101   esp_eth_phy_new_generic
 #define esp_eth_phy_new_rtl8201 esp_eth_phy_new_generic
 #define esp_eth_phy_new_dp83848 esp_eth_phy_new_generic
+#define esp_eth_phy_new_jl1101 esp_eth_phy_new_generic
 #define esp_eth_phy_new_ksz80xx esp_eth_phy_new_generic
 #if CONFIG_IDF_TARGET_ESP32
 #define EMAC_APPL_CLK_OUT_GPIO 0
