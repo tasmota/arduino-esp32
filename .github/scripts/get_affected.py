@@ -41,7 +41,10 @@ High-level workflow
 
 5) Determine affected files
    - **Default mode**: If any file in `build_files` changed, append preset sketches to affected list.
-     Start from changed files and walk `reverse_dependencies` breadth-first. Any `.ino` reached is marked as affected.
+     If any changed ``cores/**`` source or header does not reach a ``.ino`` in the reverse graph, all sketches are
+     affected (core link-only TUs, link-time shims, or a mix with mapped ``libraries/`` files; avoids missing impact).
+     Otherwise, start from changed files and walk `reverse_dependencies` breadth-first; any `.ino` reached is
+     marked as affected.
    - **Component mode**: If any file in `idf_build_files` changed, all IDF component examples are affected.
      If any file in `idf_project_files` changed, only that specific project is affected.
      Walk dependencies to find component example directories containing affected files.
@@ -73,6 +76,13 @@ Notes on accuracy and limitations
   files. The header remains the dependency.
 - If a declaration has no available definition, no implementation edge is added for it.
 - Ctags does not require compilation but depends on static parsing. Exotic macro tricks may not be fully resolved.
+- **Core sources not reachable in the static graph** (e.g. linker ``__wrap_``/core-only TUs, or a changed core file
+  in the same PR with a mapped ``libraries/`` file): for each change under ``cores/`` that is a source or header,
+  the script follows ``reverse_dependencies``. If *any* such file cannot reach a ``.ino``, all sketches are built
+  on PRs, so a core wrap / link-time change is not "hidden" by other mapped changes. The same check is not applied
+  to ``libraries/`` (to limit full-tree CI when an orphan library file is unmapped in the graph).
+- Changed file paths are normalized to paths relative to the ``esp32`` tree (absolute or monorepo-prefixed paths
+  still match the graph).
 
 Usage
 -----
@@ -100,6 +110,40 @@ import fnmatch
 
 script_dir = Path(__file__).resolve().parent
 project_root = (script_dir / "../../").resolve()
+
+
+def resolve_changed_path_to_project_relative(path: str) -> str:
+    """
+    Map a changed-file path to a project_root-relative string used by the dependency graph.
+
+    CI and local invocations may pass absolute paths, working-directory-relative paths, or monorepo paths; the
+    graph keys are always of the form ``cores/esp32/...`` and ``libraries/...`` (or ``idf_component_examples/...``
+    in component mode).
+    """
+    raw = str(path).strip().replace("\\", "/")
+    if not raw or raw == ".":
+        return raw
+
+    p = Path(raw)
+    if p.is_absolute():
+        try:
+            return str(p.resolve().relative_to(project_root))
+        except ValueError:
+            pass
+    else:
+        try:
+            return str((Path.cwd() / p).resolve().relative_to(project_root))
+        except ValueError:
+            pass
+        if (project_root / p).is_file():
+            return p.as_posix()
+
+    for marker in ("cores/esp32/", "libraries/", "idf_component_examples/"):
+        idx = raw.rfind(marker)
+        if idx != -1:
+            return raw[idx:].lstrip("/")
+    return raw
+
 
 is_ci = os.environ.get("CI", "false").lower() == "true"
 is_pr = os.environ.get("IS_PR", "true").lower() == "true"
@@ -199,6 +243,56 @@ def is_source_file(path: str) -> bool:
 
 def should_skip_file(path: str) -> bool:
     return os.path.splitext(path)[1].lower() in skip_extensions or path.startswith("tests/") or path.startswith("variants/")
+
+def reverse_walk_reaches_any_sketch(path: str) -> bool:
+    """
+    Walk ``reverse_dependencies`` from `path` (transitive). Return True if any ``.ino`` is reachable.
+
+    Callers use this to detect sources/headers that the include+ctags graph does not connect to a sketch: linker
+    shims, wrap-only TUs, or a graph edge to other core TUs with no path back to an example.
+    """
+    if path.endswith(".ino"):
+        return True
+    if not (is_source_file(path) or is_header_file(path)):
+        return True
+    if should_skip_file(path):
+        return True
+
+    seen: set[str] = set()
+    q = queue.Queue()
+    q.put(path)
+    seen.add(path)
+
+    while not q.empty():
+        cur = q.get()
+        if cur.endswith(".ino"):
+            return True
+        for parent in reverse_dependencies.get(cur) or ():
+            if parent not in seen:
+                seen.add(parent)
+                q.put(parent)
+    return False
+
+
+def changed_sketch_sources_with_no_path_to_inos(changed_files: list[str]) -> list[str]:
+    """
+    Among PR changes, list ``cores/**`` source/header (and ``.ino`` under ``cores/``) paths that the reverse
+    graph does not connect to at least one ``.ino``. If non-empty, CI should build all sketches.
+
+    ``libraries/`` is excluded: orphan or poorly graphed library files do not force a full sketch run.
+    """
+    out: list[str] = []
+    for f in changed_files:
+        if should_skip_file(f):
+            continue
+        if not f.startswith("cores/"):
+            continue
+        if not (is_source_file(f) or is_header_file(f)):
+            continue
+        if not reverse_walk_reaches_any_sketch(f):
+            out.append(f)
+    return out
+
 
 def detect_universal_ctags() -> bool:
     """
@@ -805,6 +899,24 @@ def find_affected_sketches(changed_files: list[str]) -> None:
 
     preprocess_changed_files(changed_files)
 
+    if is_pr and not component_mode:
+        unmapped = changed_sketch_sources_with_no_path_to_inos(changed_files)
+        if unmapped:
+            print(
+                "One or more changed files under cores/ have no path to any .ino in the static graph (link-only TUs, "
+                f"wraps, or incomplete include/ctags edges) — all sketches affected: {unmapped}",
+                file=sys.stderr,
+            )
+            for sketch in list_ino_files():
+                if sketch not in affected_sketches:
+                    affected_sketches.append(sketch)
+            print(f"Total affected sketches: {len(affected_sketches)}", file=sys.stderr)
+            if affected_sketches:
+                print("Affected sketches:", file=sys.stderr)
+                for s in affected_sketches:
+                    print(f"  {s}", file=sys.stderr)
+            return
+
     # Normal dependency-based analysis for non-critical changes
     processed_files = set()
     q = queue.Queue()
@@ -979,7 +1091,16 @@ def main():
     parser.add_argument("--debug", action="store_true", help="Enable debug messages and save debug artifacts to disk")
     args = parser.parse_args()
 
-    changed_files = args.changed_files
+    seen: set[str] = set()
+    changed_files: list[str] = []
+    for p in args.changed_files:
+        rel = resolve_changed_path_to_project_relative(p)
+        if rel in seen:
+            continue
+        seen.add(rel)
+        changed_files.append(rel)
+    if args.debug and len(args.changed_files) != len(changed_files):
+        print(f"Changed files after path normalization: {changed_files!r}", file=sys.stderr)
     global component_mode
     component_mode = args.component
     if component_mode:
