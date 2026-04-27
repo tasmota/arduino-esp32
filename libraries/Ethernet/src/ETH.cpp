@@ -63,6 +63,18 @@
 #define EMAC_CLK_OUT_180_GPIO  17
 #define EMAC_CLK_IN_GPIO       0
 #endif
+#if CONFIG_ETH_SPI_ETHERNET_DM9051
+#include "esp_eth_phy_dm9051.h"
+#include "esp_eth_mac_dm9051.h"
+#endif
+#if CONFIG_ETH_SPI_ETHERNET_W5500
+#include "esp_eth_phy_w5500.h"
+#include "esp_eth_mac_w5500.h"
+#endif
+#if CONFIG_ETH_SPI_ETHERNET_KSZ8851SNL
+#include "esp_eth_phy_ksz8851snl.h"
+#include "esp_eth_mac_ksz8851snl.h"
+#endif
 #endif
 
 #define NUM_SUPPORTED_ETH_PORTS 3
