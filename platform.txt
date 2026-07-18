@@ -112,14 +112,16 @@ build.chip_variant={build.mcu}
 build.opt.name=build_opt.h
 build.opt.path={build.path}/{build.opt.name}
 
-# Check if custom partitions exist: source > variant > build.partitions
-recipe.hooks.prebuild.1.pattern=/usr/bin/env bash -c "[ ! -f "{build.source.path}"/partitions.csv ] || cp -f "{build.source.path}"/partitions.csv "{build.path}"/partitions.csv"
-recipe.hooks.prebuild.2.pattern=/usr/bin/env bash -c "[ -f "{build.path}"/partitions.csv ] || [ ! -f "{build.variant.path}"/{build.custom_partitions}.csv ] || cp "{build.variant.path}"/{build.custom_partitions}.csv "{build.path}"/partitions.csv"
-recipe.hooks.prebuild.3.pattern=/usr/bin/env bash -c "[ -f "{build.path}"/partitions.csv ] || cp "{runtime.platform.path}"/tools/partitions/{build.partitions}.csv "{build.path}"/partitions.csv"
+# Copy the partition table into the build dir, always overwriting so option changes
+# (e.g. PartitionScheme) take effect on incremental builds. Lowest priority is copied
+# first and higher priority overwrites it: build.partitions < variant < source.
+recipe.hooks.prebuild.1.pattern=/usr/bin/env bash -c "[ ! -f "{runtime.platform.path}"/tools/partitions/{build.partitions}.csv ] || cp -f "{runtime.platform.path}"/tools/partitions/{build.partitions}.csv "{build.path}"/partitions.csv"
+recipe.hooks.prebuild.2.pattern=/usr/bin/env bash -c "[ ! -f "{build.variant.path}"/{build.custom_partitions}.csv ] || cp -f "{build.variant.path}"/{build.custom_partitions}.csv "{build.path}"/partitions.csv"
+recipe.hooks.prebuild.3.pattern=/usr/bin/env bash -c "[ ! -f "{build.source.path}"/partitions.csv ] || cp -f "{build.source.path}"/partitions.csv "{build.path}"/partitions.csv"
 
-recipe.hooks.prebuild.1.pattern.windows=cmd /c if exist "{build.source.path}\partitions.csv" COPY /y "{build.source.path}\partitions.csv" "{build.path}\partitions.csv"
-recipe.hooks.prebuild.2.pattern.windows=cmd /c if not exist "{build.path}\partitions.csv" if exist "{build.variant.path}\{build.custom_partitions}.csv" COPY "{build.variant.path}\{build.custom_partitions}.csv" "{build.path}\partitions.csv"
-recipe.hooks.prebuild.3.pattern.windows=cmd /c if not exist "{build.path}\partitions.csv" COPY "{runtime.platform.path}\tools\partitions\{build.partitions}.csv" "{build.path}\partitions.csv"
+recipe.hooks.prebuild.1.pattern.windows=cmd /c if exist "{runtime.platform.path}\tools\partitions\{build.partitions}.csv" COPY /y "{runtime.platform.path}\tools\partitions\{build.partitions}.csv" "{build.path}\partitions.csv"
+recipe.hooks.prebuild.2.pattern.windows=cmd /c if exist "{build.variant.path}\{build.custom_partitions}.csv" COPY /y "{build.variant.path}\{build.custom_partitions}.csv" "{build.path}\partitions.csv"
+recipe.hooks.prebuild.3.pattern.windows=cmd /c if exist "{build.source.path}\partitions.csv" COPY /y "{build.source.path}\partitions.csv" "{build.path}\partitions.csv"
 
 # Check if custom bootloader exist: source > variant > build.boot
 recipe.hooks.prebuild.4.pattern_args=--chip {build.mcu} elf2image --flash-mode {build.flash_mode} --flash-freq {build.img_freq} --flash-size {build.flash_size} -o
@@ -188,7 +190,9 @@ recipe.hooks.objcopy.postobjcopy.4.pattern=/usr/bin/env bash -c "echo '--flash-m
 recipe.hooks.objcopy.postobjcopy.4.pattern.windows=cmd /c echo --flash-mode {build.flash_mode} --flash-freq {build.img_freq} --flash-size {build.flash_size} > "{build.path}\flash_args" && echo {build.bootloader_addr} {build.project_name}.bootloader.bin >> "{build.path}\flash_args" && echo 0x8000 {build.project_name}.partitions.bin >> "{build.path}\flash_args" && echo 0xe000 boot_app0.bin >> "{build.path}\flash_args" && echo 0x10000 {build.project_name}.bin >> "{build.path}\flash_args"
 
 # Copy boot_app0.bin into the build directory so flash_args is self-contained
-recipe.hooks.objcopy.postobjcopy.5.pattern=/usr/bin/env bash -c "cp -f '{runtime.platform.path}/tools/partitions/boot_app0.bin' '{build.path}/boot_app0.bin'"
+# Do not use bash -c with adjacent single-quoted paths ('...' '...'); IDE 1.x
+# arduino-builder misparses the space between quotes (see postobjcopy.4 note).
+recipe.hooks.objcopy.postobjcopy.5.pattern=/bin/cp -f "{runtime.platform.path}/tools/partitions/boot_app0.bin" "{build.path}/boot_app0.bin"
 recipe.hooks.objcopy.postobjcopy.5.pattern.windows=cmd /c copy /y "{runtime.platform.path}\tools\partitions\boot_app0.bin" "{build.path}\boot_app0.bin"
 
 ## Save bin
