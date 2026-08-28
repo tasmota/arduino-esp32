@@ -35,6 +35,6 @@ Here are the ESP32 series supported by the Tasmota Arduino-ESP32 project:
 | ESP32-C61|     Yes    |       Yes       | [ESP32-C61](https://www.espressif.com/sites/default/files/documentation/esp32-c61_datasheet_en.pdf) |
 | ESP32-H2 |     Yes    |       Yes       | [ESP32-H2](https://www.espressif.com/sites/default/files/documentation/esp32-h2_datasheet_en.pdf) |
 | ESP32-P4 |     Yes    |       Yes       | [ESP32-P4](https://www.espressif.com/sites/default/files/documentation/esp32-p4_datasheet_en.pdf) |
-
+| ESP32-S31|     No     |       Yes       | [ESP32-S3](https://www.espressif.com/sites/default/files/documentation/esp32-s31_datasheet_en.pdf) |
 
 For more details visit the [supported chips](https://docs.espressif.com/projects/arduino-esp32/en/latest/getting_started.html#supported-soc-s) documentation page.
