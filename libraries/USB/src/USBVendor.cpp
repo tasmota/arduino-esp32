@@ -17,6 +17,7 @@
 #if CONFIG_TINYUSB_VENDOR_ENABLED
 
 #include "esp32-hal-tinyusb.h"
+#include <tusb.h>
 
 ESP_EVENT_DEFINE_BASE(ARDUINO_USB_VENDOR_EVENTS);
 esp_err_t arduino_usb_event_post(esp_event_base_t event_base, int32_t event_id, void *event_data, size_t event_data_size, TickType_t ticks_to_wait);
@@ -39,11 +40,12 @@ uint16_t tusb_vendor_load_descriptor(uint8_t *dst, uint8_t *itf) {
 }
 
 void tud_vendor_rx_cb(uint8_t itf) {
-  size_t len = tud_vendor_n_available(itf);
+  (void)itf;
+  size_t len = tud_vendor_available();
   log_v("%lu", (unsigned long)len);
   if (len) {
     uint8_t buffer[len];
-    len = tud_vendor_n_read(itf, buffer, len);
+    len = tud_vendor_read(buffer, len);
     log_buf_v(buffer, len);
     if (_Vendor) {
       _Vendor->_onRX(buffer, len);
@@ -159,12 +161,12 @@ size_t USBVendor::write(const uint8_t *buffer, size_t len) {
     log_e("not mounted");
     return 0;
   }
-  size_t max_len = tud_vendor_n_write_available(itf);
+  size_t max_len = tud_vendor_write_available();
   if (len > max_len) {
     len = max_len;
   }
   if (len) {
-    return tud_vendor_n_write(itf, buffer, len);
+    return tud_vendor_write(buffer, len);
   }
   return len;
 }
@@ -215,7 +217,7 @@ size_t USBVendor::read(uint8_t *buffer, size_t size) {
 }
 
 void USBVendor::flush(void) {
-  tud_vendor_n_write_flush(itf);
+  tud_vendor_write_flush();
 }
 
 #endif /* CONFIG_TINYUSB_VENDOR_ENABLED */
