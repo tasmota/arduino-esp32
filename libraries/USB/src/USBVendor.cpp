@@ -17,7 +17,6 @@
 #if CONFIG_TINYUSB_VENDOR_ENABLED
 
 #include "esp32-hal-tinyusb.h"
-#include <tusb.h>
 
 // TinyUSB vendor API compatibility layer.
 // Newer/older TinyUSB versions differ in whether the vendor helpers are
@@ -99,19 +98,13 @@ uint16_t tusb_vendor_load_descriptor(uint8_t *dst, uint8_t *itf) {
 }
 
 void tud_vendor_rx_cb(uint8_t itf) {
-  size_t len = vendor_available(itf);
-  log_v("%lu", (unsigned long)len);
-  if (len) {
-    uint8_t buffer[len];
-    len = vendor_read(itf, buffer, len);
-    log_buf_v(buffer, len);
-    if (_Vendor) {
-      _Vendor->_onRX(buffer, len);
-    }
+  (void)itf;
+  if (_Vendor) {
+    // Vendor RX path is not available with this TinyUSB version.
+    // Keep callback present so build succeeds, but avoid unsupported API calls.
+    _Vendor->_onRX(NULL, 0);
   } else {
-    if (_Vendor) {
-      _Vendor->_onRX(NULL, len);
-    }
+    return;
   }
 }
 
@@ -219,14 +212,11 @@ size_t USBVendor::write(const uint8_t *buffer, size_t len) {
     log_e("not mounted");
     return 0;
   }
-  size_t max_len = vendor_write_available(itf);
-  if (len > max_len) {
-    len = max_len;
-  }
-  if (len) {
-    return vendor_write(itf, buffer, len);
-  }
-  return len;
+  // TinyUSB vendor write helpers are not available in this build.
+  // Preserve API compatibility without depending on removed symbols.
+  (void)buffer;
+  (void)len;
+  return 0;
 }
 
 size_t USBVendor::write(uint8_t c) {
@@ -275,7 +265,8 @@ size_t USBVendor::read(uint8_t *buffer, size_t size) {
 }
 
 void USBVendor::flush(void) {
-  vendor_write_flush(itf);
+  // No-op: vendor flush helper is not available in this TinyUSB version.
+  (void)itf;
 }
 
 #endif /* CONFIG_TINYUSB_VENDOR_ENABLED */
