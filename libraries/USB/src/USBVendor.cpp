@@ -19,6 +19,65 @@
 #include "esp32-hal-tinyusb.h"
 #include <tusb.h>
 
+// TinyUSB vendor API compatibility layer.
+// Newer/older TinyUSB versions differ in whether the vendor helpers are
+// interface-scoped (`*_n_*`) or global (`*`). Keep all direct TinyUSB usage
+// behind these wrappers so this file doesn't rely on a specific API variant.
+static inline size_t vendor_available(uint8_t itf) {
+#if defined(tud_vendor_n_available)
+  return tud_vendor_n_available(itf);
+#elif defined(tud_vendor_available)
+  (void)itf;
+  return tud_vendor_available();
+#else
+#error "No supported TinyUSB vendor available() API found"
+#endif
+}
+
+static inline size_t vendor_read(uint8_t itf, void *buffer, size_t len) {
+#if defined(tud_vendor_n_read)
+  return tud_vendor_n_read(itf, buffer, len);
+#elif defined(tud_vendor_read)
+  (void)itf;
+  return tud_vendor_read(buffer, len);
+#else
+#error "No supported TinyUSB vendor read() API found"
+#endif
+}
+
+static inline size_t vendor_write_available(uint8_t itf) {
+#if defined(tud_vendor_n_write_available)
+  return tud_vendor_n_write_available(itf);
+#elif defined(tud_vendor_write_available)
+  (void)itf;
+  return tud_vendor_write_available();
+#else
+#error "No supported TinyUSB vendor write_available() API found"
+#endif
+}
+
+static inline size_t vendor_write(uint8_t itf, const void *buffer, size_t len) {
+#if defined(tud_vendor_n_write)
+  return tud_vendor_n_write(itf, buffer, len);
+#elif defined(tud_vendor_write)
+  (void)itf;
+  return tud_vendor_write(buffer, len);
+#else
+#error "No supported TinyUSB vendor write() API found"
+#endif
+}
+
+static inline void vendor_write_flush(uint8_t itf) {
+#if defined(tud_vendor_n_write_flush)
+  tud_vendor_n_write_flush(itf);
+#elif defined(tud_vendor_write_flush)
+  (void)itf;
+  tud_vendor_write_flush();
+#else
+#error "No supported TinyUSB vendor write_flush() API found"
+#endif
+}
+
 ESP_EVENT_DEFINE_BASE(ARDUINO_USB_VENDOR_EVENTS);
 esp_err_t arduino_usb_event_post(esp_event_base_t event_base, int32_t event_id, void *event_data, size_t event_data_size, TickType_t ticks_to_wait);
 esp_err_t arduino_usb_event_handler_register_with(esp_event_base_t event_base, int32_t event_id, esp_event_handler_t event_handler, void *event_handler_arg);
@@ -40,12 +99,11 @@ uint16_t tusb_vendor_load_descriptor(uint8_t *dst, uint8_t *itf) {
 }
 
 void tud_vendor_rx_cb(uint8_t itf) {
-  (void)itf;
-  size_t len = tud_vendor_available();
+  size_t len = vendor_available(itf);
   log_v("%lu", (unsigned long)len);
   if (len) {
     uint8_t buffer[len];
-    len = tud_vendor_read(buffer, len);
+    len = vendor_read(itf, buffer, len);
     log_buf_v(buffer, len);
     if (_Vendor) {
       _Vendor->_onRX(buffer, len);
@@ -161,12 +219,12 @@ size_t USBVendor::write(const uint8_t *buffer, size_t len) {
     log_e("not mounted");
     return 0;
   }
-  size_t max_len = tud_vendor_write_available();
+  size_t max_len = vendor_write_available(itf);
   if (len > max_len) {
     len = max_len;
   }
   if (len) {
-    return tud_vendor_write(buffer, len);
+    return vendor_write(itf, buffer, len);
   }
   return len;
 }
@@ -217,7 +275,7 @@ size_t USBVendor::read(uint8_t *buffer, size_t size) {
 }
 
 void USBVendor::flush(void) {
-  tud_vendor_write_flush();
+  vendor_write_flush(itf);
 }
 
 #endif /* CONFIG_TINYUSB_VENDOR_ENABLED */
