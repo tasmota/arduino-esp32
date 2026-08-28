@@ -78,7 +78,7 @@ set(CORE_SRCS
   cores/esp32/WMath.cpp
   cores/esp32/WString.cpp
   )
-if(IDF_TARGET MATCHES "esp32s2|esp32s3|esp32p4" AND CONFIG_TINYUSB_ENABLED)
+if(IDF_TARGET MATCHES "esp32s2|esp32s3|esp32p4|esp32s31" AND CONFIG_TINYUSB_ENABLED)
   list(APPEND CORE_SRCS
     cores/esp32/esp32-hal-tinyusb.c
     cores/esp32/USB.cpp
@@ -112,7 +112,7 @@ set(ARDUINO_ALL_LIBRARIES
   WiFi
   Wire
   )
-if(IDF_TARGET MATCHES "esp32s2|esp32s3|esp32p4" AND CONFIG_TINYUSB_ENABLED)
+if(IDF_TARGET MATCHES "esp32s2|esp32s3|esp32p4|esp32s31" AND CONFIG_TINYUSB_ENABLED)
   list(APPEND ARDUINO_ALL_LIBRARIES USB)
 endif()
 
@@ -169,7 +169,7 @@ set(ARDUINO_LIBRARY_Update_SRCS
   libraries/Update/src/HttpsOTAUpdate.cpp
   libraries/Update/src/Updater_Signing.cpp)
 
-if(IDF_TARGET MATCHES "esp32s2|esp32s3|esp32p4" AND CONFIG_TINYUSB_ENABLED)
+if(IDF_TARGET MATCHES "esp32s2|esp32s3|esp32p4|esp32s31" AND CONFIG_TINYUSB_ENABLED)
   set(ARDUINO_LIBRARY_USB_SRCS
     libraries/USB/src/USBAudioCard.cpp
     libraries/USB/src/USBHID.cpp
