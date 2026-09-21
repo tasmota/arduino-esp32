@@ -41,6 +41,14 @@ def test_ble(dut, ci_job_id):
     LOGGER.info("Checking BLE stack...")
     server.expect(r"\[SERVER\] BLE stack: (Bluedroid|NimBLE)", timeout=10)
 
+    # Issue #12821: BLEDevice::init() must not smash a heap tail canary (seen on ESP32-C5).
+    LOGGER.info("Checking heap integrity around BLEDevice::init (issue #12821)...")
+    server.expect_exact("[SERVER] Heap before BLEDevice::init(): clean", timeout=10)
+    server.expect_exact("[SERVER] Heap after BLEDevice::init(): clean", timeout=10)
+    client.expect_exact("[CLIENT] Heap before BLEDevice::init(): clean", timeout=10)
+    client.expect_exact("[CLIENT] Heap after BLEDevice::init(): clean", timeout=10)
+    LOGGER.info("Heap integrity after BLEDevice::init() is clean")
+
     # Wait for server to be ready
     LOGGER.info("Waiting for server to start advertising...")
     server.expect_exact("[SERVER] Characteristics configured", timeout=10)
@@ -86,6 +94,7 @@ def test_ble(dut, ci_job_id):
     # Continue with characteristics discovery
     client.expect_exact("[CLIENT] Found insecure characteristic", timeout=10)
     client.expect_exact("[CLIENT] Found secure characteristic", timeout=10)
+    client.expect_exact("[CLIENT] Found Write-NR characteristic", timeout=10)
 
     # Verify insecure characteristic read (no auth needed)
     LOGGER.info("Verifying insecure characteristic access...")
@@ -155,6 +164,19 @@ def test_ble(dut, ci_job_id):
 
     LOGGER.info("Security and characteristic test passed!")
 
+    # --- Write-Without-Response burst (issue #12815) ---
+    # Central sends AA/BB/CC with no delay and no response. Server onWrite() must
+    # observe the original payloads, not three copies of the last packet.
+    LOGGER.info("Testing Write-NR burst (issue #12815)...")
+    client.expect_exact("[CLIENT] Starting Write-NR burst", timeout=10)
+    client.expect_exact("[CLIENT] Write-NR burst sent", timeout=10)
+    server.expect_exact("[SERVER] Write-NR packet 1/3: AA AA AA", timeout=10)
+    server.expect_exact("[SERVER] Write-NR packet 2/3: BB BB BB", timeout=10)
+    server.expect_exact("[SERVER] Write-NR packet 3/3: CC CC CC", timeout=10)
+    server.expect_exact("[SERVER] Write-NR burst PASSED", timeout=10)
+    server.expect_exact("[SERVER] Heap after Write-NR burst: clean", timeout=10)
+    LOGGER.info("Write-NR burst verified")
+
     # --- Reconnection stress test (app_id collision regression, issue #12625) ---
     # The client disconnects, pre-seeds the allocator, and reconnects in a loop.
     # We only rely on client-side messages for synchronization since server periodic
@@ -177,6 +199,46 @@ def test_ble(dut, ci_job_id):
 
     client.expect_exact("[CLIENT] Reconnection stress test PASSED", timeout=10)
     LOGGER.info("Reconnection stress test passed")
+
+    # --- Passkey Entry pairing (issue #12860) ---
+    # Everything above pairs with Numeric Comparison (DisplayYesNo on both sides).
+    # Both devices now switch to the other MITM method, the one used by the
+    # Server_secure_static_passkey example: DisplayOnly on the server against
+    # KeyboardOnly on the client, with a static passkey.
+    LOGGER.info("Switching both devices to Passkey Entry...")
+    server.write("PSKPHASE")
+    server.expect_exact("[SERVER] Passkey entry mode ready", timeout=15)
+    client.write("PSKPHASE")
+    client.expect_exact("[CLIENT] Starting passkey entry phase", timeout=15)
+
+    # Correct passkey must pair. The server being asked to *display* the passkey is
+    # what proves Passkey Entry was selected rather than Numeric Comparison.
+    LOGGER.info("Pairing with the correct passkey...")
+    client.expect_exact("[CLIENT] Passkey correct reading secure characteristic", timeout=30)
+    m = server.expect(r"\[SERVER\] Passkey notify: (\d{6})", timeout=30)
+    server_passkey = m.group(1).decode()
+    assert server_passkey == "123456", f"server displayed an unexpected passkey: {server_passkey}"
+    LOGGER.info(f"Server displayed passkey: {server_passkey}")
+
+    client.expect_exact("[CLIENT] Authentication complete", timeout=40)
+    server.expect_exact("[SERVER] Authentication complete", timeout=30)
+    m = client.expect(r"\[CLIENT\] Passkey correct result: (PAIRED|REJECTED)", timeout=15)
+    assert m.group(1).decode() == "PAIRED", "pairing failed with the correct passkey"
+    LOGGER.info("Passkey Entry paired as expected")
+
+    # Wrong passkey must be rejected, and the rejection must actually be reported.
+    # Before issue #12860 the NimBLE path invoked onAuthenticationComplete() without
+    # inspecting the status, so a rejected pairing was indistinguishable from success.
+    LOGGER.info("Pairing with the wrong passkey...")
+    client.expect_exact("[CLIENT] Passkey wrong reading secure characteristic", timeout=30)
+    server.expect(r"\[SERVER\] Passkey notify: (\d{6})", timeout=30)
+    client.expect(r"\[CLIENT\] Authentication failed: (status|reason)=", timeout=40)
+    server.expect(r"\[SERVER\] Authentication failed: (status|reason)=", timeout=20)
+    m = client.expect(r"\[CLIENT\] Passkey wrong result: (PAIRED|REJECTED)", timeout=15)
+    assert m.group(1).decode() == "REJECTED", "pairing succeeded with the wrong passkey"
+    LOGGER.info("Passkey Entry rejected the wrong passkey as expected")
+
+    client.expect_exact("[CLIENT] Passkey entry phase PASSED", timeout=10)
 
     # Advertisement parsing regression, window 2. The server now advertises a 32-bit
     # UUID list with a trailing partial group followed by a zero-length terminator

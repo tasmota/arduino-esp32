@@ -64,7 +64,7 @@ dependencies:
   espressif/esp-dsp:
     version: "^1.7.0"
   espressif/esp_hosted:
-    version: "^2.11.7"
+    version: "^2.12.13"
     rules:
       - if: "target == esp32p4"
   espressif/esp_wifi_remote:
