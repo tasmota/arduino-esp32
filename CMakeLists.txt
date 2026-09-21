@@ -329,42 +329,6 @@ if(NOT CONFIG_DIAG_USE_EXTERNAL_LOG_WRAP)
     target_link_libraries(${COMPONENT_LIB} INTERFACE "-u __wrap_esp_log_write" "-u __wrap_esp_log_writev")
 endif()
 
-# OpenThread message pool: redirect to Arduino wrapper (BOARD_HAS_PSRAM / PSRAM-aware allocation).
-# Same pattern as esp_log wrap: --wrap so calls use __wrap_* ; -u so linker keeps our wrapper .o.
-# Applied on OpenThread-capable targets (same targets that may add openthread to requires).
-if(CONFIG_OPENTHREAD_ENABLED AND CONFIG_SOC_IEEE802154_SUPPORTED)
-  idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=otPlatMessagePoolInit" APPEND)
-  idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=otPlatMessagePoolNew" APPEND)
-  idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=otPlatMessagePoolFree" APPEND)
-  idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=otPlatMessagePoolNumFreeBuffers" APPEND)
-  idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=otPlatMessagePoolDeinit" APPEND)
-  target_link_libraries(${COMPONENT_LIB} INTERFACE
-    "-u __wrap_otPlatMessagePoolInit"
-    "-u __wrap_otPlatMessagePoolNew"
-    "-u __wrap_otPlatMessagePoolFree"
-    "-u __wrap_otPlatMessagePoolNumFreeBuffers"
-    "-u __wrap_otPlatMessagePoolDeinit")
-endif()
-
-# Matter: skip CHIP InitWiFiStack when Thread or Ethernet is selected.
-# --wrap of a missing symbol is ignored (H2 has no Wi-Fi stack).
-if(CONFIG_ESP_MATTER_ENABLE_DATA_MODEL AND CONFIG_ENABLE_WIFI_STATION)
-  idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=_ZN4chip11DeviceLayer8Internal10ESP32Utils13InitWiFiStackEv" APPEND)
-  target_link_libraries(${COMPONENT_LIB} INTERFACE "-u __wrap__ZN4chip11DeviceLayer8Internal10ESP32Utils13InitWiFiStackEv")
-endif()
-
-# Matter data model: prefer SPIRAM when that heap exists (bypass malloc 4096 rule).
-# C++ mangled names from harvested libespressif__esp_matter.a (nm-confirmed).
-if(CONFIG_ESP_MATTER_ENABLE_DATA_MODEL)
-  idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=_Z21esp_matter_mem_callocjj" APPEND)
-  idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=_Z22esp_matter_mem_reallocPvj" APPEND)
-  idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=_Z19esp_matter_mem_freePv" APPEND)
-  target_link_libraries(${COMPONENT_LIB} INTERFACE
-    "-u __wrap__Z21esp_matter_mem_callocjj"
-    "-u __wrap__Z22esp_matter_mem_reallocPvj"
-    "-u __wrap__Z19esp_matter_mem_freePv")
-endif()
-
 # This function adds a dependency on the given component if the component is included into the build.
 function(maybe_add_component component_name)
     idf_build_get_property(components BUILD_COMPONENTS)
