@@ -177,8 +177,18 @@ if(IDF_TARGET MATCHES "esp32s2|esp32s3|esp32p4|esp32s31" AND CONFIG_TINYUSB_ENAB
   set(ARDUINO_LIBRARY_USB_SRCS
     libraries/USB/src/USBAudioCard.cpp
     libraries/USB/src/USBHID.cpp
+    libraries/USB/src/USBHIDReportMapParse.c
     libraries/USB/src/USBMIDI.cpp
     libraries/USB/src/USBHIDMouse.cpp
+    libraries/USB/src/USBHostHID.cpp
+    libraries/USB/src/USBHostHIDMouse.cpp
+    libraries/USB/src/USBHostHIDGamepad.cpp
+    libraries/USB/src/USBHostHIDKeyboard.cpp
+    libraries/USB/src/USBHostHIDKeyboardDecode.cpp
+    libraries/USB/src/USBHostHIDReportMapDump.cpp
+    libraries/USB/src/USBHostMSC.cpp
+    libraries/USB/src/USBHostSerial.cpp
+    libraries/USB/src/USBMSCFS.cpp
     libraries/USB/src/USBHIDKeyboard.cpp
     libraries/USB/src/keyboardLayout/KeyboardLayout_da_DK.cpp
     libraries/USB/src/keyboardLayout/KeyboardLayout_de_DE.cpp
@@ -319,35 +329,6 @@ if(NOT CONFIG_DIAG_USE_EXTERNAL_LOG_WRAP)
     idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=esp_log_write" APPEND)
     idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=esp_log_writev" APPEND)
     target_link_libraries(${COMPONENT_LIB} INTERFACE "-u __wrap_esp_log_write" "-u __wrap_esp_log_writev")
-endif()
-
-# OpenThread message pool: redirect to Arduino wrapper (BOARD_HAS_PSRAM / PSRAM-aware allocation).
-# Same pattern as esp_log wrap: --wrap so calls use __wrap_* ; -u so linker keeps our wrapper .o.
-# Applied on OpenThread-capable targets (same targets that may add openthread to requires).
-if(CONFIG_OPENTHREAD_ENABLED AND CONFIG_SOC_IEEE802154_SUPPORTED)
-  idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=otPlatMessagePoolInit" APPEND)
-  idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=otPlatMessagePoolNew" APPEND)
-  idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=otPlatMessagePoolFree" APPEND)
-  idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=otPlatMessagePoolNumFreeBuffers" APPEND)
-  idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=otPlatMessagePoolDeinit" APPEND)
-  target_link_libraries(${COMPONENT_LIB} INTERFACE
-    "-u __wrap_otPlatMessagePoolInit"
-    "-u __wrap_otPlatMessagePoolNew"
-    "-u __wrap_otPlatMessagePoolFree"
-    "-u __wrap_otPlatMessagePoolNumFreeBuffers"
-    "-u __wrap_otPlatMessagePoolDeinit")
-endif()
-
-# Matter data model: prefer SPIRAM when that heap exists (bypass malloc 4096 rule).
-# C++ mangled names from harvested libespressif__esp_matter.a (nm-confirmed).
-if(CONFIG_ESP_MATTER_ENABLE_DATA_MODEL)
-  idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=_Z21esp_matter_mem_callocjj" APPEND)
-  idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=_Z22esp_matter_mem_reallocPvj" APPEND)
-  idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=_Z19esp_matter_mem_freePv" APPEND)
-  target_link_libraries(${COMPONENT_LIB} INTERFACE
-    "-u __wrap__Z21esp_matter_mem_callocjj"
-    "-u __wrap__Z22esp_matter_mem_reallocPvj"
-    "-u __wrap__Z19esp_matter_mem_freePv")
 endif()
 
 # This function adds a dependency on the given component if the component is included into the build.
