@@ -198,7 +198,8 @@ The checked-out core is installed via `install-arduino-core-esp32.sh` (symlink +
 
 **Logic:**
 - Non-PR (`push`, `workflow_dispatch`): always run
-- PR: `tj-actions/changed-files` with `files_yaml` categories `boards` / `upload` (`**` minus `boards.txt`)
+- PR: `tj-actions/changed-files` with `files_yaml` categories `boards` / `upload`
+  - `upload` matches `on.pull_request.paths` minus `boards.txt` (not `**`, so `variants/` and other companion files do not force a run)
   - run `find_boards.sh official` only when `boards_any_changed`
   - run mock upload if official `CORE_SOCS` boards changed (`FQBNS` non-empty) **or** `upload_any_changed`
 
@@ -682,7 +683,7 @@ Defines test requirements and platform support:
 - `fqbn: {chip: [full FQBN, ...]}` - Replaces the default FQBN, one build per entry
 
 **FQBN options (`fqbn_append`):**
-Each menu key is kept only once, so a key set in `fqbn_append` replaces the default value for that key rather than being listed twice. This is how a test disables an option that is on by default, such as `PSRAM=disabled` on ESP32. Options are applied lowest priority first: the target default, then `fqbn_append`, then the per-device `fqbn_append` of a multi-device test, then the debug level passed with `-d`.
+Each menu key is kept only once, so a key set in `fqbn_append` replaces the default value for that key rather than being listed twice. This is how a test disables an option that is on by default, such as `PSRAM=disabled` on ESP32. Options are applied lowest priority first: the target default, then `fqbn_append`, then the per-device `fqbn_append` of a multi-device test, then the debug level passed with `-d`. On ESP32-P4, `CDCOnBoot` is then overwritten for the environment (Disabled in CI, Enabled locally), including for full `fqbn:` lists.
 
 Use the map form when the options differ per target. The `default` entry applies to every target and the entry matching the target is merged on top of it, so only the difference has to be spelled out. This is required for menus that do not exist on every target — ESP32-C3, ESP32-C6 and ESP32-H2 have no PSRAM menu, and `arduino-cli` rejects the whole build with `invalid option 'PSRAM'` if they are given `PSRAM=disabled`:
 
@@ -828,6 +829,25 @@ A per-device `fqbn_append` is merged on top of the test's top-level `fqbn_append
 - Only **2 devices** are supported currently.
 - **Hardware only**: multi-device tests are blocked for Wokwi and QEMU.
 - Set ports via `ESPPORT1` and `ESPPORT2` (single-device tests can use `ESPPORT`).
+
+**Mixed-target multi-DUT (`-t a|b`):**
+
+Pipe-separated `-t` assigns a different SoC to each DUT (device0|device1). Comma still means independent same-target jobs.
+
+| `-t` value | Meaning |
+|---|---|
+| `esp32s31` | Same-target: both DUTs use esp32s31 |
+| `esp32s31,esp32c6` | Two independent same-target jobs |
+| `esp32s31\|esp32c6` | One mixed job: dut0=esp32s31, dut1=esp32c6 |
+
+Binaries stay under the existing per-SoC paths — there is no new layout. Building with `-t esp32s31,esp32c6` or `-t esp32s31|esp32c6` both produce:
+
+```
+~/.arduino/tests/esp32s31/<test>/<sketch>/build.tmp
+~/.arduino/tests/esp32c6/<test>/<sketch>/build.tmp
+```
+
+Running with `-t esp32s31|esp32c6` picks those artifacts and passes `--target esp32s31|esp32c6` to pytest-embedded. Pipe is only valid for multi-device tests.
 
 **Test Execution:**
 The test runner (`tests_run.sh`) automatically:
@@ -1224,6 +1244,7 @@ The file lists popular Arduino libraries with their names, which examples to tes
 | `upload-candidate-json` | no | yes (one gh-pages commit to `release-staging/`) |
 | `test-post-release` | no | yes (install from `release-staging/`) |
 | `promote-release` | no | yes (staging → root, hosted bins; one gh-pages commit) |
+| `upload-idf-component` | no | yes (`workflow_call` after promote; checkout the version tag, verify tagged SHA) |
 | `rollback-release` | no | only if post-release tests fail |
 | `notify-discord` | no | yes (after promote) |
 
@@ -1237,7 +1258,8 @@ The file lists popular Arduino libraries with their names, which examples to tes
 6. **`upload-candidate-json`** — regenerate final JSONs, `github-release.sh candidate` → one gh-pages commit to `release-staging/`
 7. **`test-post-release`** — matrix: install-only from `release-staging/` gh-pages URLs
 8. **`promote-release`** — `github-release.sh promote`: one gh-pages commit (root JSONs, remove `release-staging/`, new hosted bins)
-9. **`notify-discord`** — post GitHub-style release card to Discord (`DISCORD_WEBHOOK_URL` secret, `/github` suffix)
+9. **`upload-idf-component`** — `workflow_call` of `upload-idf-component.yml` after promote succeeds (tag is stable; checkout the version tag and verify it matches the tagged SHA). Manual `workflow_dispatch` can pass only `tag`.
+10. **`notify-discord`** — post GitHub-style release card to Discord (`DISCORD_WEBHOOK_URL` secret, `/github` suffix)
 
 On pre-release test failure, `cleanup-draft-release` deletes the draft release (no tag created). On post-release test failure, `rollback-release` deletes `release-staging/`, the published release, and the git tag.
 
@@ -1565,6 +1587,30 @@ bash .github/scripts/check_official_variants.sh \
 - `check_requirements` - Validate sketch requirements
 - `install_libs` - Install library dependencies
 
+**Default FQBNs:**
+
+When no explicit FQBN is provided via `ci.yml`, the following per-SoC defaults are used:
+
+| SoC | Default FQBN |
+|-----|-------------|
+| ESP32 | `espressif:esp32:esp32:PSRAM=enabled` |
+| ESP32-S2 | `espressif:esp32:esp32s2:PSRAM=enabled` |
+| ESP32-S3 | `espressif:esp32:esp32s3:PSRAM=opi,USBMode=default` |
+| ESP32-C3 | `espressif:esp32:esp32c3` |
+| ESP32-C6 | `espressif:esp32:esp32c6` |
+| ESP32-H2 | `espressif:esp32:esp32h2` |
+| ESP32-P4 | `espressif:esp32:esp32p4:PSRAM=enabled,USBMode=hwcdc,ChipVariant=postv3` |
+| ESP32-C5 | `espressif:esp32:esp32c5:PSRAM=enabled` |
+| ESP32-S31 | `espressif:esp32:esp32s31:USBMode=default` |
+
+> **Note:** `CDCOnBoot` on ESP32-P4 is **not** taken from `ci.yml`. After the FQBN is fully
+> resolved (defaults, `fqbn_append`, explicit `fqbn:`, or `-fqbn`), `apply_cdc_on_boot_opt`
+> overwrites it:
+> - `CI=true`: `CDCOnBoot=default` (Disabled) so `Serial` maps to UART0 for hardware runners
+> - Local: `CDCOnBoot=cdc` (Enabled) so `Serial` maps to `HWCDCSerial` (USB Serial/JTAG)
+>
+> Do not set `CDCOnBoot` in `ci.yml`; the environment overlay always wins.
+
 ### Test Scripts
 
 #### `tests_matrix.sh`
@@ -1762,7 +1808,7 @@ Pins that are never safe (flash, UART serial monitor, USB-JTAG, strapping, input
 | **Always safe** | 16, 17 |
 | **Peripheral-dependent** | 4, 13, 14, 27, 32, 33 (Touch) · 18, 19, 23 (SPI) · 21, 22 (I2C) · 25, 26 (DAC) |
 
-[^adc1]: `analogContinuous()` accepts **ADC1 only**. Do not use ADC2 pins for continuous mode even though `analogRead()` works on them. `analogContinuous()` clears requested pins via periman but fails if ADC1 oneshot is still in use on *other* pins. On all other targets (S2, S3, C3, C6, H2, C5, P4) the ADC is a single unit and this split does not apply. Ref: `cores/esp32/esp32-hal-adc.c`.
+[^adc1]: `analogContinuous()` accepts **ADC1 only**. Do not use ADC2 pins for continuous mode even though `analogRead()` works on them. `analogContinuous()` clears requested pins via periman but fails if ADC1 oneshot is still in use on *other* pins. On S2, S3, C3, C6, H2, C5, and P4 the ADC is a single unit and this split does not apply. ESP32-S31 has two units (ADC1 on GPIO42–49, ADC2 on GPIO50–57) and only one attenuation (`ADC_11db`). Ref: `cores/esp32/esp32-hal-adc.c`.
 
 [^adc2]: `analogRead()` on ADC2 pins can fail or return incorrect values when the Wi-Fi radio is active. ADC2 pins **cannot** be used with `analogContinuous()`.
 
@@ -1886,6 +1932,25 @@ Pins that are never safe (flash, UART serial monitor, USB-JTAG, strapping, input
 | **Touch** | `T0`→2, `T1`→3, `T2`→4, `T3`→5, `T4`→6, `T5`→7, `T6`→8, `T7`→9, `T8`→10, `T9`→11, `T10`→12, `T11`→13, `T12`→14, `T13`→15 |
 | **Always safe** | 20–23, 27, 46–48, 53 |
 | **Peripheral-dependent** | 2–6 (Touch) · 7, 8 (I2C, Touch) · 26, 32, 33 (SPI) · 54 (ESP-Hosted RESET) |
+
+### ESP32-S31 — `esp32s31` Dev Module
+
+Arduino pin aliases come from `variants/esp32s31/pins_arduino.h` (ESP32-S31 EV Function board). Strapping and flash pins come from the chip pin list.
+
+| Property | GPIOs |
+|---|---|
+| **Strapping** | 36, 37, 60, 61 (`BOOT_PIN` is 61) |
+| **SPI flash (do not use)** | 26–28, 30–32 |
+| **UART** | `TX`→58, `RX`→59 |
+| **I2C** | `SDA`→2, `SCL`→3 |
+| **SPI** | `SS`→37, `MOSI`→38, `MISO`→39, `SCK`→40 |
+| **ADC1** | `A0`→42 … `A7`→49 |
+| **ADC2** | `A8`→50 … `A15`→57 |
+| **Touch** | `T0`→6 … `T13`→19 |
+| **Ethernet (RGMII)** | `IRQ`→4, `MDC`→5, `MDIO`→6, `POWER`→7, `TX0`–`TX3`→8–11, `TX_CTL`→12, `TX_CLK`→13, `RX_CLK`→14, `RX_CTL`→15, `RX3`–`RX0`→16–19 |
+| **I2S** | `SCL1`→50, `SDA1`→51, `MCLK`→52, `SCLK`→53, `DOUT`→54, `LRCK`→55, `DIN`→56, `PA_CTRL`→57 |
+| **RGB LED** | `LED_BUILTIN` / `RGB_BUILTIN`→60 (also a strapping pin) |
+| **Peripheral-dependent** | 2, 3 (I2C) · 4–19 (Ethernet, and 6–19 are also Touch) · 37–40 (SPI; 37 is strapping) · 50–57 (I2S, and ADC2) |
 
 ### Quick Reference: Choosing Test Pins
 

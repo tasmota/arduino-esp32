@@ -24,6 +24,8 @@ endif()
 
 set(CORE_SRCS
   cores/esp32/base64.cpp
+  cores/esp32/BTAddress.cpp
+  cores/esp32/BTStatus.cpp
   cores/esp32/cbuf.cpp
   cores/esp32/ColorFormat.c
   cores/esp32/esp32-hal-adc.c
@@ -143,7 +145,7 @@ set(ARDUINO_LIBRARY_Hash_SRCS
 
 set(ARDUINO_LIBRARY_HTTPClient_SRCS libraries/HTTPClient/src/HTTPClient.cpp)
 
-set(ARDUINO_LIBRARY_HTTPUpdate_SRCS libraries/HTTPUpdate/src/HTTPUpdate.cpp)
+set(ARDUINO_LIBRARY_HTTPUpdate_SRCS libraries/HTTPUpdate/src/HTTPUpdate.cpp libraries/HTTPUpdate/src/HTTPUpdateChecksum.cpp)
 
 set(ARDUINO_LIBRARY_LittleFS_SRCS libraries/LittleFS/src/LittleFS.cpp)
 
@@ -166,6 +168,8 @@ set(ARDUINO_LIBRARY_Ticker_SRCS libraries/Ticker/src/Ticker.cpp)
 
 set(ARDUINO_LIBRARY_Update_SRCS
   libraries/Update/src/Updater.cpp
+  libraries/Update/src/UpdaterSHA256.cpp
+  libraries/Update/src/UpdaterSHA512.cpp
   libraries/Update/src/HttpsOTAUpdate.cpp
   libraries/Update/src/Updater_Signing.cpp)
 
@@ -332,6 +336,18 @@ if(CONFIG_OPENTHREAD_ENABLED AND CONFIG_SOC_IEEE802154_SUPPORTED)
     "-u __wrap_otPlatMessagePoolFree"
     "-u __wrap_otPlatMessagePoolNumFreeBuffers"
     "-u __wrap_otPlatMessagePoolDeinit")
+endif()
+
+# Matter data model: prefer SPIRAM when that heap exists (bypass malloc 4096 rule).
+# C++ mangled names from harvested libespressif__esp_matter.a (nm-confirmed).
+if(CONFIG_ESP_MATTER_ENABLE_DATA_MODEL)
+  idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=_Z21esp_matter_mem_callocjj" APPEND)
+  idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=_Z22esp_matter_mem_reallocPvj" APPEND)
+  idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=_Z19esp_matter_mem_freePv" APPEND)
+  target_link_libraries(${COMPONENT_LIB} INTERFACE
+    "-u __wrap__Z21esp_matter_mem_callocjj"
+    "-u __wrap__Z22esp_matter_mem_reallocPvj"
+    "-u __wrap__Z19esp_matter_mem_freePv")
 endif()
 
 # This function adds a dependency on the given component if the component is included into the build.

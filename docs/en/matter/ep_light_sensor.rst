@@ -8,17 +8,17 @@ About
 The ``MatterLightSensor`` class provides an illuminance sensor endpoint for Matter networks. This endpoint implements the Matter illuminance sensing standard for read-only illuminance reporting.
 
 **Features:**
-* Illuminance measurement reporting (1 lx to 3.576 Mlx)
-* Read-only sensor (no control functionality)
-* Automatic illuminance updates
-* Integration with Apple HomeKit, Amazon Alexa, and Google Home
-* Matter standard compliance
+* Illuminance measurement reporting (1 lx to 3.576 Mlx).
+* Read-only sensor (no control functionality).
+* Automatic illuminance updates.
+* Integration with Home Assistant, Apple Home, Amazon Alexa, and Google Home.
+* Matter standard compliance.
 
 **Use Cases:**
-* Room illuminance monitoring
-* Weather stations
-* Illuminance logging
-* Smart home climate monitoring
+* Room illuminance monitoring.
+* Weather stations.
+* Illuminance logging.
+* Smart home climate monitoring.
 
 API Reference
 -------------
@@ -45,9 +45,9 @@ Initializes the Matter light sensor endpoint with an initial illuminance value.
 
 .. code-block:: arduino
 
-    bool begin(double illuminance = 1.00)
+    bool begin(double illuminance = 1.00);
 
-* ``illuminance`` - Initial illuminance value (1 lx to 3.576 Mlx, default: 1.00)
+* ``illuminance`` - Initial illuminance value (1 lx to 3.576 Mlx, default: 1.00).
 
 This function will return ``true`` if successful, ``false`` otherwise.
 
@@ -72,7 +72,7 @@ Sets the reported illuminance value.
 
     bool setIlluminance(double illuminance);
 
-* ``illuminance`` - Illuminance value to report (1 lx to 3.576 Mlx)
+* ``illuminance`` - Illuminance value to report (1 lx to 3.576 Mlx).
 
 This function will return ``true`` if successful, ``false`` otherwise.
 
@@ -126,5 +126,5 @@ Example
 Light Sensor
 ************
 
-.. literalinclude:: ../../../libraries/Matter/examples/MatterLightSensor/MatterLightSensor.ino
+.. literalinclude:: ../../../libraries/Matter/examples/Sensors/MatterLightSensor/MatterLightSensor.ino
     :language: arduino

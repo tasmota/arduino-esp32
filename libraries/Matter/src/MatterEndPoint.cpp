@@ -15,43 +15,55 @@
 #include <sdkconfig.h>
 #ifdef CONFIG_ESP_MATTER_ENABLE_DATA_MODEL
 
+#include <Matter.h>
 #include <MatterEndPoint.h>
-#include <app/clusters/boolean-state-server/boolean-state-cluster.h>
+#include <MatterTags.h>
+#include <string.h>
+#include <app/ConcreteClusterPath.h>
+#include <app/clusters/boolean-state-server/BooleanStateCluster.h>
+#include <app/server-cluster/ServerClusterInterface.h>
 #include <data_model_provider/esp_matter_data_model_provider.h>
 
 using namespace chip::app::Clusters;
+using namespace esp_matter::endpoint;
 
 uint16_t MatterEndPoint::secondary_network_endpoint_id = 0;
 
-// This function is called to create a secondary network interface endpoint.
-// It can be used for devices that support multiple network interfaces,
-// such as Ethernet, Thread and Wi-Fi.
-bool MatterEndPoint::createSecondaryNetworkInterface() {
-  if (secondary_network_endpoint_id != 0) {
-    log_v("Secondary network interface endpoint already exists with ID %u", secondary_network_endpoint_id);
+bool MatterEndPoint::ensureMatterNode() {
+  return ArduinoMatter::initNode();
+}
+
+bool MatterEndPoint::registerCreatedEndpoint(endpoint_t *ep) {
+  if (!ensureMatterNode()) {
+    log_e("registerCreatedEndpoint: failed to create Matter node");
     return false;
   }
-
-#if CHIP_DEVICE_CONFIG_ENABLE_THREAD && CHIP_DEVICE_CONFIG_ENABLE_WIFI_STATION
-  // Create a secondary network interface endpoint
-  endpoint::secondary_network_interface::config_t secondary_network_interface_config;
-  secondary_network_interface_config.network_commissioning.feature_map = chip::to_underlying(
-    //chip::app::Clusters::NetworkCommissioning::Feature::kWiFiNetworkInterface) |
-    chip::app::Clusters::NetworkCommissioning::Feature::kThreadNetworkInterface
-  );
-  endpoint_t *endpoint = endpoint::secondary_network_interface::create(node::get(), &secondary_network_interface_config, ENDPOINT_FLAG_NONE, nullptr);
-  if (endpoint == nullptr) {
-    log_e("Failed to create secondary network interface endpoint");
+  if (ep == nullptr) {
+    log_e("registerCreatedEndpoint: null endpoint");
     return false;
   }
-  secondary_network_endpoint_id = endpoint::get_id(endpoint);
-  log_i("Secondary Network Interface created with endpoint_id %u", secondary_network_endpoint_id);
-#else
-  log_i("Secondary Network Interface not supported");
-  return false;
-#endif
-
+  if (getEndPointId() != 0) {
+    log_e("registerCreatedEndpoint: endpoint ID already set (%u)", getEndPointId());
+    return false;
+  }
+  const uint16_t id = endpoint::get_id(ep);
+  if (id == 0) {
+    log_e("registerCreatedEndpoint: cannot register root endpoint 0");
+    return false;
+  }
+  if (endpoint::get_priv_data(id) != static_cast<void *>(this)) {
+    log_e("registerCreatedEndpoint: priv_data for endpoint %u must be (void *)this", id);
+    return false;
+  }
+  setEndPointId(id);
   return true;
+}
+
+bool MatterEndPoint::createSecondaryNetworkInterface() {
+  log_w("createSecondaryNetworkInterface() is deprecated and does nothing. "
+        "Arduino Matter exposes Wi-Fi or Thread Network Commissioning on endpoint 0 "
+        "(ESP32-C6: Matter.selectNetwork()), not both.");
+  return false;
 }
 
 uint16_t MatterEndPoint::getSecondaryNetworkEndPointId() {
@@ -80,7 +92,7 @@ esp_matter::attribute_t *MatterEndPoint::getAttribute(uint32_t cluster_id, uint3
   }
   endpoint_t *endpoint = endpoint::get(node::get(), endpoint_id);
   if (endpoint == nullptr) {
-    log_e("Endpoint [%]u not found", endpoint_id);
+    log_e("Endpoint [%u] not found", endpoint_id);
     return nullptr;
   }
   cluster_t *cluster = cluster::get(endpoint, cluster_id);
@@ -134,17 +146,37 @@ bool MatterEndPoint::updateAttributeVal(uint32_t cluster_id, uint32_t attribute_
   return false;
 }
 
-static BooleanStateCluster *getBooleanStateCluster(uint16_t endpoint_id) {
-  chip::app::ServerClusterInterface *iface =
-    esp_matter::data_model::provider::get_instance().registry().Get(chip::app::ConcreteClusterPath(endpoint_id, BooleanState::Id));
-  return static_cast<BooleanStateCluster *>(iface);
+chip::app::ServerClusterInterface *MatterEndPoint::findRegisteredCluster(uint32_t cluster_id) {
+  if (endpoint_id == 0) {
+    return nullptr;
+  }
+  return esp_matter::data_model::provider::get_instance().registry().Get(chip::app::ConcreteClusterPath(endpoint_id, cluster_id));
+}
+
+void MatterEndPoint::notifyStackStarted() {
+  if (hasPendingBooleanState) {
+    BooleanStateCluster *cluster = static_cast<BooleanStateCluster *>(findRegisteredCluster(BooleanState::Id));
+    if (cluster != nullptr) {
+      lock::ScopedChipStackLock lock(portMAX_DELAY);
+      cluster->SetStateValue(pendingBooleanState);
+    } else {
+      log_e("BooleanState cluster not found on endpoint %u after Matter.begin().", endpoint_id);
+    }
+    hasPendingBooleanState = false;
+  }
+  onStackStarted();
 }
 
 bool MatterEndPoint::setBooleanStateValue(bool value) {
-  BooleanStateCluster *cluster = getBooleanStateCluster(endpoint_id);
+  BooleanStateCluster *cluster = static_cast<BooleanStateCluster *>(findRegisteredCluster(BooleanState::Id));
   if (cluster == nullptr) {
-    log_e("BooleanState cluster not found on endpoint %u. Call Matter.begin() first.", endpoint_id);
-    return false;
+    if (endpoint_id == 0) {
+      log_e("BooleanState cluster not found. Call the endpoint begin() first.");
+      return false;
+    }
+    pendingBooleanState = value;
+    hasPendingBooleanState = true;
+    return true;
   }
   lock::ScopedChipStackLock lock(portMAX_DELAY);
   cluster->SetStateValue(value);
@@ -152,9 +184,15 @@ bool MatterEndPoint::setBooleanStateValue(bool value) {
 }
 
 // This callback is invoked when clients interact with the Identify Cluster of an specific endpoint.
-bool MatterEndPoint::endpointIdentifyCB(uint16_t endpoint_id, bool identifyIsEnabled) {
+bool MatterEndPoint::endpointIdentifyCB(uint16_t endpoint_id, const MatterIdentifyRequest &request) {
+  if (getEndPointId() != endpoint_id) {
+    log_w("Identify callback endpoint %u does not match this MatterEndPoint (%u)", endpoint_id, getEndPointId());
+    return false;
+  }
+  identifyRequest = request;
+  identifyRequest.valid = true;
   if (_onEndPointIdentifyCB) {
-    return _onEndPointIdentifyCB(identifyIsEnabled);
+    return _onEndPointIdentifyCB(identifyRequest.active);
   }
   return true;
 }
@@ -162,6 +200,105 @@ bool MatterEndPoint::endpointIdentifyCB(uint16_t endpoint_id, bool identifyIsEna
 // User callback for the Identify Cluster functionality
 void MatterEndPoint::onIdentify(EndPointIdentifyCB onEndPointIdentifyCB) {
   _onEndPointIdentifyCB = onEndPointIdentifyCB;
+}
+
+MatterIdentifyRequest MatterEndPoint::getIdentifyRequest() const {
+  return identifyRequest;
+}
+
+// Enables the Descriptor cluster TagList feature on this endpoint so setTagList() can be used.
+bool MatterEndPoint::enableTagList() {
+  if (tagListEnabled) {
+    return true;
+  }
+  if (endpoint_id == 0) {
+    log_e("Endpoint ID is not set. Call the endpoint begin() first.");
+    return false;
+  }
+  endpoint_t *ep = endpoint::get(node::get(), endpoint_id);
+  if (ep == nullptr) {
+    log_e("Endpoint %u not found", endpoint_id);
+    return false;
+  }
+  cluster_t *descriptorCluster = cluster::get(ep, Descriptor::Id);
+  if (descriptorCluster == nullptr) {
+    log_e("Descriptor cluster not found on endpoint %u", endpoint_id);
+    return false;
+  }
+  if (cluster::descriptor::feature::tag_list::add(descriptorCluster) != ESP_OK) {
+    log_e("Failed to enable TagList feature on endpoint %u", endpoint_id);
+    return false;
+  }
+  tagListEnabled = true;
+  return true;
+}
+
+// Sets the Descriptor cluster TagList attribute for this endpoint, replacing any tag list set previously.
+bool MatterEndPoint::setTagList(const MatterTag *tagList, uint8_t count) {
+  if (endpoint_id == 0) {
+    log_e("setTagList() requires the endpoint begin() to be called first.");
+    return false;
+  }
+  if (tagList == nullptr || count == 0) {
+    log_e("setTagList() requires a non-empty tag list.");
+    return false;
+  }
+  if (count > MAX_TAG_LIST_SIZE) {
+    log_e("setTagList() accepts at most %u tags", MAX_TAG_LIST_SIZE);
+    return false;
+  }
+
+  for (uint8_t i = 0; i < count; i++) {
+    const bool emptyLabel = (tagList[i].label == nullptr || tagList[i].label[0] == '\0');
+    if (tagList[i].namespaceId == MatterTags::Switches::NS && tagList[i].tag == MatterTags::Switches::Custom && emptyLabel) {
+      log_e("Switches Custom tag requires a non-empty label. Use MatterTags::Switches::createCustomTag().");
+      return false;
+    }
+    if (tagList[i].namespaceId == MatterTags::Position::NS && tagList[i].tag == MatterTags::Position::Row && emptyLabel) {
+      log_e("Position Row tag requires a non-empty label. Use MatterTags::Position::createRowTag().");
+      return false;
+    }
+    if (tagList[i].namespaceId == MatterTags::Position::NS && tagList[i].tag == MatterTags::Position::Column && emptyLabel) {
+      log_e("Position Column tag requires a non-empty label. Use MatterTags::Position::createColumnTag().");
+      return false;
+    }
+  }
+
+  if (!enableTagList()) {
+    return false;
+  }
+
+  endpoint_t *ep = endpoint::get(node::get(), endpoint_id);
+  if (ep == nullptr) {
+    log_e("Endpoint %u not found", endpoint_id);
+    return false;
+  }
+
+  Globals::Structs::SemanticTagStruct::Type tags[MAX_TAG_LIST_SIZE] = {};
+  for (uint8_t i = 0; i < count; i++) {
+    tags[i].mfgCode.SetNull();
+    tags[i].namespaceID = tagList[i].namespaceId;
+    tags[i].tag = tagList[i].tag;
+    if (tagList[i].label != nullptr) {
+      tags[i].label.Emplace(chip::CharSpan(tagList[i].label, strlen(tagList[i].label)));
+    }
+  }
+
+  esp_err_t err = endpoint::set_semantic_tags(ep, tags, count);
+  if (err != ESP_OK) {
+    log_e("Failed to set TagList attribute: %s", esp_err_to_name(err));
+    return false;
+  }
+  return true;
+}
+
+// Convenience overload: ButtonOn.setTagList({MatterTags::Switches::On});
+bool MatterEndPoint::setTagList(std::initializer_list<MatterTag> tagList) {
+  if (tagList.size() > MAX_TAG_LIST_SIZE) {
+    log_e("setTagList() accepts at most %u tags", MAX_TAG_LIST_SIZE);
+    return false;
+  }
+  return setTagList(tagList.begin(), static_cast<uint8_t>(tagList.size()));
 }
 
 #endif /* CONFIG_ESP_MATTER_ENABLE_DATA_MODEL */

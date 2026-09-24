@@ -16,7 +16,6 @@
 #ifdef CONFIG_ESP_MATTER_ENABLE_DATA_MODEL
 
 #include <Matter.h>
-#include <app/server/Server.h>
 #include <MatterEndpoints/MatterOnOffLight.h>
 
 using namespace esp_matter;
@@ -60,7 +59,7 @@ MatterOnOffLight::~MatterOnOffLight() {
 }
 
 bool MatterOnOffLight::begin(bool initialState) {
-  ArduinoMatter::_init();
+  ensureMatterNode();
 
   if (getEndPointId() != 0) {
     log_e("Matter On-Off Light with Endpoint Id %u device has already been created.", getEndPointId());
@@ -80,6 +79,7 @@ bool MatterOnOffLight::begin(bool initialState) {
   }
 
   setEndPointId(endpoint::get_id(endpoint));
+
   log_i("On-Off Light created with endpoint_id %u", getEndPointId());
 
   started = true;

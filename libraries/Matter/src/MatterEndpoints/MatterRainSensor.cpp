@@ -16,7 +16,6 @@
 #ifdef CONFIG_ESP_MATTER_ENABLE_DATA_MODEL
 
 #include <Matter.h>
-#include <app/server/Server.h>
 #include <MatterEndpoints/MatterRainSensor.h>
 
 using namespace esp_matter;
@@ -44,7 +43,7 @@ MatterRainSensor::~MatterRainSensor() {
 }
 
 bool MatterRainSensor::begin() {
-  ArduinoMatter::_init();
+  ensureMatterNode();
 
   if (getEndPointId() != 0) {
     log_e("Matter Rain Sensor with Endpoint Id %u device has already been created.", getEndPointId());
@@ -54,7 +53,7 @@ bool MatterRainSensor::begin() {
   rain_sensor::config_t rain_sensor_config{};
   rain_sensor_config.boolean_state.state_value = false;
   // CHIP BooleanStateCluster still starts at false regardless of this field;
-  // apply the real sensor with setRain() after Matter.begin().
+  // setRain() after endpoint begin() caches the value and applies it at Matter.begin().
 
   endpoint_t *endpoint = rain_sensor::create(node::get(), &rain_sensor_config, ENDPOINT_FLAG_NONE, (void *)this);
   if (endpoint == nullptr) {
@@ -63,6 +62,7 @@ bool MatterRainSensor::begin() {
   }
   rainState = false;
   setEndPointId(endpoint::get_id(endpoint));
+
   log_i("Rain Sensor created with endpoint_id %u", getEndPointId());
 
   started = true;

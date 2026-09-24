@@ -17,11 +17,34 @@
 
 #include <Matter.h>
 #include <MatterEndpoints/MatterFan.h>
+#include <app/clusters/fan-control-server/FanControlCluster.h>
+#include <app/data-model/Nullable.h>
+#include <lib/support/attribute-storage-null-handling.h>
 
 using namespace esp_matter;
 using namespace esp_matter::endpoint;
 using namespace esp_matter::cluster;
 using namespace chip::app::Clusters;
+
+static bool isPercentSettingNull(const esp_matter_attr_val_t *val) {
+  if (val == nullptr) {
+    return true;
+  }
+  if (val->type == ESP_MATTER_VAL_TYPE_NULLABLE_UINT8) {
+    return chip::app::NumericAttributeTraits<uint8_t>::IsNullValue(val->val.u8);
+  }
+  return false;
+}
+
+MatterFan::FanMode_t MatterFan::resolveFanMode(FanMode_t mode) const {
+  if (mode == FAN_MODE_ON) {
+    return FAN_MODE_HIGH;
+  }
+  if (mode == FAN_MODE_SMART) {
+    return (validFanModes & fanSeqModeAuto) ? FAN_MODE_AUTO : FAN_MODE_HIGH;
+  }
+  return mode;
+}
 
 // string helper for the FAN MODE
 const char *MatterFan::fanModeString[7] = {"OFF", "LOW", "MEDIUM", "HIGH", "ON", "AUTO", "SMART"};
@@ -51,20 +74,42 @@ bool MatterFan::attributeChangeCB(uint16_t endpoint_id, uint32_t cluster_id, uin
   if (endpoint_id == getEndPointId() && cluster_id == FanControl::Id) {
     switch (attribute_id) {
       case FanControl::Attributes::FanMode::Id:
-        log_v("FanControl Fan Mode changed to %s (%x)", val->val.u8 < 7 ? fanModeString[val->val.u8] : "Unknown", val->val.u8);
+      {
+        FanMode_t newMode = resolveFanMode((FanMode_t)val->val.u8);
+        if (newMode == currentFanMode) {
+          break;
+        }
+        log_v("FanControl Fan Mode changed to %s (%x)", getFanModeString(newMode), (uint8_t)newMode);
+        // Cache before callbacks. ATTR_SET still runs PRE_UPDATE; getMode() must
+        // already show the new value or sketch setOnOff()/setMode() write again
+        // and overflow loopTask.
+        currentFanMode = newMode;
         if (_onChangeModeCB != NULL) {
-          ret &= _onChangeModeCB((FanMode_t)val->val.u8);
+          ret &= _onChangeModeCB(newMode);
         }
         if (_onChangeCB != NULL) {
-          ret &= _onChangeCB((FanMode_t)val->val.u8, currentPercent);
-        }
-        if (ret == true) {
-          currentFanMode = (FanMode_t)val->val.u8;
+          ret &= _onChangeCB(newMode, currentPercent);
         }
         break;
+      }
       case FanControl::Attributes::PercentSetting::Id:
-      case FanControl::Attributes::PercentCurrent::Id:
-        log_v("FanControl Percent %s changed to %u", attribute_id == FanControl::Attributes::PercentSetting::Id ? "SETTING" : "CURRENT", val->val.u8);
+        // PercentSetting is nullable (null in Auto). Do not copy that val into PercentCurrent.
+        if (isPercentSettingNull(val)) {
+          log_v("FanControl PercentSetting is null (auto)");
+          break;
+        }
+        if (val->val.u8 > MAX_SPEED) {
+          log_e("FanControl PercentSetting %u is out of range", val->val.u8);
+          return false;
+        }
+        if (val->val.u8 == currentPercent) {
+          // Controller already has PercentSetting; still report PercentCurrent.
+          reportPercentCurrent(currentPercent);
+          break;
+        }
+        log_v("FanControl PercentSetting changed to %u", val->val.u8);
+        // Same as FanMode: cache first so getSpeedPercent() is current in callbacks.
+        currentPercent = val->val.u8;
         if (_onChangeSpeedCB != NULL) {
           ret &= _onChangeSpeedCB(val->val.u8);
         }
@@ -72,10 +117,24 @@ bool MatterFan::attributeChangeCB(uint16_t endpoint_id, uint32_t cluster_id, uin
           ret &= _onChangeCB(currentFanMode, val->val.u8);
         }
         if (ret == true) {
-          // change setting speed percent
-          currentPercent = val->val.u8;
-          setAttributeVal(FanControl::Id, FanControl::Attributes::PercentSetting::Id, val);
-          setAttributeVal(FanControl::Id, FanControl::Attributes::PercentCurrent::Id, val);
+          reportPercentCurrent(currentPercent);
+        }
+        break;
+      case FanControl::Attributes::PercentCurrent::Id:
+        if (val->val.u8 > MAX_SPEED) {
+          log_e("FanControl PercentCurrent %u is out of range", val->val.u8);
+          return false;
+        }
+        if (val->val.u8 == currentPercent) {
+          break;
+        }
+        log_v("FanControl PercentCurrent changed to %u", val->val.u8);
+        currentPercent = val->val.u8;
+        if (_onChangeSpeedCB != NULL) {
+          ret &= _onChangeSpeedCB(val->val.u8);
+        }
+        if (_onChangeCB != NULL) {
+          ret &= _onChangeCB(currentFanMode, val->val.u8);
         }
         break;
     }
@@ -85,20 +144,44 @@ bool MatterFan::attributeChangeCB(uint16_t endpoint_id, uint32_t cluster_id, uin
 }
 
 bool MatterFan::begin(uint8_t percent, FanMode_t fanMode, FanModeSequence_t fanModeSeq) {
-  ArduinoMatter::_init();
+  ensureMatterNode();
 
   if (getEndPointId() != 0) {
     log_e("Matter Fan with Endpoint Id %u device has already been created.", getEndPointId());
     return false;
   }
 
+  if (percent > MAX_SPEED) {
+    log_e("Invalid Fan speed percent %u (0-100).", percent);
+    return false;
+  }
+  if (fanModeSeq > FAN_MODE_SEQ_OFF_HIGH) {
+    log_e("Invalid Fan Mode Sequence.");
+    return false;
+  }
+
+  validFanModes = fanModeSequence[fanModeSeq];
+  fanMode = resolveFanMode(fanMode);
+  if (!(validFanModes & (1 << fanMode))) {
+    log_e("Invalid Fan Mode %s for the current Fan Mode Sequence.", getFanModeString(fanMode));
+    return false;
+  }
+
+  // CHIP: Off zeros both percents; Auto nulls PercentSetting.
+  if (fanMode == FAN_MODE_OFF) {
+    percent = 0;
+  }
+
   // endpoint handles can be used to add/modify clusters.
   fan::config_t fan_config;
   fan_config.fan_control.fan_mode = fanMode;
   fan_config.fan_control.percent_current = percent;
-  fan_config.fan_control.percent_setting = percent;
+  if (fanMode == FAN_MODE_AUTO) {
+    fan_config.fan_control.percent_setting = nullable<uint8_t>();
+  } else {
+    fan_config.fan_control.percent_setting = percent;
+  }
   fan_config.fan_control.fan_mode_sequence = fanModeSeq;
-  validFanModes = fanModeSequence[fanModeSeq];
 
   endpoint_t *endpoint = fan::create(node::get(), &fan_config, ENDPOINT_FLAG_NONE, (void *)this);
 
@@ -111,6 +194,7 @@ bool MatterFan::begin(uint8_t percent, FanMode_t fanMode, FanModeSequence_t fanM
   currentPercent = percent;
 
   setEndPointId(endpoint::get_id(endpoint));
+
   log_i("Fan created with endpoint_id %u", getEndPointId());
 
   started = true;
@@ -121,20 +205,67 @@ void MatterFan::end() {
   started = false;
 }
 
+void MatterFan::onStackStarted() {
+  FanControlCluster *cluster = static_cast<FanControlCluster *>(findRegisteredCluster(FanControl::Id));
+  if (cluster == nullptr) {
+    log_e("FanControl cluster not found after Matter.begin().");
+    return;
+  }
+
+  lock::ScopedChipStackLock lock(portMAX_DELAY);
+  if (cluster->SetFanMode(static_cast<FanControl::FanModeEnum>(currentFanMode)) != chip::Protocols::InteractionModel::Status::Success) {
+    log_e("Failed to apply cached FanMode after Matter.begin().");
+    return;
+  }
+  if (currentFanMode != FAN_MODE_AUTO && currentFanMode != FAN_MODE_OFF) {
+    if (cluster->SetPercentSetting(chip::app::DataModel::MakeNullable<chip::Percent>(currentPercent)) != chip::Protocols::InteractionModel::Status::Success) {
+      log_e("Failed to apply cached Fan PercentSetting after Matter.begin().");
+    }
+  }
+  cluster->SetPercentCurrent(currentPercent);
+}
+
+bool MatterFan::reportPercentCurrent(uint8_t percent) {
+  FanControlCluster *cluster = static_cast<FanControlCluster *>(findRegisteredCluster(FanControl::Id));
+  if (cluster != nullptr) {
+    lock::ScopedChipStackLock lock(portMAX_DELAY);
+    return cluster->SetPercentCurrent(percent);
+  }
+  esp_matter_attr_val_t currentVal = esp_matter_uint8(percent);
+  return updateAttributeVal(FanControl::Id, FanControl::Attributes::PercentCurrent::Id, &currentVal);
+}
+
 bool MatterFan::setMode(FanMode_t newMode, bool performUpdate) {
   if (!started) {
     log_w("Matter Fan device has not begun.");
     return false;
   }
+  newMode = resolveFanMode(newMode);
+
   // avoid processing if there was no change
   if (currentFanMode == newMode) {
     return true;
   }
 
-  // check if the mode is valid based on the sequence used in its creation
+  // check if the remapped mode is valid for the sequence used in begin()
   if (!(validFanModes & (1 << newMode))) {
-    log_e("Invalid Fan Mode %s for the current Fan Mode Sequence.", fanModeString[newMode]);
+    log_e("Invalid Fan Mode %s for the current Fan Mode Sequence.", getFanModeString(newMode));
     return false;
+  }
+
+  FanControlCluster *cluster = static_cast<FanControlCluster *>(findRegisteredCluster(FanControl::Id));
+  if (cluster != nullptr) {
+    lock::ScopedChipStackLock lock(portMAX_DELAY);
+    if (cluster->SetFanMode(static_cast<FanControl::FanModeEnum>(newMode)) != chip::Protocols::InteractionModel::Status::Success) {
+      log_e("Failed to set Fan Mode Attribute.");
+      return false;
+    }
+    currentFanMode = newMode;
+    if (currentFanMode == FAN_MODE_OFF) {
+      currentPercent = 0;
+    }
+    log_v("Fan Mode %s to %s ==> onOffState[%s]", performUpdate ? "updated" : "set", getFanModeString(currentFanMode), getOnOff() ? "ON" : "OFF");
+    return true;
   }
 
   esp_matter_attr_val_t modeVal = esp_matter_invalid(NULL);
@@ -156,7 +287,40 @@ bool MatterFan::setMode(FanMode_t newMode, bool performUpdate) {
     }
   }
   currentFanMode = newMode;
-  log_v("Fan Mode %s to %s ==> onOffState[%s]", performUpdate ? "updated" : "set", fanModeString[currentFanMode], getOnOff() ? "ON" : "OFF");
+  if (!applyModePercentRules(currentFanMode, performUpdate)) {
+    return false;
+  }
+  log_v("Fan Mode %s to %s ==> onOffState[%s]", performUpdate ? "updated" : "set", getFanModeString(currentFanMode), getOnOff() ? "ON" : "OFF");
+  return true;
+}
+
+bool MatterFan::applyModePercentRules(FanMode_t mode, bool performUpdate) {
+  if (mode == FAN_MODE_OFF) {
+    esp_matter_attr_val_t settingVal = esp_matter_nullable_uint8(0);
+    bool ret = performUpdate ? updateAttributeVal(FanControl::Id, FanControl::Attributes::PercentSetting::Id, &settingVal)
+                             : setAttributeVal(FanControl::Id, FanControl::Attributes::PercentSetting::Id, &settingVal);
+    if (!ret) {
+      log_e("Failed to %s Fan PercentSetting Attribute.", performUpdate ? "update" : "set");
+      return false;
+    }
+    currentPercent = 0;
+    if (!reportPercentCurrent(0)) {
+      log_e("Failed to update Fan PercentCurrent Attribute.");
+      return false;
+    }
+    return true;
+  }
+
+  if (mode == FAN_MODE_AUTO) {
+    // Null PercentSetting; PercentCurrent stays the actual speed.
+    esp_matter_attr_val_t settingVal = esp_matter_nullable_uint8(nullable<uint8_t>());
+    bool ret = performUpdate ? updateAttributeVal(FanControl::Id, FanControl::Attributes::PercentSetting::Id, &settingVal)
+                             : setAttributeVal(FanControl::Id, FanControl::Attributes::PercentSetting::Id, &settingVal);
+    if (!ret) {
+      log_e("Failed to %s Fan PercentSetting Attribute.", performUpdate ? "update" : "set");
+      return false;
+    }
+  }
   return true;
 }
 
@@ -167,31 +331,54 @@ bool MatterFan::setSpeedPercent(uint8_t newPercent, bool performUpdate) {
     log_w("Matter Fan device has not begun.");
     return false;
   }
+  if (newPercent > MAX_SPEED) {
+    log_e("Invalid Fan speed percent %u (0-100).", newPercent);
+    return false;
+  }
   // avoid processing if there was no change
   if (currentPercent == newPercent) {
     return true;
   }
 
-  esp_matter_attr_val_t speedVal = esp_matter_invalid(NULL);
-  if (!getAttributeVal(FanControl::Id, FanControl::Attributes::PercentSetting::Id, &speedVal)) {
-    log_e("Failed to get Fan Speed Percent Attribute.");
-    return false;
-  }
-  if (speedVal.val.u8 != newPercent) {
-    speedVal.val.u8 = newPercent;
-    bool ret;
-    if (performUpdate) {
-      ret = updateAttributeVal(FanControl::Id, FanControl::Attributes::PercentSetting::Id, &speedVal);
-    } else {
-      ret = setAttributeVal(FanControl::Id, FanControl::Attributes::PercentSetting::Id, &speedVal);
-      ret = setAttributeVal(FanControl::Id, FanControl::Attributes::PercentCurrent::Id, &speedVal);
+  FanControlCluster *cluster = static_cast<FanControlCluster *>(findRegisteredCluster(FanControl::Id));
+  if (cluster != nullptr) {
+    lock::ScopedChipStackLock lock(portMAX_DELAY);
+    // Keep PercentSetting null in Auto (SetFanMode(Auto) already nulled it).
+    // CHIP accepts a non-null SetPercentSetting in Auto; skip it so the setting stays null.
+    if (currentFanMode != FAN_MODE_AUTO) {
+      if (cluster->SetPercentSetting(chip::app::DataModel::MakeNullable<chip::Percent>(newPercent)) != chip::Protocols::InteractionModel::Status::Success) {
+        log_e("Failed to set Fan PercentSetting Attribute.");
+        return false;
+      }
     }
-    if (!ret) {
-      log_e("Failed to %s Fan Speed Percent Attribute.", performUpdate ? "update" : "set");
+    if (!cluster->SetPercentCurrent(newPercent)) {
+      log_e("Failed to update Fan PercentCurrent Attribute.");
       return false;
     }
+    currentPercent = newPercent;
+    // SetPercentSetting(0) turns FanMode Off; a non-zero setting turns it on to Low/Med/High.
+    currentFanMode = static_cast<FanMode_t>(cluster->GetFanMode());
+    log_v("Fan Speed %s to %u ==> onOffState[%s]", performUpdate ? "updated" : "set", currentPercent, getOnOff() ? "ON" : "OFF");
+    return true;
   }
+
+  esp_matter_attr_val_t settingVal = esp_matter_nullable_uint8(newPercent);
+  bool ret;
+  if (performUpdate) {
+    ret = updateAttributeVal(FanControl::Id, FanControl::Attributes::PercentSetting::Id, &settingVal);
+  } else {
+    ret = setAttributeVal(FanControl::Id, FanControl::Attributes::PercentSetting::Id, &settingVal);
+  }
+  if (!ret) {
+    log_e("Failed to %s Fan PercentSetting Attribute.", performUpdate ? "update" : "set");
+    return false;
+  }
+
   currentPercent = newPercent;
+  if (!reportPercentCurrent(newPercent)) {
+    log_e("Failed to update Fan PercentCurrent Attribute.");
+    return false;
+  }
   log_v("Fan Speed %s to %u ==> onOffState[%s]", performUpdate ? "updated" : "set", currentPercent, getOnOff() ? "ON" : "OFF");
   return true;
 }
@@ -206,19 +393,12 @@ bool MatterFan::setOnOff(bool newState, bool performUpdate) {
     return true;
   }
 
-  esp_matter_attr_val_t modeVal = esp_matter_invalid(NULL);
-  if (!getAttributeVal(FanControl::Id, FanControl::Attributes::FanMode::Id, &modeVal)) {
-    log_e("Failed to get Fan Mode Attribute.");
+  FanMode_t newMode = newState ? FAN_MODE_ON : FAN_MODE_OFF;
+  if (!setMode(newMode, performUpdate)) {
     return false;
   }
-  if (modeVal.val.u8 != (uint8_t)newState) {
-    FanMode_t newMode = newState ? FAN_MODE_ON : FAN_MODE_OFF;
-    if (!setMode(newMode, performUpdate)) {
-      return false;
-    }
-  }
   log_v(
-    "Fan State %s to %s :: Mode[%s]|Speed[%u]", performUpdate ? "updated" : "set", getOnOff() ? "ON" : "OFF", fanModeString[currentFanMode], currentPercent
+    "Fan State %s to %s :: Mode[%s]|Speed[%u]", performUpdate ? "updated" : "set", getOnOff() ? "ON" : "OFF", getFanModeString(currentFanMode), currentPercent
   );
   return true;
 }

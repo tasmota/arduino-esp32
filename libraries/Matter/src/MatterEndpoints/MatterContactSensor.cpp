@@ -16,7 +16,6 @@
 #ifdef CONFIG_ESP_MATTER_ENABLE_DATA_MODEL
 
 #include <Matter.h>
-#include <app/server/Server.h>
 #include <MatterEndpoints/MatterContactSensor.h>
 
 using namespace esp_matter;
@@ -44,7 +43,7 @@ MatterContactSensor::~MatterContactSensor() {
 }
 
 bool MatterContactSensor::begin() {
-  ArduinoMatter::_init();
+  ensureMatterNode();
 
   if (getEndPointId() != 0) {
     log_e("Matter Contact Sensor with Endpoint Id %u device has already been created.", getEndPointId());
@@ -53,8 +52,8 @@ bool MatterContactSensor::begin() {
 
   contact_sensor::config_t contact_sensor_config{};
   contact_sensor_config.boolean_state.state_value = false;
-  // CHIP BooleanStateCluster still starts at false regardless of this field;
-  // apply the real sensor with setContact() after Matter.begin().
+  // CHIP BooleanStateCluster still starts at false regardless of this field.
+  // setContact() after endpoint begin() caches the value and applies it at Matter.begin().
 
   endpoint_t *endpoint = contact_sensor::create(node::get(), &contact_sensor_config, ENDPOINT_FLAG_NONE, (void *)this);
   if (endpoint == nullptr) {
@@ -63,6 +62,7 @@ bool MatterContactSensor::begin() {
   }
   contactState = false;
   setEndPointId(endpoint::get_id(endpoint));
+
   log_i("Contact Sensor created with endpoint_id %u", getEndPointId());
 
   started = true;

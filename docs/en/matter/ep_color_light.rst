@@ -5,22 +5,24 @@ MatterColorLight
 About
 -----
 
-The ``MatterColorLight`` class provides a color light endpoint for Matter networks with RGB color control using the HSV color model. This endpoint implements the Matter lighting standard for full-color lighting control.
+The ``MatterColorLight`` class provides an RGB color light with HSV control and **no color temperature**. Matter 1.5 has no Color Light (0x0102) device type, so this endpoint is advertised as an Extended Color Light (0x010D) with Hue/Saturation and XY only. Color Temperature is not in the data model. Use ``MatterEnhancedColorLight`` when the endpoint must also include color temperature.
+
+Changing the Color Control feature set (for example, removing color temperature after an upgrade) requires **recommissioning** the device so the controller reloads the data model.
 
 **Features:**
-* On/off control
-* RGB color control with HSV color model
-* State persistence support
-* Callback support for state and color changes
-* Integration with Apple HomeKit, Amazon Alexa, and Google Home
-* Matter standard compliance
+* On/off control.
+* RGB color control with HSV color model (brightness is HSV value; there is no separate brightness or color-temperature API).
+* State persistence support.
+* Callback support for state and color changes.
+* Integration with Home Assistant, Apple Home, Amazon Alexa, and Google Home.
+* Matter standard compliance.
 
 **Use Cases:**
-* RGB smart lights
-* Color-changing lights
-* Mood lighting
-* Entertainment lighting control
-* Smart home color automation
+* RGB smart lights.
+* Color-changing lights.
+* Mood lighting.
+* Entertainment lighting control.
+* Smart home color automation.
 
 API Reference
 -------------
@@ -49,8 +51,8 @@ Initializes the Matter color light endpoint with optional initial state and colo
 
     bool begin(bool initialState = false, espHsvColor_t colorHSV = {0, 254, 31});
 
-* ``initialState`` - Initial on/off state (default: ``false`` = off)
-* ``colorHSV`` - Initial HSV color (default: red 12% intensity HSV(0, 254, 31))
+* ``initialState`` - Initial on/off state (default: ``false`` = off).
+* ``colorHSV`` - Initial HSV color (default: red 12% intensity HSV(0, 254, 31)).
 
 This function will return ``true`` if successful, ``false`` otherwise.
 
@@ -105,7 +107,7 @@ Sets the color using RGB values.
 
     bool setColorRGB(espRgbColor_t rgbColor);
 
-* ``rgbColor`` - RGB color structure with red, green, and blue values (0-255 each)
+* ``rgbColor`` - RGB color structure with red, green, and blue values (0-255 each).
 
 getColorRGB
 ^^^^^^^^^^^
@@ -125,7 +127,7 @@ Sets the color using HSV values.
 
     bool setColorHSV(espHsvColor_t hsvColor);
 
-* ``hsvColor`` - HSV color structure with hue (0-360), saturation (0-254), and value/brightness (0-254)
+* ``hsvColor`` - HSV color structure: hue (0-254, where 254 is 360°), saturation (0-254), and value/brightness (0-254). Do not pass degrees in the 0-360 range.
 
 getColorHSV
 ^^^^^^^^^^^
@@ -208,5 +210,5 @@ Example
 Color Light
 ***********
 
-.. literalinclude:: ../../../libraries/Matter/examples/MatterColorLight/MatterColorLight.ino
+.. literalinclude:: ../../../libraries/Matter/examples/Lighting/MatterColorLight/MatterColorLight.ino
     :language: arduino
