@@ -14,7 +14,7 @@
 #include "USBVendor.h"
 #if SOC_USB_OTG_SUPPORTED
 
-#if CURRENTLY_NOT_WORKING
+#if CONFIG_TINYUSB_VENDOR_ENABLED
 
 #include "esp32-hal-tinyusb.h"
 
