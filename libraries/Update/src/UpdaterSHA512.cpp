@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef UPDATE_NO_SHA512
-
 #include "Update.h"
+
+#ifndef UPDATE_NO_SHA512
 #include "Arduino.h"
 #include "HEXBuilder.h"
 #include "mbedtls/build_info.h"
