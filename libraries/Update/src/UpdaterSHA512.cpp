@@ -5,6 +5,8 @@
  */
 
 #include "Update.h"
+
+#ifndef UPDATE_NO_SHA512
 #include "Arduino.h"
 #include "HEXBuilder.h"
 #include "mbedtls/build_info.h"
@@ -186,3 +188,5 @@ bool UpdateClass::setSHA512(
 #endif /* UPDATE_NOCRYPT */
   return true;
 }
+
+#endif /* UPDATE_NO_SHA512 */

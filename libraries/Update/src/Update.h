@@ -11,6 +11,10 @@
 #define UPDATE_NOCRYPT
 #endif
 
+#ifndef UPDATE_NO_SHA512
+#define UPDATE_NO_SHA512
+#endif
+
 #include <Arduino.h>
 #include <MD5Builder.h>
 #include <functional>
@@ -35,7 +39,9 @@
 #define UPDATE_ERROR_DECRYPT      (13)  ///< Decryption failed
 #define UPDATE_ERROR_SIGN         (14)  ///< Signature verification failed
 #define UPDATE_ERROR_SHA256       (15)  ///< SHA-256 checksum mismatch
+#ifndef UPDATE_NO_SHA512
 #define UPDATE_ERROR_SHA512       (16)  ///< SHA-512 checksum mismatch
+#endif /* UPDATE_NO_SHA512 */
 
 #define UPDATE_SIZE_UNKNOWN 0xFFFFFFFF  ///< Constant indicating update size is unknown
 
@@ -274,6 +280,7 @@ public:
    */
   void sha256(uint8_t *result);
 
+#ifndef UPDATE_NO_SHA512
   /**
    * @brief Set expected SHA-512 checksum for the incoming firmware image
    *
@@ -284,6 +291,10 @@ public:
    * activated when this succeeds; otherwise no SHA-512 context is allocated.
    * The mbedtls/PSA SHA-512 implementation is in a separate translation unit
    * and is linked only when this setter is referenced.
+   *
+   * SHA-512 support is enabled by default. Define UPDATE_NO_SHA512 before
+   * including this header (or in build flags) to exclude it and avoid
+   * pulling mbedtls/PSA SHA-512 into builds that never use it.
    *
    * @param expected_sha512 Hex string containing expected SHA-512 digest (128 characters)
    * @param calc_post_decryption If true, calculate SHA-512 after decryption
@@ -296,11 +307,12 @@ public:
     bool calc_post_decryption = true
 #endif /* UPDATE_NOCRYPT */
   );
+#endif /* UPDATE_NO_SHA512 */
 
   /**
    * @brief Get SHA-512 digest string of the completed firmware
    *
-   * Only valid after a successful update that used `setSHA512()`.
+   * Always available; returns empty String when UPDATE_NO_SHA512 is defined.
    *
    * @return String Hex representation of SHA-512 digest, or empty if unavailable
    */
@@ -309,7 +321,7 @@ public:
   /**
    * @brief Retrieve the raw SHA-512 bytes of the completed firmware
    *
-   * Only valid after a successful update that used `setSHA512()`.
+   * Always available; writes zeros when UPDATE_NO_SHA512 is defined.
    *
    * @param result Pointer to a 64-byte buffer to receive SHA-512 bytes
    */
@@ -442,14 +454,18 @@ private:
 
 #ifndef UPDATE_NOCRYPT
   bool _target_sha256_decrypted = true;
+#ifndef UPDATE_NO_SHA512
   bool _target_sha512_decrypted = true;
+#endif /* UPDATE_NO_SHA512 */
 #endif                         /* UPDATE_NOCRYPT */
   void *_sha256_ctx;           ///< Opaque streaming SHA-256 context and expected digest (allocated on demand)
   uint8_t _sha256_result[32];  ///< Final digest kept after context is freed
   bool _sha256_valid;          ///< True after all update verification and activation steps succeed
+#ifndef UPDATE_NO_SHA512
   void *_sha512_ctx;           ///< Opaque streaming SHA-512 context and expected digest (allocated on demand)
   uint8_t _sha512_result[64];  ///< Final digest kept after context is freed
   bool _sha512_valid;          ///< True after all update verification and activation steps succeed
+#endif /* UPDATE_NO_SHA512 */
 
   // Bound only from setSHA256()/setSHA512() in their own TUs so --gc-sections
   // can drop mbedtls/PSA. Same pattern as HTTPUpdate::_checksumSidecarFetch.
@@ -459,7 +475,9 @@ private:
     bool (*finish)(void *&ctx, uint8_t *result, bool &valid);
   };
   const SHAOps *_sha256Ops;
+#ifndef UPDATE_NO_SHA512
   const SHAOps *_sha512Ops;
+#endif /* UPDATE_NO_SHA512 */
 
   int _ledPin;
   uint8_t _ledOn;
