@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#ifndef UPDATE_NO_SHA512
+
 #include "Update.h"
 #include "Arduino.h"
 #include "HEXBuilder.h"
@@ -186,3 +188,5 @@ bool UpdateClass::setSHA512(
 #endif /* UPDATE_NOCRYPT */
   return true;
 }
+
+#endif /* UPDATE_NO_SHA512 */
