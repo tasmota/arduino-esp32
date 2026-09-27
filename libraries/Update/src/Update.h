@@ -307,11 +307,12 @@ public:
     bool calc_post_decryption = true
 #endif /* UPDATE_NOCRYPT */
   );
+#endif /* UPDATE_NO_SHA512 */
 
   /**
    * @brief Get SHA-512 digest string of the completed firmware
    *
-   * Only valid after a successful update that used `setSHA512()`.
+   * Always available; returns empty String when UPDATE_NO_SHA512 is defined.
    *
    * @return String Hex representation of SHA-512 digest, or empty if unavailable
    */
@@ -320,12 +321,11 @@ public:
   /**
    * @brief Retrieve the raw SHA-512 bytes of the completed firmware
    *
-   * Only valid after a successful update that used `setSHA512()`.
+   * Always available; writes zeros when UPDATE_NO_SHA512 is defined.
    *
    * @param result Pointer to a 64-byte buffer to receive SHA-512 bytes
    */
   void sha512(uint8_t *result);
-#endif /* UPDATE_NO_SHA512 */
 
 #ifdef UPDATE_SIGN
   /**
