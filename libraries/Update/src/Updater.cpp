@@ -19,9 +19,11 @@
 #endif /* MBEDTLS_VERSION_MAJOR >= 4 */
 #endif /* UPDATE_NOCRYPT */
 
-// Optional SHA-256/SHA-512 live in UpdaterSHA256.cpp / UpdaterSHA512.cpp
-// and are bound from setSHA256() / setSHA512() so --gc-sections can drop
-// mbedtls/PSA hash implementations from Update sketches that never enable them.
+// Optional SHA-256 lives in UpdaterSHA256.cpp and is bound from setSHA256()
+// so --gc-sections can drop the mbedtls/PSA SHA-256 implementation from
+// Update sketches that never enable it.
+// SHA-512 support (UpdaterSHA512.cpp) is included by default; define
+// UPDATE_NO_SHA512 to exclude it and avoid linking mbedtls/PSA SHA-512.
 
 static const char *_err2str(uint8_t _error) {
   if (_error == UPDATE_ERROR_OK) {
@@ -60,8 +62,10 @@ static const char *_err2str(uint8_t _error) {
 #endif /* UPDATE_SIGN */
   } else if (_error == UPDATE_ERROR_SHA256) {
     return ("SHA256 Check Failed");
+#ifndef UPDATE_NO_SHA512
   } else if (_error == UPDATE_ERROR_SHA512) {
     return ("SHA512 Check Failed");
+#endif /* UPDATE_NO_SHA512 */
   }
   return ("UNKNOWN");
 }
@@ -94,7 +98,14 @@ UpdateClass::UpdateClass()
     _cryptKey(0), _cryptBuffer(0),
 #endif /* UPDATE_NOCRYPT */
     _buffer(0), _skipBuffer(0), _bufferLen(0), _size(0), _progress_callback(NULL), _progress(0), _command(U_FLASH), _partition(NULL), _sha256_ctx(NULL),
-    _sha256_valid(false), _sha512_ctx(NULL), _sha512_valid(false), _sha256Ops(NULL), _sha512Ops(NULL)
+    _sha256_valid(false),
+#ifndef UPDATE_NO_SHA512
+    _sha512_ctx(NULL), _sha512_valid(false),
+#endif /* UPDATE_NO_SHA512 */
+    _sha256Ops(NULL)
+#ifndef UPDATE_NO_SHA512
+    , _sha512Ops(NULL)
+#endif /* UPDATE_NO_SHA512 */
 #ifndef UPDATE_NOCRYPT
     ,
     _cryptMode(U_AES_DECRYPT_AUTO), _cryptAddress(0), _cryptCfg(0xf)
@@ -105,7 +116,9 @@ UpdateClass::UpdateClass()
 #endif /* UPDATE_SIGN */
 {
   memset(_sha256_result, 0, sizeof(_sha256_result));
+#ifndef UPDATE_NO_SHA512
   memset(_sha512_result, 0, sizeof(_sha512_result));
+#endif /* UPDATE_NO_SHA512 */
 }
 
 UpdateClass &UpdateClass::onProgress(THandlerFunction_Progress fn) {
@@ -135,9 +148,11 @@ void UpdateClass::_reset() {
   if (_sha256Ops) {
     _sha256Ops->freeContext(_sha256_ctx);
   }
+#ifndef UPDATE_NO_SHA512
   if (_sha512Ops) {
     _sha512Ops->freeContext(_sha512_ctx);
   }
+#endif /* UPDATE_NO_SHA512 */
 
 #ifndef UPDATE_NOCRYPT
   _cryptBuffer = nullptr;
@@ -217,12 +232,16 @@ bool UpdateClass::begin(size_t size, int command, int ledPin, uint8_t ledOn, con
   _md5 = MD5Builder();
   _sha256_valid = false;
   memset(_sha256_result, 0, sizeof(_sha256_result));
+#ifndef UPDATE_NO_SHA512
   _sha512_valid = false;
   memset(_sha512_result, 0, sizeof(_sha512_result));
+#endif /* UPDATE_NO_SHA512 */
 #ifndef UPDATE_NOCRYPT
   _target_md5_decrypted = true;
   _target_sha256_decrypted = true;
+#ifndef UPDATE_NO_SHA512
   _target_sha512_decrypted = true;
+#endif /* UPDATE_NO_SHA512 */
 #endif /* UPDATE_NOCRYPT */
 
 #ifdef UPDATE_SIGN
@@ -656,12 +675,14 @@ bool UpdateClass::_writeBuffer() {
       return false;
     }
   }
+#ifndef UPDATE_NO_SHA512
   if (!_target_sha512_decrypted) {
     if (_sha512Ops && !_sha512Ops->update(_sha512_ctx, _buffer, _bufferLen)) {
       _abort(UPDATE_ERROR_SHA512);
       return false;
     }
   }
+#endif /* UPDATE_NO_SHA512 */
 
   //check if data in buffer needs decrypting
   if (_cryptMode & U_AES_IMAGE_DECRYPTING_BIT) {
@@ -734,6 +755,9 @@ bool UpdateClass::_writeBuffer() {
     }
 #ifndef UPDATE_NOCRYPT
   }
+#endif /* UPDATE_NOCRYPT */
+#ifndef UPDATE_NO_SHA512
+#ifndef UPDATE_NOCRYPT
   if (_target_sha512_decrypted) {
 #endif /* UPDATE_NOCRYPT */
     if (_sha512Ops && !_sha512Ops->update(_sha512_ctx, _buffer, _bufferLen)) {
@@ -743,6 +767,7 @@ bool UpdateClass::_writeBuffer() {
 #ifndef UPDATE_NOCRYPT
   }
 #endif /* UPDATE_NOCRYPT */
+#endif /* UPDATE_NO_SHA512 */
 
 #ifdef UPDATE_SIGN
   // Add data to signature hash if signature verification is enabled
@@ -838,21 +863,29 @@ void UpdateClass::sha256(uint8_t *result) {
 }
 
 String UpdateClass::sha512String(void) {
+#ifndef UPDATE_NO_SHA512
   if (!_sha512_valid) {
     return String();
   }
   return HEXBuilder::bytes2hex(_sha512_result, sizeof(_sha512_result));
+#else
+  return String();
+#endif /* UPDATE_NO_SHA512 */
 }
 
 void UpdateClass::sha512(uint8_t *result) {
   if (!result) {
     return;
   }
+#ifndef UPDATE_NO_SHA512
   if (_sha512_valid) {
     memcpy(result, _sha512_result, sizeof(_sha512_result));
   } else {
     memset(result, 0, sizeof(_sha512_result));
   }
+#else
+  memset(result, 0, 64);
+#endif /* UPDATE_NO_SHA512 */
 }
 
 bool UpdateClass::end(bool evenIfRemaining) {
@@ -889,6 +922,7 @@ bool UpdateClass::end(bool evenIfRemaining) {
     }
   }
 
+#ifndef UPDATE_NO_SHA512
   bool sha512_used = _sha512_ctx != nullptr;
   if (sha512_used) {
     if (!_sha512Ops || !_sha512Ops->finish(_sha512_ctx, _sha512_result, _sha512_valid)) {
@@ -896,6 +930,7 @@ bool UpdateClass::end(bool evenIfRemaining) {
       return false;
     }
   }
+#endif /* UPDATE_NO_SHA512 */
 
 #ifdef UPDATE_SIGN
   // Verify signature if signature verification is enabled
@@ -936,7 +971,9 @@ bool UpdateClass::end(bool evenIfRemaining) {
 
   bool success = _verifyEnd();
   _sha256_valid = success && sha256_used;
+#ifndef UPDATE_NO_SHA512
   _sha512_valid = success && sha512_used;
+#endif /* UPDATE_NO_SHA512 */
   return success;
 }
 
