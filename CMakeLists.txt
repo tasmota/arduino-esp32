@@ -24,6 +24,8 @@ endif()
 
 set(CORE_SRCS
   cores/esp32/base64.cpp
+  cores/esp32/BTAddress.cpp
+  cores/esp32/BTStatus.cpp
   cores/esp32/cbuf.cpp
   cores/esp32/ColorFormat.c
   cores/esp32/esp32-hal-adc.c
@@ -78,7 +80,7 @@ set(CORE_SRCS
   cores/esp32/WMath.cpp
   cores/esp32/WString.cpp
   )
-if(IDF_TARGET MATCHES "esp32s2|esp32s3|esp32p4" AND CONFIG_TINYUSB_ENABLED)
+if(IDF_TARGET MATCHES "esp32s2|esp32s3|esp32p4|esp32s31" AND CONFIG_TINYUSB_ENABLED)
   list(APPEND CORE_SRCS
     cores/esp32/esp32-hal-tinyusb.c
     cores/esp32/USB.cpp
@@ -112,7 +114,7 @@ set(ARDUINO_ALL_LIBRARIES
   WiFi
   Wire
   )
-if(IDF_TARGET MATCHES "esp32s2|esp32s3|esp32p4" AND CONFIG_TINYUSB_ENABLED)
+if(IDF_TARGET MATCHES "esp32s2|esp32s3|esp32p4|esp32s31" AND CONFIG_TINYUSB_ENABLED)
   list(APPEND ARDUINO_ALL_LIBRARIES USB)
 endif()
 
@@ -172,7 +174,7 @@ set(ARDUINO_LIBRARY_Update_SRCS
   libraries/Update/src/HttpsOTAUpdate.cpp
   libraries/Update/src/Updater_Signing.cpp)
 
-if(IDF_TARGET MATCHES "esp32s2|esp32s3|esp32p4" AND CONFIG_TINYUSB_ENABLED)
+if(IDF_TARGET MATCHES "esp32s2|esp32s3|esp32p4|esp32s31" AND CONFIG_TINYUSB_ENABLED)
   set(ARDUINO_LIBRARY_USB_SRCS
     libraries/USB/src/USBAudioCard.cpp
     libraries/USB/src/USBHID.cpp
@@ -267,7 +269,7 @@ else()
   list(APPEND requires esp_hal_uart esp_hal_ledc esp_hal_ana_conv esp_hal_gpio esp_hal_i2c esp_hal_gpspi esp_hal_timg esp_driver_i2c esp_driver_ledc esp_driver_sdm esp_driver_tsens esp_driver_rmt esp_driver_i2s esp_driver_uart esp_driver_dac)
 endif()
 
-if(IDF_TARGET STREQUAL "esp32" OR IDF_TARGET STREQUAL "esp32s2" OR IDF_TARGET STREQUAL "esp32s3" OR IDF_TARGET STREQUAL "esp32p4")
+if(IDF_TARGET STREQUAL "esp32" OR IDF_TARGET STREQUAL "esp32s2" OR IDF_TARGET STREQUAL "esp32s3" OR IDF_TARGET STREQUAL "esp32p4" OR IDF_TARGET STREQUAL "esp32s31")
   list(APPEND requires esp_driver_touch_sens)
 endif()
 
@@ -339,7 +341,7 @@ function(maybe_add_component component_name)
     endif()
 endfunction()
 
-if(IDF_TARGET MATCHES "esp32s2|esp32s3|esp32p4" AND CONFIG_TINYUSB_ENABLED)
+if(IDF_TARGET MATCHES "esp32s2|esp32s3|esp32p4|esp32s31" AND CONFIG_TINYUSB_ENABLED)
     maybe_add_component(arduino_tinyusb)
 endif()
 if(NOT CONFIG_ARDUINO_SELECTIVE_COMPILATION OR CONFIG_ARDUINO_SELECTIVE_ArduinoOTA)
