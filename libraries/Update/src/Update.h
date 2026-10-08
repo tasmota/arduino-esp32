@@ -11,10 +11,6 @@
 #define UPDATE_NOCRYPT
 #endif
 
-#ifndef UPDATE_NO_SHA512
-#define UPDATE_NO_SHA512
-#endif
-
 #include <Arduino.h>
 #include <MD5Builder.h>
 #include <functional>
