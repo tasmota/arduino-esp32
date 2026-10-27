@@ -84,6 +84,7 @@ if(IDF_TARGET MATCHES "esp32s2|esp32s3|esp32p4|esp32s31" AND CONFIG_TINYUSB_ENAB
   list(APPEND CORE_SRCS
     cores/esp32/esp32-hal-tinyusb.c
     cores/esp32/USB.cpp
+    cores/esp32/USBHost.cpp
     cores/esp32/USBCDC.cpp
     cores/esp32/USBMSC.cpp)
 endif()
