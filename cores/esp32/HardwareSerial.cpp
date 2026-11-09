@@ -76,15 +76,24 @@ HardwareSerial Serial4(4);
 #if (SOC_UART_NUM > 5)
 HardwareSerial Serial5(5);
 #endif
+#if HWCDC_SERIAL_IS_DEFINED == 1  // Hardware JTAG CDC Event
+extern void HWCDCSerialEvent(void) __attribute__((weak));
+#endif
+
+#if USB_SERIAL_IS_DEFINED == 1  // Native USB CDC Event
+// Used by Hardware Serial for USB CDC events
+extern void USBSerialEvent(void) __attribute__((weak));
+#endif
+
 void serialEventRun(void) {
 #if HWCDC_SERIAL_IS_DEFINED == 1  // Hardware JTAG CDC Event
-  if (arduinoHWCDCSerialEventRun) {
-    arduinoHWCDCSerialEventRun();
+  if (HWCDCSerialEvent && HWCDCSerial.available()) {
+    HWCDCSerialEvent();
   }
 #endif
 #if USB_SERIAL_IS_DEFINED == 1  // Native USB CDC Event
-  if (arduinoUSBSerialEventRun) {
-    arduinoUSBSerialEventRun();
+  if (USBSerialEvent && USBSerial.available()) {
+    USBSerialEvent();
   }
 #endif
   // UART0 is default serialEvent()
