@@ -606,7 +606,7 @@ void WebServer::handleClient() {
       case HC_WAIT_CLOSE:
         if (activeClient.isSSE()) {
           // Never close connection
-          _statusChange = millis();
+          //_statusChange = millis();
         }
         // Wait for client to close the connection
         if (millis() - _statusChange <= HTTP_MAX_CLOSE_WAIT) {
