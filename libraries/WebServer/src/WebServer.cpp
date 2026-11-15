@@ -543,34 +543,33 @@ void WebServer::serveStatic(const char *uri, fs::FS &fs, const char *path, const
 
 void WebServer::handleClient() {
   if (_currentStatus == HC_NONE) {
-    NetworkClient &newClient = acceptClient();
-    if (!newClient) {
+    _currentClient = _server.accept();
+    if (!_currentClient) {
       if (_nullDelay) {
         delay(1);
       }
       return;
     }
 
-    log_v("New client: client.localIP()=%s", newClient.localIP().toString().c_str());
+    log_v("New client: client.localIP()=%s", _currentClient.localIP().toString().c_str());
 
     _currentStatus = HC_WAIT_READ;
     _statusChange = millis();
   }
 
-  NetworkClient &activeClient = client();
   bool keepCurrentClient = false;
   bool callYield = false;
 
-  if (activeClient.connected()) {
+  if (_currentClient.connected()) {
     switch (_currentStatus) {
       case HC_NONE:
         // No-op to avoid C++ compiler warning
         break;
       case HC_WAIT_READ:
         // Wait for data from client to become available
-        if (activeClient.available()) {
-          activeClient.setTimeout(HTTP_MAX_SEND_WAIT); /* / 1000 removed, WifiClient setTimeout changed to ms */
-          if (_parseRequest(activeClient)) {
+        if (_currentClient.available()) {
+          _currentClient.setTimeout(HTTP_MAX_SEND_WAIT); /* / 1000 removed, WifiClient setTimeout changed to ms */
+          if (_parseRequest(_currentClient)) {
             _contentLength = CONTENT_LENGTH_NOT_SET;
             _responseCode = 0;
             _clearResponseHeaders();
@@ -584,7 +583,7 @@ void WebServer::handleClient() {
               _handleRequest();
             }
 
-            if (activeClient.isSSE()) {
+            if (_currentClient.isSSE()) {
               _currentStatus = HC_WAIT_CLOSE;
               _statusChange = millis();
               keepCurrentClient = true;
@@ -596,7 +595,7 @@ void WebServer::handleClient() {
             //             keepCurrentClient = true;
             //           }
           }
-        } else {  // !activeClient.available()
+        } else {  // !_currentClient.available()
           if (millis() - _statusChange <= HTTP_MAX_DATA_WAIT) {
             keepCurrentClient = true;
           }
@@ -604,7 +603,7 @@ void WebServer::handleClient() {
         }
         break;
       case HC_WAIT_CLOSE:
-        if (activeClient.isSSE()) {
+        if (_currentClient.isSSE()) {
           // Never close connection
           //_statusChange = millis();
         }
@@ -617,7 +616,7 @@ void WebServer::handleClient() {
   }
 
   if (!keepCurrentClient) {
-    closeClient();
+    _currentClient = NetworkClient();
     _currentStatus = HC_NONE;
     _currentUpload.reset();
     _currentRaw.reset();
@@ -630,7 +629,6 @@ void WebServer::handleClient() {
 
 void WebServer::close() {
   _server.close();
-  closeClient();
   _currentStatus = HC_NONE;
   if (!_headerKeysCount) {
     collectHeaders(0, 0);
@@ -713,7 +711,7 @@ void WebServer::chunkResponseBegin(const char *contentType) {
   }
 
   _chunkedResponseActive = true;
-  _chunkedClient = &client();
+  _chunkedClient = _currentClient;
 
   _contentLength = CONTENT_LENGTH_UNKNOWN;
 
@@ -722,11 +720,11 @@ void WebServer::chunkResponseBegin(const char *contentType) {
   _currentClientWrite(header.c_str(), header.length());
 
   _chunkedResponseActive = true;
-  _chunkedClient = &client();
+  _chunkedClient = _currentClient;
 }
 
 void WebServer::chunkWrite(const char *data, size_t length) {
-  if (!_chunkedResponseActive || _chunkedClient == nullptr) {
+  if (!_chunkedResponseActive) {
     log_e("Chunked response has not been started");
     return;
   }
@@ -734,19 +732,19 @@ void WebServer::chunkWrite(const char *data, size_t length) {
   char chunkSize[11];
   snprintf(chunkSize, sizeof(chunkSize), "%lx\r\n", (unsigned long)length);
 
-  if (_chunkedClient->write(chunkSize) != strlen(chunkSize)) {
+  if (_chunkedClient.write(chunkSize) != strlen(chunkSize)) {
     log_e("Failed to write chunk size");
     _chunkedResponseActive = false;
     return;
   }
 
-  if (_chunkedClient->write((const uint8_t *)data, length) != length) {
+  if (_chunkedClient.write((const uint8_t *)data, length) != length) {
     log_e("Failed to write chunk data");
     _chunkedResponseActive = false;
     return;
   }
 
-  if (_chunkedClient->write("\r\n") != 2) {
+  if (_chunkedClient.write("\r\n") != 2) {
     log_e("Failed to write chunk terminator");
     _chunkedResponseActive = false;
     return;
@@ -754,19 +752,19 @@ void WebServer::chunkWrite(const char *data, size_t length) {
 }
 
 void WebServer::chunkResponseEnd() {
-  if (!_chunkedResponseActive || _chunkedClient == nullptr) {
+  if (!_chunkedResponseActive) {
     log_e("Chunked response has not been started");
     return;
   }
 
-  if (_chunkedClient->write("0\r\n\r\n", 5) != 5) {
+  if (_chunkedClient.write("0\r\n\r\n", 5) != 5) {
     log_e("Failed to write terminating chunk");
   }
 
-  _chunkedClient->clear();
+  _chunkedClient.clear();
   _chunkedResponseActive = false;
   _chunked = false;
-  _chunkedClient = nullptr;
+  _chunkedClient = NetworkClient();
 
   _clearResponseHeaders();
 }
@@ -853,7 +851,7 @@ void WebServer::send(int code, const char *content_type, Stream &stream, size_t 
   String header;
   _prepareHeader(header, code, content_type, content_length);
   _currentClientWrite(header.c_str(), header.length());
-  client().write(stream, content_length);
+  _currentClient.write(stream, content_length);
 }
 
 void WebServer::send_P(int code, PGM_P content_type, PGM_P content) {
@@ -896,7 +894,7 @@ void WebServer::sendContent(const char *content, size_t contentLength) {
   }
   _currentClientWrite(content, contentLength);
   if (_chunked) {
-    client().write(footer, 2);
+    _currentClient.write(footer, 2);
     if (contentLength == 0) {
       _chunked = false;
     }
@@ -919,7 +917,7 @@ void WebServer::sendContent_P(PGM_P content, size_t size) {
   }
   _currentClientWrite_P(content, size);
   if (_chunked) {
-    client().write(footer, 2);
+    _currentClient.write(footer, 2);
     if (size == 0) {
       _chunked = false;
     }
