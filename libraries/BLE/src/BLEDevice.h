@@ -1,4 +1,23 @@
 /*
+ * Copyright 2017-2026 Espressif Systems (Shanghai) PTE LTD
+ * Copyright 2020-2025 Ryan Powell <ryan@nable-embedded.io> and
+ * esp-nimble-cpp, NimBLE-Arduino contributors.
+ * Copyright 2017 Neil Kolban
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
  * BLEDevice.h
  *
  *  Created on: Mar 16, 2017
@@ -11,10 +30,10 @@
 
 #ifndef MAIN_BLEDevice_H_
 #define MAIN_BLEDevice_H_
-#include "soc/soc_caps.h"
-#if SOC_BLE_SUPPORTED
 
+#include "soc/soc_caps.h"
 #include "sdkconfig.h"
+#if defined(SOC_BLE_SUPPORTED) || defined(CONFIG_ESP_HOSTED_ENABLE_BT_NIMBLE)
 #if defined(CONFIG_BLUEDROID_ENABLED) || defined(CONFIG_NIMBLE_ENABLED)
 
 /***************************************************************************
@@ -22,8 +41,19 @@
  ***************************************************************************/
 
 #include <map>
-#include <string>
+
+#if defined(SOC_BLE_SUPPORTED)
 #include <esp_bt.h>
+#else
+// For ESP32-P4 and other chips without native BLE support
+// Define minimal types needed for interface compatibility
+typedef int esp_power_level_t;
+typedef int esp_ble_power_type_t;
+#define ESP_BLE_PWR_TYPE_DEFAULT 0
+#define ESP_PWR_LVL_N12          0
+#endif
+
+#include "WString.h"
 #include "BLEServer.h"
 #include "BLEClient.h"
 #include "BLEUtils.h"
@@ -32,6 +62,18 @@
 #include "BLESecurity.h"
 #include "BLEAddress.h"
 #include "BLEUtils.h"
+#include "BLEUUID.h"
+#include "BLEAdvertisedDevice.h"
+
+/***************************************************************************
+ *                           Common definitions                            *
+ ***************************************************************************/
+
+enum class BLEStack {
+  BLUEDROID,
+  NIMBLE,
+  UNKNOWN
+};
 
 /***************************************************************************
  *                           Bluedroid includes                            *
@@ -50,6 +92,9 @@
 #if defined(CONFIG_NIMBLE_ENABLED)
 #include <host/ble_gap.h>
 #define ESP_GATT_IF_NONE BLE_HS_CONN_HANDLE_NONE
+
+// Hosted HCI transport implementation is provided in BLEHostedHCI.cpp
+// and is automatically linked when building for ESP32-P4
 
 // NimBLE configuration compatibility macros
 #if defined(CONFIG_SCAN_DUPLICATE_BY_DEVICE_ADDR) && !defined(CONFIG_BTDM_SCAN_DUPL_TYPE_DEVICE)
@@ -141,7 +186,6 @@ public:
    ***************************************************************************/
 
 #if defined(CONFIG_BLUEDROID_ENABLED)
-  static esp_ble_sec_act_t m_securityLevel;
   static gattc_event_handler m_customGattcHandler;
   static gatts_event_handler m_customGattsHandler;
 #endif
@@ -156,7 +200,7 @@ public:
   static BLEServer *getServer();
   static BLEScan *getScan();
   static String getValue(BLEAddress bdAddress, BLEUUID serviceUUID, BLEUUID characteristicUUID);
-  static void init(String deviceName);
+  static bool init(String deviceName = "");
   static void setPower(esp_power_level_t powerLevel, esp_ble_power_type_t powerType = ESP_BLE_PWR_TYPE_DEFAULT);
   static int getPower(esp_ble_power_type_t powerType = ESP_BLE_PWR_TYPE_DEFAULT);
   static void setValue(BLEAddress bdAddress, BLEUUID serviceUUID, BLEUUID characteristicUUID, String value);
@@ -167,25 +211,35 @@ public:
   static esp_err_t setMTU(uint16_t mtu);
   static uint16_t getMTU();
   static bool getInitialized();
+  static bool getPeerIRK(BLEAddress peerAddress, uint8_t *irk);
+  static String getPeerIRKString(BLEAddress peerAddress);
+  static String getPeerIRKBase64(BLEAddress peerAddress);
+  static String getPeerIRKReverse(BLEAddress peerAddress);
+  static bool getLocalIRK(uint8_t *irk);
+  static String getLocalIRKString();
+  static String getLocalIRKBase64();
+  static String getLocalIRKReverse();
   static BLEAdvertising *getAdvertising();
   static void startAdvertising();
   static void stopAdvertising();
   static std::map<uint16_t, conn_status_t> getPeerDevices(bool client);
   static void addPeerDevice(void *peer, bool is_client, uint16_t conn_id);
-  static void updatePeerDevice(void *peer, bool _client, uint16_t conn_id);
   static void removePeerDevice(uint16_t conn_id, bool client);
   static BLEClient *getClientByID(uint16_t conn_id);
   static BLEClient *getClientByAddress(BLEAddress address);
   static BLEClient *getClientByGattIf(uint16_t conn_id);
   static void setCustomGapHandler(gap_event_handler handler);
   static void deinit(bool release_memory = false);
+  static BLEStack getBLEStack();
+  static String getBLEStackString();
+  static bool isHostedBLE();
+  static String getDeviceName();
 
   /***************************************************************************
    *                       Bluedroid public declarations                    *
    ***************************************************************************/
 
 #if defined(CONFIG_BLUEDROID_ENABLED)
-  static void setEncryptionLevel(esp_ble_sec_act_t level);
   static void setCustomGattcHandler(gattc_event_handler handler);
   static void setCustomGattsHandler(gatts_event_handler handler);
 #endif
@@ -203,6 +257,10 @@ public:
   static bool setOwnAddr(uint8_t *addr);
   static void setDeviceCallbacks(BLEDeviceCallbacks *cb);
   static bool onWhiteList(BLEAddress &address);
+#if CONFIG_ESP_HOSTED_ENABLE_BT_NIMBLE
+  // Set SDIO pins for connection to external ESP MCU
+  static bool setPins(int8_t clk, int8_t cmd, int8_t d0, int8_t d1, int8_t d2, int8_t d3, int8_t rst);
+#endif
 #endif
 
 private:
@@ -223,6 +281,8 @@ private:
   static BLEAdvertising *m_bleAdvertising;
   static std::map<uint16_t, conn_status_t> m_connectedClientsMap;
   static portMUX_TYPE mux;
+  static String m_deviceName;
+  static uint16_t getNextAppId();
 
   /***************************************************************************
    *                        NimBLE private properties                        *
@@ -262,5 +322,6 @@ public:
 #endif
 
 #endif /* CONFIG_BLUEDROID_ENABLED || CONFIG_NIMBLE_ENABLED */
-#endif /* SOC_BLE_SUPPORTED */
+#endif /* SOC_BLE_SUPPORTED || CONFIG_ESP_HOSTED_ENABLE_BT_NIMBLE */
+
 #endif /* MAIN_BLEDevice_H_ */

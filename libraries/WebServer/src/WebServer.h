@@ -69,6 +69,54 @@ enum HTTPAuthMethod {
 #define HTTP_MAX_CLOSE_WAIT     5000  //ms to wait for the client to close the connection
 #define HTTP_MAX_BASIC_AUTH_LEN 256   // maximum length of a basic Auth base64 encoded username:password string
 
+// Request limits. All of these can be overridden from the build (e.g. with
+// -DWEBSERVER_MAX_URI_LEN=8192) to trade robustness against memory use.
+
+#ifndef WEBSERVER_MAX_URI_LEN
+#define WEBSERVER_MAX_URI_LEN 2048  // max request-target length; longer requests get 414. 0 disables the check
+#endif
+
+#ifndef WEBSERVER_MAX_QUERY_ARGS
+#define WEBSERVER_MAX_QUERY_ARGS 256  // max key=value args taken from a query string or urlencoded body
+#endif
+
+#ifndef WEBSERVER_MAX_MULTIPART_SKIP_LINES
+#define WEBSERVER_MAX_MULTIPART_SKIP_LINES 64  // unrecognized multipart lines tolerated before giving up
+#endif
+
+#ifndef WEBSERVER_MAX_LINE_LEN
+#define WEBSERVER_MAX_LINE_LEN 4096  // max length of a single protocol line (request line, header, multipart header)
+#endif
+
+#ifndef WEBSERVER_MAX_POST_ARG_LEN
+#define WEBSERVER_MAX_POST_ARG_LEN 16384  // max length of one line of a non-file multipart field value
+#endif
+
+// Time limits on receiving a request. Without them a peer that trickles one byte
+// per stream timeout keeps handleClient() from returning for as long as it likes.
+
+#ifndef WEBSERVER_MAX_LINE_WAIT
+#define WEBSERVER_MAX_LINE_WAIT 5000  // ms for a single protocol line to arrive complete. 0 disables the check
+#endif
+
+#ifndef WEBSERVER_MAX_HEADER_WAIT
+#define WEBSERVER_MAX_HEADER_WAIT 10000  // ms for the request line and all headers together. 0 disables the check
+#endif
+
+#ifndef WEBSERVER_DIGEST_NONCE_TTL
+#define WEBSERVER_DIGEST_NONCE_TTL 300000  // ms a signed digest nonce stays valid for any client. 0 disables expiry
+#endif
+
+// Set to 0 to compile Digest authentication out of the library (Basic and
+// custom schemes keep working). This saves the MD5/SHA-2/HMAC code that a
+// Basic-only application would otherwise link because Basic and Digest share
+// the same entry points. Digest requests are rejected, and a Digest challenge
+// is refused rather than silently downgraded to Basic.
+#define WEBSERVER_DIGEST_AUTH 0
+#ifndef WEBSERVER_DIGEST_AUTH
+#define WEBSERVER_DIGEST_AUTH 1
+#endif
+
 #define CONTENT_LENGTH_UNKNOWN ((size_t) - 1)
 #define CONTENT_LENGTH_NOT_SET ((size_t) - 2)
 
@@ -114,6 +162,10 @@ public:
 
   const String AuthTypeDigest = F("Digest");
   const String AuthTypeBasic = F("Basic");
+
+  void chunkResponseBegin(const char *contentType = "text/plain");
+  void chunkWrite(const char *data, size_t length);
+  void chunkResponseEnd();
 
   /* Callbackhandler for authentication. The extra parameters depend on the
    * HTTPAuthMethod mode:
@@ -169,14 +221,37 @@ public:
   HTTPMethod method() const {
     return _currentMethod;
   }
+  // The client used for the current request. A derived class can override
+  // this (together with acceptClient()) to use a wrapped connection, e.g. TLS.
+  // All response paths go through this hook, so an override observes every
+  // byte written to the active connection.
   virtual NetworkClient &client() {
     return _currentClient;
   }
+  // A handler registered with an upload callback also receives raw
+  // (non-multipart) bodies, so upload() may be reached with no upload in
+  // progress and vice versa. Report an inactive object rather than
+  // dereferencing null; use hasUpload()/hasRaw() to tell the contexts apart.
   HTTPUpload &upload() {
+    if (!_currentUpload) {
+      _currentUpload.reset(new HTTPUpload());
+      _currentUpload->status = UPLOAD_FILE_ABORTED;
+    }
     return *_currentUpload;
   }
   HTTPRaw &raw() {
+    if (!_currentRaw) {
+      _currentRaw.reset(new HTTPRaw());
+      _currentRaw->status = RAW_ABORTED;
+    }
     return *_currentRaw;
+  }
+
+  bool hasUpload() const {
+    return static_cast<bool>(_currentUpload);
+  }
+  bool hasRaw() const {
+    return static_cast<bool>(_currentRaw);
   }
 
   String pathArg(unsigned int i) const;                                         // get request path argument by number
@@ -193,7 +268,7 @@ public:
   int headers() const;                                                          // get header count
   bool hasHeader(const String &name) const;                                     // check if header exists
 
-  int clientContentLength() const;  // return "content-length" of incoming HTTP header from "_currentClient"
+  int clientContentLength() const;  // return "content-length" of incoming HTTP header from "client()"
   const String version() const;     // get the HTTP version string
   String hostHeader() const;        // get request host header if available or empty String if not
 
@@ -212,6 +287,7 @@ public:
   void send(int code, char *content_type, const String &content);
   void send(int code, const String &content_type, const String &content);
   void send(int code, const char *content_type, const char *content);
+  void send(int code, const char *content_type, Stream &stream, size_t content_length = 0);
 
   void send_P(int code, PGM_P content_type, PGM_P content);
   void send_P(int code, PGM_P content_type, PGM_P content, size_t contentLength);
@@ -219,7 +295,7 @@ public:
   void enableDelay(boolean value);
   void enableCORS(boolean value = true);
   void enableCrossOrigin(boolean value = true);
-  typedef std::function<String(FS &fs, const String &fName)> ETagFunction;
+  typedef std::function<String(fs::FS &fs, const String &fName)> ETagFunction;
   void enableETag(bool enable, ETagFunction fn = nullptr);
 
   void setContentLength(const size_t contentLength);
@@ -233,7 +309,7 @@ public:
 
   template<typename T> size_t streamFile(T &file, const String &contentType, const int code = 200) {
     _streamFileCore(file.size(), file.name(), contentType, code);
-    return _currentClient.write(file);
+    return client().write(file);
   }
 
   bool _eTagEnabled = false;
@@ -241,12 +317,41 @@ public:
 
   static String responseCodeToString(int code);
 
+private:
+  bool _chunkedResponseActive = false;
+  NetworkClient *_chunkedClient = nullptr;  // Points at client(); preserves the derived write()
+
 protected:
+  // Accepts the next client. A derived class that wraps the accepted socket
+  // (for example a TLS server) should override this together with client();
+  // both must return the same object. The returned object is the owner of the
+  // accepted connection: if it is not _currentClient, do not also keep the
+  // accepted client in _currentClient (use a local NetworkClient and transfer
+  // its handle, or dup the descriptor). A failed accept must return a
+  // disconnected client.
+  virtual NetworkClient &acceptClient() {
+    _currentClient = _server.accept();
+    return _currentClient;
+  }
+
+  // Called when the active connection is finished. The default releases the
+  // server's reference to the connection and resets any in-progress chunked
+  // session. It deliberately does not stop the client: other holders of the
+  // same connection (e.g. a sketch-kept copy pushing Server-Sent Events) keep
+  // working until they release it. A derived class that owns the connection
+  // separately instead of sharing the accepted handle must stop its own
+  // wrapper here.
+  virtual void closeClient() {
+    _currentClient = NetworkClient();
+    _chunkedResponseActive = false;
+    _chunkedClient = nullptr;
+  }
+
   virtual size_t _currentClientWrite(const char *b, size_t l) {
-    return _currentClient.write(b, l);
+    return client().write(b, l);
   }
   virtual size_t _currentClientWrite_P(PGM_P b, size_t l) {
-    return _currentClient.write_P(b, l);
+    return client().write_P(b, l);
   }
   void _addRequestHandler(RequestHandler *handler);
   bool _removeRequestHandler(RequestHandler *handler);
@@ -263,9 +368,13 @@ protected:
 
   void _streamFileCore(const size_t fileSize, const String &fileName, const String &contentType, const int code = 200);
 
-  String _getRandomHexString();
+#if WEBSERVER_DIGEST_AUTH
+  void _ensureDigestAuthMaterial();
+  String _makeDigestNonce();
+  bool _isDigestNonceValid(const String &nonce);
   // for extracting Auth parameters
   String _extractParam(String &authReq, const String &param, const char delimit = '"');
+#endif
 
   void _clearResponseHeaders();
   void _clearRequestHeaders();
@@ -282,6 +391,7 @@ protected:
   NetworkClient _currentClient;
   HTTPMethod _currentMethod = HTTP_ANY;
   String _currentUri;
+  String _currentRequestTarget;  // origin-form request-target, including any query string
   uint8_t _currentVersion = 0;
   HTTPClientStatus _currentStatus = HC_NONE;
   unsigned long _statusChange = 0;
@@ -310,8 +420,12 @@ protected:
   String _hostHeader;
   bool _chunked = false;
 
-  String _snonce;  // Store noance and opaque for future comparison
+#if WEBSERVER_DIGEST_AUTH
+  uint8_t _digestSecret[32] = {};
+  bool _digestSecretReady = false;
+  bool _digestNonceStale = false;
   String _sopaque;
+#endif
   String _srealm;  // Store the Auth realm between Calls
 
   int _responseHeaderCount = 0;

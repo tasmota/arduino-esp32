@@ -1,4 +1,21 @@
 /*
+ * Copyright 2017-2026 Espressif Systems (Shanghai) PTE LTD
+ * Copyright 2017 Neil Kolban
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
  * BLEValue.h
  *
  *  Created on: Jul 17, 2017
@@ -13,9 +30,8 @@
 #define COMPONENTS_CPP_UTILS_BLEVALUE_H_
 
 #include "soc/soc_caps.h"
-#if SOC_BLE_SUPPORTED
-
 #include "sdkconfig.h"
+#if defined(SOC_BLE_SUPPORTED) || defined(CONFIG_ESP_HOSTED_ENABLE_BT_NIMBLE)
 #if defined(CONFIG_BLUEDROID_ENABLED) || defined(CONFIG_NIMBLE_ENABLED)
 
 /*****************************************************************************
@@ -34,17 +50,17 @@ public:
    ***************************************************************************/
 
   BLEValue();
-  void addPart(String part);
-  void addPart(uint8_t *pData, size_t length);
+  void addPart(const String &part);
+  void addPart(const uint8_t *pData, size_t length);
   void cancel();
   void commit();
   uint8_t *getData();
-  size_t getLength();
-  uint16_t getReadOffset();
-  String getValue();
+  size_t getLength() const;
+  uint16_t getReadOffset() const;
+  String getValue() const;
   void setReadOffset(uint16_t readOffset);
-  void setValue(String value);
-  void setValue(uint8_t *pData, size_t length);
+  void setValue(const String &value);
+  void setValue(const uint8_t *pData, size_t length);
 
 private:
   /***************************************************************************
@@ -57,5 +73,6 @@ private:
 };
 
 #endif /* CONFIG_BLUEDROID_ENABLED || CONFIG_NIMBLE_ENABLED */
-#endif /* SOC_BLE_SUPPORTED */
+#endif /* SOC_BLE_SUPPORTED || CONFIG_ESP_HOSTED_ENABLE_BT_NIMBLE */
+
 #endif /* COMPONENTS_CPP_UTILS_BLEVALUE_H_ */

@@ -26,6 +26,7 @@
  * Created by Jan Procházka (https://github.com/P-R-O-C-H-Y/)
  */
 
+#include <Arduino.h>
 #ifndef ZIGBEE_MODE_ED
 #error "Zigbee end device mode is not selected in Tools->Zigbee mode"
 #endif
@@ -43,6 +44,18 @@ uint8_t button = BOOT_PIN;
 #define OTA_UPGRADE_HW_VERSION              0x0101      // The hardware version, this can be used to differentiate between different hardware versions
 
 ZigbeeLight zbLight = ZigbeeLight(ZIGBEE_LIGHT_ENDPOINT);
+
+volatile bool otaRunning = false;
+
+/********************* Callbacks *************************/
+void otaActiveCallback(bool otaActive) {
+  otaRunning = otaActive;
+  if (otaActive) {
+    Serial.println("OTA started");
+  } else {
+    Serial.println("OTA finished");
+  }
+}
 
 /********************* RGB LED functions **************************/
 void setLED(bool value) {
@@ -68,6 +81,9 @@ void setup() {
 
   // Add OTA client to the light bulb
   zbLight.addOTAClient(OTA_UPGRADE_RUNNING_FILE_VERSION, OTA_UPGRADE_DOWNLOADED_FILE_VERSION, OTA_UPGRADE_HW_VERSION);
+
+  // Optional: Register callback for OTA state change
+  zbLight.onOTAStateChange(otaActiveCallback);
 
   // Add endpoint to Zigbee Core
   Serial.println("Adding ZigbeeLight endpoint to Zigbee Core");
@@ -99,6 +115,10 @@ void loop() {
     while (digitalRead(button) == LOW) {
       delay(50);
       if ((millis() - startTime) > 3000) {
+        if (otaRunning) {
+          Serial.println("OTA in progress, cannot reset now");
+          break;
+        }
         // If key pressed for more than 3secs, factory reset Zigbee and reboot
         Serial.println("Resetting Zigbee to factory and rebooting in 1s.");
         delay(1000);

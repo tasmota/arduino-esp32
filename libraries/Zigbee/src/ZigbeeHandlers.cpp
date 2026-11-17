@@ -1,3 +1,19 @@
+// Copyright 2025 Espressif Systems (Shanghai) PTE LTD
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include "Arduino.h"
+
 /* Zigbee Common Functions */
 #include "ZigbeeCore.h"
 #include "Arduino.h"
@@ -28,13 +44,17 @@ static bool s_tagid_received = false;
 static esp_err_t zb_attribute_set_handler(const esp_zb_zcl_set_attr_value_message_t *message);
 static esp_err_t zb_attribute_reporting_handler(const esp_zb_zcl_report_attr_message_t *message);
 static esp_err_t zb_cmd_read_attr_resp_handler(const esp_zb_zcl_cmd_read_attr_resp_message_t *message);
+static esp_err_t zb_cmd_write_attr_resp_handler(const esp_zb_zcl_cmd_write_attr_resp_message_t *message);
 static esp_err_t zb_configure_report_resp_handler(const esp_zb_zcl_cmd_config_report_resp_message_t *message);
 static esp_err_t zb_cmd_ias_zone_status_change_handler(const esp_zb_zcl_ias_zone_status_change_notification_message_t *message);
+static esp_err_t zb_cmd_ias_zone_enroll_request_handler(const esp_zb_zcl_ias_zone_enroll_request_message_t *message);
 static esp_err_t zb_cmd_ias_zone_enroll_response_handler(const esp_zb_zcl_ias_zone_enroll_response_message_t *message);
 static esp_err_t zb_cmd_default_resp_handler(const esp_zb_zcl_cmd_default_resp_message_t *message);
 static esp_err_t zb_window_covering_movement_resp_handler(const esp_zb_zcl_window_covering_movement_message_t *message);
 static esp_err_t zb_ota_upgrade_status_handler(const esp_zb_zcl_ota_upgrade_value_message_t *message);
 static esp_err_t zb_ota_upgrade_query_image_resp_handler(const esp_zb_zcl_ota_upgrade_query_image_resp_message_t *message);
+static esp_err_t zb_privilege_command_handler(const esp_zb_zcl_privilege_command_message_t *message);
+static esp_err_t zb_custom_cluster_command_handler(const esp_zb_zcl_custom_cluster_command_message_t *message);
 
 // Zigbee action handlers
 [[maybe_unused]]
@@ -48,6 +68,9 @@ static esp_err_t zb_action_handler(esp_zb_core_action_callback_id_t callback_id,
     case ESP_ZB_CORE_CMD_IAS_ZONE_ZONE_STATUS_CHANGE_NOT_ID:
       ret = zb_cmd_ias_zone_status_change_handler((esp_zb_zcl_ias_zone_status_change_notification_message_t *)message);
       break;
+    case ESP_ZB_CORE_CMD_IAS_ZONE_ZONE_ENROLL_REQUEST_ID:
+      ret = zb_cmd_ias_zone_enroll_request_handler((esp_zb_zcl_ias_zone_enroll_request_message_t *)message);
+      break;
     case ESP_ZB_CORE_IAS_ZONE_ENROLL_RESPONSE_VALUE_CB_ID:
       ret = zb_cmd_ias_zone_enroll_response_handler((esp_zb_zcl_ias_zone_enroll_response_message_t *)message);
       break;
@@ -58,8 +81,11 @@ static esp_err_t zb_action_handler(esp_zb_core_action_callback_id_t callback_id,
     case ESP_ZB_CORE_OTA_UPGRADE_QUERY_IMAGE_RESP_CB_ID:
       ret = zb_ota_upgrade_query_image_resp_handler((esp_zb_zcl_ota_upgrade_query_image_resp_message_t *)message);
       break;
-    case ESP_ZB_CORE_CMD_DEFAULT_RESP_CB_ID: ret = zb_cmd_default_resp_handler((esp_zb_zcl_cmd_default_resp_message_t *)message); break;
-    default:                                 log_w("Receive unhandled Zigbee action(0x%x) callback", callback_id); break;
+    case ESP_ZB_CORE_CMD_DEFAULT_RESP_CB_ID:          ret = zb_cmd_default_resp_handler((esp_zb_zcl_cmd_default_resp_message_t *)message); break;
+    case ESP_ZB_CORE_CMD_WRITE_ATTR_RESP_CB_ID:       ret = zb_cmd_write_attr_resp_handler((esp_zb_zcl_cmd_write_attr_resp_message_t *)message); break;
+    case ESP_ZB_CORE_CMD_PRIVILEGE_COMMAND_REQ_CB_ID: ret = zb_privilege_command_handler((esp_zb_zcl_privilege_command_message_t *)message); break;
+    case ESP_ZB_CORE_CMD_CUSTOM_CLUSTER_REQ_CB_ID:    ret = zb_custom_cluster_command_handler((esp_zb_zcl_custom_cluster_command_message_t *)message); break;
+    default:                                          log_w("Receive unhandled Zigbee action(0x%x) callback", callback_id); break;
   }
   return ret;
 }
@@ -75,7 +101,7 @@ static esp_err_t zb_attribute_set_handler(const esp_zb_zcl_set_attr_value_messag
   }
 
   log_v(
-    "Received message: endpoint(%d), cluster(0x%x), attribute(0x%x), data size(%d)", message->info.dst_endpoint, message->info.cluster, message->attribute.id,
+    "Received message: endpoint(%u), cluster(0x%x), attribute(0x%x), data size(%u)", message->info.dst_endpoint, message->info.cluster, message->attribute.id,
     message->attribute.data.size
   );
 
@@ -102,7 +128,7 @@ static esp_err_t zb_attribute_reporting_handler(const esp_zb_zcl_report_attr_mes
     return ESP_ERR_INVALID_ARG;
   }
   log_v(
-    "Received report from address(0x%x) src endpoint(%d) to dst endpoint(%d) cluster(0x%x)", message->src_address.u.short_addr, message->src_endpoint,
+    "Received report from address(0x%x) src endpoint(%u) to dst endpoint(%u) cluster(0x%x)", message->src_address.u.short_addr, message->src_endpoint,
     message->dst_endpoint, message->cluster
   );
   // List through all Zigbee EPs and call the callback function, with the message
@@ -126,7 +152,7 @@ static esp_err_t zb_cmd_read_attr_resp_handler(const esp_zb_zcl_cmd_read_attr_re
     return ESP_ERR_INVALID_ARG;
   }
   log_v(
-    "Read attribute response: from address(0x%x) src endpoint(%d) to dst endpoint(%d) cluster(0x%x)", message->info.src_address.u.short_addr,
+    "Read attribute response: from address(0x%x) src endpoint(%u) to dst endpoint(%u) cluster(0x%x)", message->info.src_address.u.short_addr,
     message->info.src_endpoint, message->info.dst_endpoint, message->info.cluster
   );
 
@@ -148,6 +174,36 @@ static esp_err_t zb_cmd_read_attr_resp_handler(const esp_zb_zcl_cmd_read_attr_re
               message->info.cluster, &variable->attribute, message->info.src_endpoint, message->info.src_address
             );  //method zbAttributeRead must be implemented in specific EP class
           }
+        }
+        variable = variable->next;
+      }
+    }
+  }
+  return ESP_OK;
+}
+
+static esp_err_t zb_cmd_write_attr_resp_handler(const esp_zb_zcl_cmd_write_attr_resp_message_t *message) {
+  if (!message) {
+    log_e("Empty message");
+    return ESP_FAIL;
+  }
+  if (message->info.status != ESP_ZB_ZCL_STATUS_SUCCESS) {
+    log_e("Received message: error status(%d)", message->info.status);
+    return ESP_ERR_INVALID_ARG;
+  }
+  log_v(
+    "Write attribute response: from address(0x%x) src endpoint(%u) to dst endpoint(%u) cluster(0x%x)", message->info.src_address.u.short_addr,
+    message->info.src_endpoint, message->info.dst_endpoint, message->info.cluster
+  );
+  for (std::list<ZigbeeEP *>::iterator it = Zigbee.ep_objects.begin(); it != Zigbee.ep_objects.end(); ++it) {
+    if (message->info.dst_endpoint == (*it)->getEndpoint()) {
+      esp_zb_zcl_write_attr_resp_variable_t *variable = message->variables;
+      while (variable) {
+        log_v("Write attribute response: status(%d), cluster(0x%x), attribute(0x%x)", variable->status, message->info.cluster, variable->attribute_id);
+        if (variable->status == ESP_ZB_ZCL_STATUS_SUCCESS) {
+          (*it)->zbWriteAttributeResponse(
+            message->info.cluster, variable->attribute_id, variable->status, message->info.src_endpoint, message->info.src_address
+          );
         }
         variable = variable->next;
       }
@@ -186,13 +242,36 @@ static esp_err_t zb_cmd_ias_zone_status_change_handler(const esp_zb_zcl_ias_zone
     return ESP_ERR_INVALID_ARG;
   }
   log_v(
-    "IAS Zone Status Notification: from address(0x%x) src endpoint(%d) to dst endpoint(%d) cluster(0x%x)", message->info.src_address.u.short_addr,
+    "IAS Zone Status Notification: from address(0x%x) src endpoint(%u) to dst endpoint(%u) cluster(0x%x)", message->info.src_address.u.short_addr,
     message->info.src_endpoint, message->info.dst_endpoint, message->info.cluster
   );
 
   for (std::list<ZigbeeEP *>::iterator it = Zigbee.ep_objects.begin(); it != Zigbee.ep_objects.end(); ++it) {
     if (message->info.dst_endpoint == (*it)->getEndpoint()) {
       (*it)->zbIASZoneStatusChangeNotification(message);
+    }
+  }
+  return ESP_OK;
+}
+
+static esp_err_t zb_cmd_ias_zone_enroll_request_handler(const esp_zb_zcl_ias_zone_enroll_request_message_t *message) {
+  if (!message) {
+    log_e("Empty message");
+    return ESP_FAIL;
+  }
+  if (message->info.status != ESP_ZB_ZCL_STATUS_SUCCESS) {
+    log_e("Received message: error status(%d)", message->info.status);
+    return ESP_ERR_INVALID_ARG;
+  }
+  log_v(
+    "IAS Zone Enroll Request: from address(0x%x) src endpoint(%u) to dst endpoint(%u) cluster(0x%x) zone type(0x%x) manufacturer code(0x%x)",
+    message->info.src_address.u.short_addr, message->info.src_endpoint, message->info.dst_endpoint, message->info.cluster, message->zone_type,
+    message->manufacturer_code
+  );
+
+  for (std::list<ZigbeeEP *>::iterator it = Zigbee.ep_objects.begin(); it != Zigbee.ep_objects.end(); ++it) {
+    if (message->info.dst_endpoint == (*it)->getEndpoint()) {
+      (*it)->zbIASZoneEnrollRequest(message);
     }
   }
   return ESP_OK;
@@ -225,7 +304,7 @@ static esp_err_t zb_window_covering_movement_resp_handler(const esp_zb_zcl_windo
   }
 
   log_v(
-    "Received message: endpoint(%d), cluster(0x%x), command(0x%x), payload(%d)", message->info.dst_endpoint, message->info.cluster, message->command,
+    "Received message: endpoint(%u), cluster(0x%x), command(0x%x), payload(%u)", message->info.dst_endpoint, message->info.cluster, message->command,
     message->payload
   );
 
@@ -254,7 +333,7 @@ static esp_err_t esp_element_ota_data(uint32_t total_size, const void *payload, 
     tagid = *(const uint16_t *)payload_ptr;
     length = *(const uint32_t *)(payload_ptr + sizeof(tagid));
     if ((length + OTA_ELEMENT_HEADER_LEN) != total_size) {
-      log_e("Invalid element length [%ld/%ld]", length, total_size);
+      log_e("Invalid element length [%" PRIu32 "/%" PRIu32 "]", length, total_size);
       return ESP_ERR_INVALID_ARG;
     }
 
@@ -273,7 +352,7 @@ static esp_err_t esp_element_ota_data(uint32_t total_size, const void *payload, 
       *outlen = data_len;
       break;
     default:
-      log_e("Unsupported element tag identifier %d", tagid);
+      log_e("Unsupported element tag identifier %u", tagid);
       return ESP_ERR_INVALID_ARG;
       break;
   }
@@ -292,6 +371,9 @@ static esp_err_t zb_ota_upgrade_status_handler(const esp_zb_zcl_ota_upgrade_valu
     switch (message->upgrade_status) {
       case ESP_ZB_ZCL_OTA_UPGRADE_STATUS_START:
         log_i("Zigbee - OTA upgrade start");
+        for (std::list<ZigbeeEP *>::iterator it = Zigbee.ep_objects.begin(); it != Zigbee.ep_objects.end(); ++it) {
+          (*it)->zbOTAState(true);  // Notify that OTA is active
+        }
         start_time = esp_timer_get_time();
         s_ota_partition = esp_ota_get_next_update_partition(NULL);
         assert(s_ota_partition);
@@ -302,19 +384,25 @@ static esp_err_t zb_ota_upgrade_status_handler(const esp_zb_zcl_ota_upgrade_valu
 #endif
         if (ret != ESP_OK) {
           log_e("Zigbee - Failed to begin OTA partition, status: %s", esp_err_to_name(ret));
+          for (std::list<ZigbeeEP *>::iterator it = Zigbee.ep_objects.begin(); it != Zigbee.ep_objects.end(); ++it) {
+            (*it)->zbOTAState(false);  // Notify that OTA is no longer active
+          }
           return ret;
         }
         break;
       case ESP_ZB_ZCL_OTA_UPGRADE_STATUS_RECEIVE:
         total_size = message->ota_header.image_size;
         offset += message->payload_size;
-        log_i("Zigbee - OTA Client receives data: progress [%ld/%ld]", offset, total_size);
+        log_i("Zigbee - OTA Client receives data: progress [%" PRIu32 "/%" PRIu32 "]", offset, total_size);
         if (message->payload_size && message->payload) {
           uint16_t payload_size = 0;
           void *payload = NULL;
           ret = esp_element_ota_data(total_size, message->payload, message->payload_size, &payload, &payload_size);
           if (ret != ESP_OK) {
             log_e("Zigbee - Failed to element OTA data, status: %s", esp_err_to_name(ret));
+            for (std::list<ZigbeeEP *>::iterator it = Zigbee.ep_objects.begin(); it != Zigbee.ep_objects.end(); ++it) {
+              (*it)->zbOTAState(false);  // Notify that OTA is no longer active
+            }
             return ret;
           }
 #if CONFIG_ZB_DELTA_OTA
@@ -324,6 +412,9 @@ static esp_err_t zb_ota_upgrade_status_handler(const esp_zb_zcl_ota_upgrade_valu
 #endif
           if (ret != ESP_OK) {
             log_e("Zigbee - Failed to write OTA data to partition, status: %s", esp_err_to_name(ret));
+            for (std::list<ZigbeeEP *>::iterator it = Zigbee.ep_objects.begin(); it != Zigbee.ep_objects.end(); ++it) {
+              (*it)->zbOTAState(false);  // Notify that OTA is no longer active
+            }
             return ret;
           }
         }
@@ -339,10 +430,14 @@ static esp_err_t zb_ota_upgrade_status_handler(const esp_zb_zcl_ota_upgrade_valu
       case ESP_ZB_ZCL_OTA_UPGRADE_STATUS_FINISH:
         log_i("Zigbee - OTA Finish");
         log_i(
-          "Zigbee - OTA Information: version: 0x%lx, manufacturer code: 0x%x, image type: 0x%x, total size: %ld bytes, cost time: %lld ms,",
+          "Zigbee - OTA Information: version: 0x%08" PRIx32 ", manufacturer code: 0x%04x, image type: 0x%04x, total size: %" PRIu32
+          " bytes, cost time: %" PRId32 " ms,",
           message->ota_header.file_version, message->ota_header.manufacturer_code, message->ota_header.image_type, message->ota_header.image_size,
-          (esp_timer_get_time() - start_time) / 1000
+          (int32_t)((esp_timer_get_time() - start_time) / 1000)
         );
+        for (std::list<ZigbeeEP *>::iterator it = Zigbee.ep_objects.begin(); it != Zigbee.ep_objects.end(); ++it) {
+          (*it)->zbOTAState(false);  // Notify that OTA is no longer active
+        }
 #if CONFIG_ZB_DELTA_OTA
         ret = esp_delta_ota_end(s_ota_handle);
 #else
@@ -368,8 +463,11 @@ static esp_err_t zb_ota_upgrade_status_handler(const esp_zb_zcl_ota_upgrade_valu
 
 static esp_err_t zb_ota_upgrade_query_image_resp_handler(const esp_zb_zcl_ota_upgrade_query_image_resp_message_t *message) {
   if (message->info.status == ESP_ZB_ZCL_STATUS_SUCCESS) {
-    log_i("Zigbee - Queried OTA image from address: 0x%04hx, endpoint: %d", message->server_addr.u.short_addr, message->server_endpoint);
-    log_i("Zigbee - Image version: 0x%lx, manufacturer code: 0x%x, image size: %ld", message->file_version, message->manufacturer_code, message->image_size);
+    log_i("Zigbee - Queried OTA image from address: 0x%x, endpoint: %u", message->server_addr.u.short_addr, message->server_endpoint);
+    log_i(
+      "Zigbee - Image version: 0x%08" PRIx32 ", manufacturer code: 0x%04x, image size: %" PRIu32, message->file_version, message->manufacturer_code,
+      message->image_size
+    );
     if (message->image_size == 0) {
       log_i("Zigbee - Rejecting OTA image upgrade, image size is 0");
       return ESP_FAIL;
@@ -395,7 +493,7 @@ static esp_err_t zb_cmd_default_resp_handler(const esp_zb_zcl_cmd_default_resp_m
     return ESP_ERR_INVALID_ARG;
   }
   log_v(
-    "Received default response: from address(0x%x), src_endpoint(%d) to dst_endpoint(%d), cluster(0x%x) with status 0x%x",
+    "Received default response: from address(0x%x), src_endpoint(%u) to dst_endpoint(%u), cluster(0x%x) with status 0x%x",
     message->info.src_address.u.short_addr, message->info.src_endpoint, message->info.dst_endpoint, message->info.cluster, message->status_code
   );
 
@@ -406,6 +504,50 @@ static esp_err_t zb_cmd_default_resp_handler(const esp_zb_zcl_cmd_default_resp_m
   for (std::list<ZigbeeEP *>::iterator it = Zigbee.ep_objects.begin(); it != Zigbee.ep_objects.end(); ++it) {
     if (message->info.dst_endpoint == (*it)->getEndpoint()) {
       (*it)->zbDefaultResponse(message);  //method zbDefaultResponse is implemented in the common EP class
+    }
+  }
+  return ESP_OK;
+}
+
+static esp_err_t zb_privilege_command_handler(const esp_zb_zcl_privilege_command_message_t *message) {
+  if (!message) {
+    log_e("Empty message");
+    return ESP_FAIL;
+  }
+  if (message->info.status != ESP_ZB_ZCL_STATUS_SUCCESS) {
+    log_e("Received message: error status(%d)", message->info.status);
+    return ESP_ERR_INVALID_ARG;
+  }
+  log_v(
+    "Privilege command: from address(0x%x) src endpoint(%u) to dst endpoint(%u) cluster(0x%x) command(0x%x)", message->info.src_address.u.short_addr,
+    message->info.src_endpoint, message->info.dst_endpoint, message->info.cluster, message->info.command.id
+  );
+
+  for (std::list<ZigbeeEP *>::iterator it = Zigbee.ep_objects.begin(); it != Zigbee.ep_objects.end(); ++it) {
+    if (message->info.dst_endpoint == (*it)->getEndpoint()) {
+      (*it)->zbPrivilegeCommand(message);
+    }
+  }
+  return ESP_OK;
+}
+
+static esp_err_t zb_custom_cluster_command_handler(const esp_zb_zcl_custom_cluster_command_message_t *message) {
+  if (!message) {
+    log_e("Empty message");
+    return ESP_FAIL;
+  }
+  if (message->info.status != ESP_ZB_ZCL_STATUS_SUCCESS) {
+    log_e("Received message: error status(%d)", message->info.status);
+    return ESP_ERR_INVALID_ARG;
+  }
+  log_v(
+    "Custom cluster command: from address(0x%x) src endpoint(%u) to dst endpoint(%u) cluster(0x%x) command(0x%x)", message->info.src_address.u.short_addr,
+    message->info.src_endpoint, message->info.dst_endpoint, message->info.cluster, message->info.command.id
+  );
+
+  for (std::list<ZigbeeEP *>::iterator it = Zigbee.ep_objects.begin(); it != Zigbee.ep_objects.end(); ++it) {
+    if (message->info.dst_endpoint == (*it)->getEndpoint()) {
+      (*it)->zbCustomClusterCommand(message);
     }
   }
   return ESP_OK;

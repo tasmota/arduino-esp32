@@ -6,7 +6,7 @@
 #   idf.py build
 
 set(min_supported_idf_version "5.3.0")
-set(max_supported_idf_version "5.5.99")
+set(max_supported_idf_version "6.1.99")
 set(idf_version "${IDF_VERSION_MAJOR}.${IDF_VERSION_MINOR}.${IDF_VERSION_PATCH}")
 
 if ("${idf_version}" AND NOT "$ENV{ARDUINO_SKIP_IDF_VERSION_CHECK}")
@@ -31,13 +31,16 @@ set(CORE_SRCS
   cores/esp32/esp32-hal-cpu.c
   cores/esp32/esp32-hal-dac.c
   cores/esp32/esp32-hal-gpio.c
+  cores/esp32/esp32-hal-hosted.c
   cores/esp32/esp32-hal-i2c.c
   cores/esp32/esp32-hal-i2c-ng.c
   cores/esp32/esp32-hal-i2c-slave.c
   cores/esp32/esp32-hal-ledc.c
+  cores/esp32/esp32-hal-log-wrapper.c
   cores/esp32/esp32-hal-matrix.c
   cores/esp32/esp32-hal-misc.c
   cores/esp32/esp32-hal-periman.c
+  cores/esp32/esp32-hal-ldo.c
   cores/esp32/esp32-hal-psram.c
   cores/esp32/esp32-hal-rgb-led.c
   cores/esp32/esp32-hal-sigmadelta.c
@@ -52,7 +55,9 @@ set(CORE_SRCS
   cores/esp32/freertos_stats.cpp
   cores/esp32/FunctionalInterrupt.cpp
   cores/esp32/HardwareSerial.cpp
+  cores/esp32/HashBuilder.cpp
   cores/esp32/HEXBuilder.cpp
+  cores/esp32/idf_openthread_mpool_wrapper.c
   cores/esp32/IPAddress.cpp
   cores/esp32/libb64/cdecode.c
   cores/esp32/libb64/cencode.c
@@ -60,10 +65,10 @@ set(CORE_SRCS
   cores/esp32/main.cpp
   cores/esp32/MD5Builder.cpp
   cores/esp32/Print.cpp
-  cores/esp32/SHA1Builder.cpp
   cores/esp32/stdlib_noniso.c
   cores/esp32/Stream.cpp
   cores/esp32/StreamString.cpp
+  cores/esp32/StringUtils.cpp
   cores/esp32/Tone.cpp
   cores/esp32/HWCDC.cpp
   cores/esp32/FirmwareMSC.cpp
@@ -90,6 +95,7 @@ set(ARDUINO_ALL_LIBRARIES
   Ethernet
   FFat
   FS
+  Hash
   HTTPClient
   HTTPUpdate
   LittleFS
@@ -128,9 +134,15 @@ set(ARDUINO_LIBRARY_FS_SRCS
   libraries/FS/src/FS.cpp
   libraries/FS/src/vfs_api.cpp)
 
-set(ARDUINO_LIBRARY_HTTPClient_SRCS libraries/HTTPClient/src/HTTPClient.cpp)
+set(ARDUINO_LIBRARY_Hash_SRCS
+  libraries/Hash/src/SHA1Builder.cpp
+  libraries/Hash/src/SHA2Builder.cpp
+  libraries/Hash/src/SHA3Builder.cpp
+  libraries/Hash/src/HMACBuilder.cpp
+  libraries/Hash/src/PBKDF2_HMACBuilder.cpp
+  )
 
-set(ARDUINO_LIBRARY_HTTPUpdate_SRCS libraries/HTTPUpdate/src/HTTPUpdate.cpp)
+set(ARDUINO_LIBRARY_HTTPClient_SRCS libraries/HTTPClient/src/HTTPClient.cpp)
 
 set(ARDUINO_LIBRARY_LittleFS_SRCS libraries/LittleFS/src/LittleFS.cpp)
 
@@ -232,7 +244,7 @@ set(priv_includes cores/esp32/libb64)
 set(requires spi_flash esp_partition mbedtls wpa_supplicant esp_adc esp_eth http_parser esp_ringbuf esp_driver_gptimer esp_driver_usb_serial_jtag driver esp_http_client esp_https_ota)
 set(priv_requires fatfs nvs_flash app_update bootloader_support bt esp_hid usb esp_psram ${ARDUINO_LIBRARIES_REQUIRES})
 
-if(IDF_TARGET STREQUAL "esp32p4")
+if(IDF_TARGET STREQUAL "esp32" OR IDF_TARGET STREQUAL "esp32s2" OR IDF_TARGET STREQUAL "esp32s3" OR IDF_TARGET STREQUAL "esp32p4")
   list(APPEND requires esp_driver_touch_sens)
 endif()
 
@@ -264,6 +276,35 @@ if(CONFIG_AUTOSTART_ARDUINO)
     #
     # (As they are C++ symbol, we need to add the C++ mangled names.)
     target_link_libraries(${COMPONENT_LIB} INTERFACE "-u _Z5setupv -u _Z4loopv")
+endif()
+
+# Fix for WiFi/Bluetooth linker errors when CONFIG_DIAG_USE_EXTERNAL_LOG_WRAP is not enabled
+#
+# Problem:
+#   WiFi and Bluetooth binary libraries reference __wrap_esp_log_write functions.
+#   When CONFIG_DIAG_USE_EXTERNAL_LOG_WRAP=y, esp_diagnostics provides these wrappers.
+#   When not set, no component provides them, causing "undefined reference" linker errors.
+#
+# Solution:
+#   cores/esp32/esp32-hal-log-wrapper.c provides simple pass-through wrapper implementations
+#   that forward calls to the real ESP-IDF logging functions without additional processing.
+#
+# Two linker flags are required:
+#
+# 1. --wrap=symbol: Sets up the wrapping/redirection mechanism
+#    Effect: esp_log_write() calls → redirected to → __wrap_esp_log_write()
+#            __real_esp_log_write() → created as alias → original esp_log_write()
+#    Note: Applied at build level (idf_build_set_property) so it works when Arduino is a component
+#
+# 2. -u symbol: Forces inclusion of wrapper symbols from static library
+#    Why needed: Static library linking is "lazy" - only pulls objects with referenced symbols.
+#                Without -u, linker sees wrapper as unreferenced and drops it from the library.
+#                The -u flag marks symbols as "undefined", forcing linker to search and include them.
+#    Analogy: Same technique used for setup()/loop() symbols (see above)
+if(NOT CONFIG_DIAG_USE_EXTERNAL_LOG_WRAP)
+    idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=esp_log_write" APPEND)
+    idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=esp_log_writev" APPEND)
+    target_link_libraries(${COMPONENT_LIB} INTERFACE "-u __wrap_esp_log_write" "-u __wrap_esp_log_writev")
 endif()
 
 # This function adds a dependency on the given component if the component is included into the build.

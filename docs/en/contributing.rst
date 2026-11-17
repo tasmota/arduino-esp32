@@ -113,21 +113,18 @@ Testing
 *******
 
 Be sure you have tested the example in all the supported targets. If the example some specific hardware requirements,
-edit/add the ``ci.json`` in the same folder as the sketch to specify the regular expression for the
+edit/add the ``ci.yml`` in the same folder as the sketch to specify the regular expression for the
 required configurations from ``sdkconfig``.
 This will ensure that the CI system will run the test only on the targets that have the required configurations.
 
 You can check the available configurations in the ``sdkconfig`` file in the ``tools/esp32-arduino-libs/<target>`` folder.
 
-Here is an example of the ``ci.json`` file where the example requires Wi-Fi to work properly:
+Here is an example of the ``ci.yml`` file where the example requires Wi-Fi to work properly:
 
-.. code-block:: json
+.. code-block:: yaml
 
-    {
-      "requires": [
-        "CONFIG_SOC_WIFI_SUPPORTED=y"
-      ]
-    }
+    requires:
+      - CONFIG_SOC_WIFI_SUPPORTED=y
 
 .. note::
 
@@ -138,21 +135,17 @@ Here is an example of the ``ci.json`` file where the example requires Wi-Fi to w
     That means that the configuration must be at the beginning of the line in the ``sdkconfig`` file.
 
 Sometimes, the example might not be supported by some target, even if the target has the required configurations
-(like resources limitations or requiring a specific SoC). To avoid compilation errors, you can add the target to the ``ci.json``
+(like resources limitations or requiring a specific SoC). To avoid compilation errors, you can add the target to the ``ci.yml``
 file so the CI system will force to skip the test on that target.
 
-Here is an example of the ``ci.json`` file where the example is requires Wi-Fi to work properly but is also not supported by the ESP32-S2 target:
+Here is an example of the ``ci.yml`` file where the example is requires Wi-Fi to work properly but is also not supported by the ESP32-S2 target:
 
-.. code-block:: json
+.. code-block:: yaml
 
-    {
-      "requires": [
-        "CONFIG_SOC_WIFI_SUPPORTED=y"
-      ],
-      "targets": {
-        "esp32s2": false
-      }
-    }
+    requires:
+      - CONFIG_SOC_WIFI_SUPPORTED=y
+    targets:
+      esp32s2: false
 
 You also need to add this information in the ``README.md`` file, on the **Supported Targets**, and in the example code as an inline comment.
 For example, in the sketch:
@@ -181,31 +174,49 @@ Currently, the default FQBNs are:
 * ``espressif:esp32:esp32c3``
 * ``espressif:esp32:esp32c6``
 * ``espressif:esp32:esp32h2``
-* ``espressif:esp32:esp32p4:USBMode=default``
+* ``espressif:esp32:esp32p4:PSRAM=enabled,USBMode=hwcdc,ChipVariant=postv3`` (``CDCOnBoot`` is forced last: ``cdc`` locally, ``default`` / Disabled in CI)
+* ``espressif:esp32:esp32c5:PSRAM=enabled``
 
-There are two ways to alter the FQBNs used to compile the sketches: by using the ``fqbn`` or ``fqbn_append`` fields in the ``ci.json`` file.
+There are two ways to alter the FQBNs used to compile the sketches: by using the ``fqbn`` or ``fqbn_append`` fields in the ``ci.yml`` file.
 
 If you just want to append a string to the default FQBNs, you can use the ``fqbn_append`` field. For example, to add the ``DebugLevel=debug`` to the FQBNs, you would use:
 
-.. code-block:: json
+.. code-block:: yaml
 
-    {
-      "fqbn_append": "DebugLevel=debug"
-    }
+    fqbn_append: DebugLevel=debug
 
-If you want to override the default FQBNs, you can use the ``fqbn`` field. It is a dictionary where the key is the target name and the value is a list of FQBNs.
+Each menu option is kept only once, so a key set in ``fqbn_append`` replaces the default value for that key instead of being listed twice.
+This makes it possible to turn off an option that is enabled by default, such as compiling for ESP32 with ``espressif:esp32:esp32:PSRAM=disabled``:
+
+.. code-block:: yaml
+
+    fqbn_append: PSRAM=disabled
+
+On ESP32-P4, ``CDCOnBoot`` is an exception: after the FQBN is fully resolved (including a full ``fqbn:`` list),
+the scripts force ``CDCOnBoot=cdc`` (Enabled) for local runs and ``CDCOnBoot=default`` (Disabled) when ``CI=true``.
+Do not set ``CDCOnBoot`` in ``ci.yml``.
+
+When the options differ per target, ``fqbn_append`` can be a dictionary instead. The ``default`` entry is applied to every target and the entry
+matching the target is merged on top of it, so only the difference has to be spelled out. This is needed for options that do not exist on every
+target: ESP32-C3, ESP32-C6 and ESP32-H2 have no PSRAM menu and would fail to compile if they were given ``PSRAM=disabled``.
+
+.. code-block:: yaml
+
+    fqbn_append:
+      default: PartitionScheme=huge_app
+      esp32: PSRAM=disabled
+      esp32s3: PSRAM=disabled
+
+The options are applied lowest priority first: the default FQBN for the target, then ``fqbn_append``, then the debug level passed on the
+command line. If you want to override the default FQBNs entirely, you can use the ``fqbn`` field. It is a dictionary where the key is the target name and the value is a list of FQBNs.
 The FQBNs in the list will be used in sequence to compile the sketch. For example, to compile a sketch for ESP32-S2 with and without PSRAM enabled, you would use:
 
-.. code-block:: json
+.. code-block:: yaml
 
-    {
-      "fqbn": {
-        "esp32s2": [
-          "espressif:esp32:esp32s2:PSRAM=enabled,FlashMode=dio",
-          "espressif:esp32:esp32s2:PSRAM=disabled,FlashMode=dio"
-        ]
-      }
-    }
+    fqbn:
+      esp32s2:
+        - espressif:esp32:esp32s2:PSRAM=enabled,FlashMode=dio
+        - espressif:esp32:esp32s2:PSRAM=disabled,FlashMode=dio
 
 .. note::
 
@@ -226,6 +237,17 @@ If you are contributing to the documentation, please follow the instructions des
 
 Testing and CI
 --------------
+
+In our repository, we have a Continuous Integration (CI) system that runs tests and code formatting fixes on every Pull Request.
+This system will run the tests on all supported targets and check if everything is working as expected.
+
+We have many types of tests and checks, including:
+
+* Compilation tests;
+* Runtime tests;
+* Documentation checks;
+* Code style checks;
+* And more.
 
 After you have made your changes, you should test them. You can do this in different ways depending on the type of change you have made.
 
@@ -257,6 +279,7 @@ CI
 
 In our repository, we have a Continuous Integration (CI) system that runs tests and fixes on every Pull Request. This system will run the tests
 on all supported targets and check if everything is working as expected.
+You can read a more technical explanation in the `CI README <https://github.com/espressif/arduino-esp32/blob/master/.github/CI_README.md>`_.
 
 We have many types of tests and checks, including:
 
@@ -269,7 +292,7 @@ We have many types of tests and checks, including:
 Let's go deeper into each type of test in the CI system:
 
 Compilation Tests
-^^^^^^^^^^^^^^^^^
+*****************
 
 The compilation tests are the first type of tests in the CI system. They check if the code compiles on all supported targets.
 If the code does not compile, the CI system will fail the test and the Pull Request will not be merged.
@@ -283,7 +306,7 @@ a sketch that uses the changes you made (you can also add the sketch as an examp
 Make sure to set ``Compiler Warnings`` to ``All`` in the Arduino IDE to catch any potential issues.
 
 Runtime Tests
-^^^^^^^^^^^^^
+*************
 
 Another type of test is the runtime tests. They check if the code runs and behaves as expected on all supported targets. If the
 code does not run as expected, the CI system will fail the test and the Pull Request will not be merged. This is important to ensure that the code
@@ -300,6 +323,13 @@ The tests are divided into two categories inside the ``tests`` folder:
 * ``performance``: These tests are used to check the performance of the Arduino core and libraries. They are used to check if the changes made
   to the core and libraries have any big impact on the performance. These tests usually run for a longer time than the validation tests and include
   common benchmark tools like `CoreMark <https://github.com/eembc/coremark>`_.
+
+.. note::
+
+    Keep in mind that to run the CI scripts locally, you need to have the Go-based ``yq`` from `mikefarah/yq <https://github.com/mikefarah/yq>`_
+    installed and not the Python-based ``yq`` from PyPI or `kislyuk/yq <https://github.com/kislyuk/yq>`_.
+    The syntax is slightly different and will not work with the CI scripts.
+    You can install the Go-based ``yq`` through ``brew``, ``chocolatey`` or downloading the binary directly from the `releases page <https://github.com/mikefarah/yq/releases>`_.
 
 To run the runtime tests locally, first install the required dependencies by running:
 
@@ -365,7 +395,7 @@ After the test is finished, you can check the output in the terminal and the gen
 Additionally, for performance tests, you can check the generated JSON file in the same folder.
 
 You can also run the tests in `Wokwi <https://docs.wokwi.com/>`_ or `Espressif's QEMU <https://github.com/espressif/esp-toolchain-docs/tree/main/qemu>`_
-by using the ``-W <timeout_in_ms>`` and ``-Q`` flags respectively. You will need to have the Wokwi and/or QEMU installed in your system
+by using the ``-W`` and ``-Q`` flags respectively. You will need to have the Wokwi and/or QEMU installed in your system
 and set the ``WOKWI_CLI_TOKEN`` and/or ``QEMU_PATH`` environment variables. The ``WOKWI_CLI_TOKEN`` is the CI token that can be obtained from the
 `Wokwi website <https://wokwi.com/dashboard/ci>`_ and the ``QEMU_PATH`` is the path to the QEMU binary.
 
@@ -373,7 +403,7 @@ For example, to run the ``uart`` test using Wokwi, you would run:
 
 .. code-block:: bash
 
-    WOKWI_CLI_TOKEN=<your_wokwi_token> ./.github/scripts/tests_run.sh -s uart -t esp32c3 -W <timeout_in_ms>
+    WOKWI_CLI_TOKEN=<your_wokwi_token> ./.github/scripts/tests_run.sh -s uart -t esp32c3 -W
 
 And to run the ``uart`` test using QEMU, you would run:
 
@@ -387,18 +417,17 @@ And to run the ``uart`` test using QEMU, you would run:
     Wokwi support depends on the `currently implemented peripherals <https://docs.wokwi.com/guides/esp32#simulation-features>`_.
 
 Adding a New Test Suite
-#######################
+^^^^^^^^^^^^^^^^^^^^^^^
 
 If you want to add a new test suite, you can create a new folder inside ``tests/validation`` or ``tests/performance`` with the name of the test suite.
 You can use the ``hello_world`` test suite as a starting point and the other test suites as a reference.
 
 A test suite contains the following files:
 
-* ``test_<test_name>.py``: The test file that contains the test cases. Required.
-* ``<test_name>.ino``: The sketch that will be tested. Required.
-* ``ci.json``: The file that specifies how the test suite will be run in the CI system. Optional.
+* ``test_<test_name>.py``: Is the test file that contains the test cases. Required.
+* ``<test_name>.ino``: This is the sketch that will be tested. Required.
+* ``ci.yml``: The file that specifies how the test suite will be run in the CI system. Optional.
 * ``diagram.<target>.json``: The diagram file that specifies the connections between the components in Wokwi. Optional.
-* ``scenario.yaml``: The scenario file that specifies how Wokwi will interact with the components. Optional.
 * Any other files that are needed for the test suite.
 
 You can read more about the test python API in the `pytest-embedded documentation <https://docs.espressif.com/projects/pytest-embedded/en/latest/usages/expecting.html>`_.
@@ -406,11 +435,13 @@ For more information about the Unity testing framework, you can check the `Unity
 
 After creating the test suite, make sure to test it locally and run it in the CI system to ensure that it works as expected.
 
-CI JSON File
-############
+CI YAML File
+""""""""""""
 
-The ``ci.json`` file is used to specify how the test suite and sketches will handled by the CI system. It can contain the following fields:
+The ``ci.yml`` file is used to specify how the test suite and sketches will be handled by the CI system. It can contain the following fields:
 
+* ``multi_device``: A dictionary that matches the device names to their sketch directories. Each device must have its own sketch folder.
+  There are two devices in a multi-device test suite: ``device0`` and ``device1``. This field is only valid for multi-device test suites.
 * ``requires``: A list of configurations in ``sdkconfig`` that are required to run the test suite. The test suite will only run on the targets
   that have **ALL** the required configurations. By default, no configurations are required.
 * ``requires_any``: A list of configurations in ``sdkconfig`` that are required to run the test suite. The test suite will only run on the targets
@@ -420,25 +451,172 @@ The ``ci.json`` file is used to specify how the test suite and sketches will han
   specified in the ``requires`` field. This field is also valid for examples.
 * ``platforms``: A dictionary that specifies the supported platforms. The key is the platform name and the value is a boolean that specifies if
   the platform is supported. By default, all platforms are assumed to be supported.
-* ``extra_tags``: A list of extra tags that the runner will require when running the test suite in hardware. By default, no extra tags are required.
+* ``tags``: A list of tags that all runners will require when running the test suite in hardware. By default, no tags are required.
+* ``soc_tags``: A dictionary that specifies SoC-specific tags required for hardware runners. The key is the target name and the value is a list
+  of tags. By default, no SoC-specific tags are required.
 * ``fqbn_append``: A string to be appended to the default FQBNs. By default, no string is appended. This has no effect if ``fqbn`` is specified.
 * ``fqbn``: A dictionary that specifies the FQBNs that will be used to compile the sketch. The key is the target name and the value is a list
   of FQBNs. The `default FQBNs <https://github.com/espressif/arduino-esp32/blob/a31a5fca1739993173caba995f7785b8eed6b30e/.github/scripts/sketch_utils.sh#L86-L91>`_
   are used if this field is not specified. This overrides the default FQBNs and the ``fqbn_append`` field.
+* ``libs``: A list of libraries that are required to run the test suite. The libraries will be installed automatically if they are not already present.
+  Libraries are installed using the ``arduino-cli lib install`` command, so you can specify libraries by name + version (e.g., ``AudioZero@1.0.0``)
+  or by URL (e.g., ``https://github.com/arduino-libraries/WiFi101.git``).
+  More information can be found in the `Arduino CLI documentation <https://arduino.github.io/arduino-cli/1.3/commands/arduino-cli_lib_install/>`_.
 
-The ``wifi`` test suite is a good example of how to use the ``ci.json`` file:
+The ``wifi`` test suite is a good example of how to use the ``ci.yml`` file:
 
-.. literalinclude:: ../../tests/validation/wifi/ci.json
-    :language: json
+.. literalinclude:: ../../tests/validation/wifi/ci.yml
+    :language: yaml
+
+Adding a Multi-Device Test Suite
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Multi-device tests allow you to test interactions between multiple ESP32 devices, such as Wi-Fi AP/client communication or BLE connections.
+Each device runs its own sketch, and the test coordinates communication between them.
+
+Creating a Multi-Device Test
+""""""""""""""""""""""""""""
+
+To create a multi-device test, follow these steps. The examples below use the ``wifi_ap`` test as a reference, but you should create your own test with an appropriate name:
+
+1. **Create the test directory structure**: Create a folder for each device sketch within your test directory.
+   For example, using the ``wifi_ap`` test structure:
+
+   .. code-block:: bash
+
+       mkdir -p tests/validation/wifi_ap/ap
+       mkdir -p tests/validation/wifi_ap/client
+
+2. **Create the ``ci.yml`` file**: Create ``ci.yml`` in your test directory with a ``multi_device`` configuration.
+   Example from the ``wifi_ap`` test:
+
+   .. code-block:: yaml
+
+       multi_device:
+         device0: ap
+         device1: client
+
+       platforms:
+         qemu: false
+         wokwi: false
+
+       requires:
+         - CONFIG_SOC_WIFI_SUPPORTED=y
+
+   The ``multi_device`` field maps device names to their sketch directories. Each device must have its own sketch folder.
+
+3. **Create device sketches**: Create an ``.ino`` file in each sketch directory with the same name as the directory.
+   Example from the ``wifi_ap`` test, ``tests/validation/wifi_ap/ap/ap.ino``:
+
+   .. code-block:: arduino
+
+       void setup() {
+         Serial.begin(115200);
+         Serial.println("[AP] Device ready for WiFi credentials");
+       }
+
+       void loop() {
+         // Your AP logic
+       }
+
+   And ``tests/validation/wifi_ap/client/client.ino`` (example):
+
+   .. code-block:: arduino
+
+       void setup() {
+         Serial.begin(115200);
+         Serial.println("[CLIENT] Device ready for WiFi credentials");
+       }
+
+       void loop() {
+         // Your client logic
+       }
+
+4. **Create the test file**: Create ``test_<your_test_name>.py`` in your test directory.
+   Example from the ``wifi_ap`` test, ``tests/validation/wifi_ap/test_wifi_ap.py``:
+
+   .. code-block:: python
+
+       def test_wifi_ap(dut):
+           ap = dut[0]
+           client = dut[1]
+
+           # Wait for devices to be ready
+           ap.expect_exact("[AP] Device ready for WiFi credentials")
+           client.expect_exact("[CLIENT] Device ready for WiFi credentials")
+
+           # Your test logic here
+           # Example: Send commands and verify responses
+           ap.write("command")
+           client.expect("expected_response")
+
+   The ``dut`` parameter is a list where each element corresponds to a device in the order specified in ``ci.yml``.
+
+.. note::
+
+    The examples above use the ``wifi_ap`` test as a reference. You can find the complete working example in ``tests/validation/wifi_ap/``.
+    When creating your own test, replace ``wifi_ap`` with your test name and adapt the device names (``ap``, ``client``) to match your use case.
+
+Building Multi-Device Tests
+"""""""""""""""""""""""""""
+
+To build a specific multi-device test (using ``wifi_ap`` as an example):
+
+.. code-block:: bash
+
+    ./.github/scripts/tests_build.sh -s wifi_ap -t esp32
+
+To build all tests (chunk build):
+
+.. code-block:: bash
+
+    ./.github/scripts/tests_build.sh -c -type validation -t esp32 -i 0 -m 1
+
+The build output will be stored in a nested layout:
+
+.. code-block:: bash
+
+    $HOME/.arduino/tests/<target>/<test_name>/<sketch_name>/build.tmp
+
+For example, for a ``wifi_ap`` test on ``esp32``:
+* Device0 (ap): ``$HOME/.arduino/tests/esp32/wifi_ap/ap/build.tmp``
+* Device1 (client): ``$HOME/.arduino/tests/esp32/wifi_ap/client/build.tmp``
+
+Running Multi-Device Tests
+""""""""""""""""""""""""""
+
+Before running multi-device tests, you need to set up the environment variables for the serial ports:
+
+.. code-block:: bash
+
+    export ESPPORT1=/dev/ttyUSB0  # Port for device0
+    export ESPPORT2=/dev/ttyUSB1  # Port for device1
+
+Then, to run a specific test (using ``wifi_ap`` as an example):
+
+.. code-block:: bash
+
+    ./.github/scripts/tests_run.sh -s wifi_ap -t esp32
+
+To run all tests (chunk run):
+
+.. code-block:: bash
+
+    ./.github/scripts/tests_run.sh -c -type validation -t esp32 -i 0 -m 1
+
+.. note::
+
+    Both ``ESPPORT1`` and ``ESPPORT2`` environment variables must be set before running multi-device tests.
+    The sketch directory name must match the value in the ``multi_device`` configuration in ``ci.yml``, and the ``.ino`` file must have the same name as the directory.
 
 Documentation Checks
-^^^^^^^^^^^^^^^^^^^^
+********************
 
 The CI also checks the documentation for any compilation errors. This is important to ensure that the documentation layout is not broken.
 To build the documentation locally, please refer to the `documentation guidelines <guides/docs_contributing.html>`_.
 
 Code Style Checks
-^^^^^^^^^^^^^^^^^
+*****************
 
 For checking the code style and other code quality checks, we use pre-commit hooks.
 These hooks will be automatically run by the CI when a Pull Request is marked as ``Status: Pending Merge``.

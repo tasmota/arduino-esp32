@@ -1,4 +1,23 @@
 /*
+ * Copyright 2017-2026 Espressif Systems (Shanghai) PTE LTD
+ * Copyright 2020-2025 Ryan Powell <ryan@nable-embedded.io> and
+ * esp-nimble-cpp, NimBLE-Arduino contributors.
+ * Copyright 2017 Neil Kolban
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
  * BLEClient.h
  *
  *  Created on: Mar 22, 2017
@@ -13,9 +32,8 @@
 #define MAIN_BLECLIENT_H_
 
 #include "soc/soc_caps.h"
-#if SOC_BLE_SUPPORTED
-
 #include "sdkconfig.h"
+#if defined(SOC_BLE_SUPPORTED) || defined(CONFIG_ESP_HOSTED_ENABLE_BT_NIMBLE)
 #if defined(CONFIG_BLUEDROID_ENABLED) || defined(CONFIG_NIMBLE_ENABLED)
 
 /***************************************************************************
@@ -79,7 +97,8 @@ public:
    *                            Common public properties                     *
    ***************************************************************************/
 
-  uint16_t m_appId;
+  /** GATT application id passed to esp_ble_gattc_app_register / used as peer map key. */
+  uint16_t m_gattAppId;
 
   /***************************************************************************
    *                           Common public declarations                    *
@@ -89,7 +108,7 @@ public:
   ~BLEClient();
   bool connect(BLEAdvertisedDevice *device);
   bool connectTimeout(BLEAdvertisedDevice *device, uint32_t timeoutMS = portMAX_DELAY);
-  bool connect(BLEAddress address, uint8_t type = 0, uint32_t timeoutMS = portMAX_DELAY);
+  bool connect(BLEAddress address, uint8_t type = 0xFF, uint32_t timeoutMS = portMAX_DELAY);
   bool secureConnection();
   int disconnect(uint8_t reason = BLE_ERR_REM_USER_CONN_TERM);
   BLEAddress getPeerAddress();
@@ -106,6 +125,7 @@ public:
   esp_gatt_if_t getGattcIf();
   uint16_t getMTU();
   bool setMTU(uint16_t mtu);
+  bool updateConnParams(uint16_t minInterval, uint16_t maxInterval, uint16_t latency, uint16_t timeout);
 
   /***************************************************************************
    *                           Bluedroid public declarations                 *
@@ -208,13 +228,25 @@ public:
    ***************************************************************************/
 
 #if defined(CONFIG_NIMBLE_ENABLED)
+  /**
+   * @brief Callback when the server requests connection parameter updates.
+   *
+   * This callback is invoked when the peripheral (server) requests to update
+   * connection parameters. The central (client) can accept or reject the request.
+   *
+   * NOTE: This callback is NimBLE-only. Bluedroid handles parameter update
+   * requests automatically within the Bluetooth stack without application-level
+   * intervention.
+   *
+   * @param [in] pClient Pointer to the BLEClient instance.
+   * @param [in] params Pointer to the requested connection parameters.
+   * @return true to accept the request, false to reject it.
+   */
   virtual bool onConnParamsUpdateRequest(BLEClient *pClient, const ble_gap_upd_params *params);
-  virtual uint32_t onPassKeyRequest();
-  virtual void onAuthenticationComplete(ble_gap_conn_desc *desc);
-  virtual bool onConfirmPIN(uint32_t pin);
 #endif
 };
 
 #endif /* CONFIG_BLUEDROID_ENABLED || CONFIG_NIMBLE_ENABLED */
-#endif /* SOC_BLE_SUPPORTED */
+#endif /* SOC_BLE_SUPPORTED || CONFIG_ESP_HOSTED_ENABLE_BT_NIMBLE */
+
 #endif /* MAIN_BLECLIENT_H_ */

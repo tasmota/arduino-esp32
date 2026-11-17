@@ -35,15 +35,8 @@
 // To do extern "C" uint32_t _SPIFFS_start;
 // To do extern "C" uint32_t _SPIFFS_end;
 
-HTTPUpdate::HTTPUpdate(void) : HTTPUpdate(8000) {}
-
-HTTPUpdate::HTTPUpdate(int httpClientTimeout) : _httpClientTimeout(httpClientTimeout), _ledPin(-1) {
-  _followRedirects = HTTPC_DISABLE_FOLLOW_REDIRECTS;
-  _md5Sum = String();
-  _user = String();
-  _password = String();
-  _auth = String();
-}
+HTTPUpdate::HTTPUpdate(int httpClientTimeout, UpdateClass *updater)
+  : _httpClientTimeout(httpClientTimeout), _updater(updater), _followRedirects(HTTPC_DISABLE_FOLLOW_REDIRECTS) {}
 
 HTTPUpdate::~HTTPUpdate(void) {}
 
@@ -52,11 +45,31 @@ HTTPUpdateResult HTTPUpdate::update(NetworkClient &client, const String &url, co
   if (!http.begin(client, url)) {
     return HTTP_UPDATE_FAILED;
   }
-  return handleUpdate(http, currentVersion, false, requestCB);
+  return handleUpdate(http, currentVersion, U_FLASH, requestCB);
+}
+
+HTTPUpdateResult HTTPUpdate::updateFs(HTTPClient &httpClient, const String &currentVersion, HTTPUpdateRequestCB requestCB) {
+  return handleUpdate(httpClient, currentVersion, U_FLASHFS, requestCB);
 }
 
 HTTPUpdateResult HTTPUpdate::updateSpiffs(HTTPClient &httpClient, const String &currentVersion, HTTPUpdateRequestCB requestCB) {
-  return handleUpdate(httpClient, currentVersion, true, requestCB);
+  return handleUpdate(httpClient, currentVersion, U_SPIFFS, requestCB);
+}
+
+HTTPUpdateResult HTTPUpdate::updateFatfs(HTTPClient &httpClient, const String &currentVersion, HTTPUpdateRequestCB requestCB) {
+  return handleUpdate(httpClient, currentVersion, U_FATFS, requestCB);
+}
+
+HTTPUpdateResult HTTPUpdate::updateLittlefs(HTTPClient &httpClient, const String &currentVersion, HTTPUpdateRequestCB requestCB) {
+  return handleUpdate(httpClient, currentVersion, U_LITTLEFS, requestCB);
+}
+
+HTTPUpdateResult HTTPUpdate::updateFs(NetworkClient &client, const String &url, const String &currentVersion, HTTPUpdateRequestCB requestCB) {
+  HTTPClient http;
+  if (!http.begin(client, url)) {
+    return HTTP_UPDATE_FAILED;
+  }
+  return handleUpdate(http, currentVersion, U_FLASHFS, requestCB);
 }
 
 HTTPUpdateResult HTTPUpdate::updateSpiffs(NetworkClient &client, const String &url, const String &currentVersion, HTTPUpdateRequestCB requestCB) {
@@ -64,11 +77,27 @@ HTTPUpdateResult HTTPUpdate::updateSpiffs(NetworkClient &client, const String &u
   if (!http.begin(client, url)) {
     return HTTP_UPDATE_FAILED;
   }
-  return handleUpdate(http, currentVersion, true, requestCB);
+  return handleUpdate(http, currentVersion, U_SPIFFS, requestCB);
+}
+
+HTTPUpdateResult HTTPUpdate::updateFatfs(NetworkClient &client, const String &url, const String &currentVersion, HTTPUpdateRequestCB requestCB) {
+  HTTPClient http;
+  if (!http.begin(client, url)) {
+    return HTTP_UPDATE_FAILED;
+  }
+  return handleUpdate(http, currentVersion, U_FATFS, requestCB);
+}
+
+HTTPUpdateResult HTTPUpdate::updateLittlefs(NetworkClient &client, const String &url, const String &currentVersion, HTTPUpdateRequestCB requestCB) {
+  HTTPClient http;
+  if (!http.begin(client, url)) {
+    return HTTP_UPDATE_FAILED;
+  }
+  return handleUpdate(http, currentVersion, U_LITTLEFS, requestCB);
 }
 
 HTTPUpdateResult HTTPUpdate::update(HTTPClient &httpClient, const String &currentVersion, HTTPUpdateRequestCB requestCB) {
-  return handleUpdate(httpClient, currentVersion, false, requestCB);
+  return handleUpdate(httpClient, currentVersion, U_FLASH, requestCB);
 }
 
 HTTPUpdateResult
@@ -77,7 +106,7 @@ HTTPUpdateResult
   if (!http.begin(client, host, port, uri)) {
     return HTTP_UPDATE_FAILED;
   }
-  return handleUpdate(http, currentVersion, false, requestCB);
+  return handleUpdate(http, currentVersion, U_FLASH, requestCB);
 }
 
 /**
@@ -93,6 +122,9 @@ int HTTPUpdate::getLastError(void) {
  * @return String error
  */
 String HTTPUpdate::getLastErrorString(void) {
+  if (!_updater) {
+    return {};
+  }
 
   if (_lastError == 0) {
     return String();  // no error
@@ -101,7 +133,7 @@ String HTTPUpdate::getLastErrorString(void) {
   // error from Update class
   if (_lastError > 0) {
     StreamString error;
-    Update.printError(error);
+    _updater->printError(error);
     error.trim();  // remove line ending
     return String("Update error: ") + error;
   }
@@ -121,6 +153,8 @@ String HTTPUpdate::getLastErrorString(void) {
     case HTTP_UE_BIN_VERIFY_HEADER_FAILED: return "Verify Bin Header Failed";
     case HTTP_UE_BIN_FOR_WRONG_FLASH:      return "New Binary Does Not Fit Flash Size";
     case HTTP_UE_NO_PARTITION:             return "Partition Could Not be Found";
+    case HTTP_UE_SERVER_FAULTY_SHA256:     return "Wrong SHA256";
+    case HTTP_UE_SERVER_FAULTY_SHA512:     return "Wrong SHA512";
   }
 
   return String();
@@ -158,9 +192,24 @@ String getSketchSHA256() {
  * @param currentVersion const char *
  * @return HTTPUpdateResult
  */
-HTTPUpdateResult HTTPUpdate::handleUpdate(HTTPClient &http, const String &currentVersion, bool spiffs, HTTPUpdateRequestCB requestCB) {
+HTTPUpdateResult HTTPUpdate::handleUpdate(HTTPClient &http, const String &currentVersion, uint8_t type, HTTPUpdateRequestCB requestCB) {
 
   HTTPUpdateResult ret = HTTP_UPDATE_FAILED;
+
+  // Prefetch checksum sidecars before the firmware GET when an explicit digest is
+  // not already set. Response headers can still override a successful prefetch.
+  String md5;
+  String sha256;
+  String sha512;
+  uint8_t sidecarFailures = 0;
+  if (_checksumSidecarFetch) {
+    uint8_t requested = (!_md5SumUrl.isEmpty() && _md5Sum.isEmpty() ? SIDECAR_MD5_FAILED : 0)
+                        | (!_sha256SumUrl.isEmpty() && _sha256Sum.isEmpty() ? SIDECAR_SHA256_FAILED : 0)
+                        | (!_sha512SumUrl.isEmpty() && _sha512Sum.isEmpty() ? SIDECAR_SHA512_FAILED : 0);
+    sidecarFailures = _checksumSidecarFetch(
+      http.getClient(), _md5SumUrl, _sha256SumUrl, _sha512SumUrl, requested, md5, sha256, sha512, _httpClientTimeout, _followRedirects, http.getRedirectLimit()
+    );
+  }
 
   // use HTTP/1.0 for update since the update handler not support any transfer Encoding
   http.useHTTP10(true);
@@ -187,8 +236,14 @@ HTTPUpdateResult HTTPUpdate::handleUpdate(HTTPClient &http, const String &curren
   http.addHeader("x-ESP32-chip-size", String(ESP.getFlashChipSize()));
   http.addHeader("x-ESP32-sdk-version", ESP.getSdkVersion());
 
-  if (spiffs) {
+  if (type == U_SPIFFS) {
     http.addHeader("x-ESP32-mode", "spiffs");
+  } else if (type == U_FATFS) {
+    http.addHeader("x-ESP32-mode", "fatfs");
+  } else if (type == U_LITTLEFS) {
+    http.addHeader("x-ESP32-mode", "littlefs");
+  } else if (type == U_FLASHFS) {
+    http.addHeader("x-ESP32-mode", "flashfs");
   } else {
     http.addHeader("x-ESP32-mode", "sketch");
   }
@@ -208,7 +263,7 @@ HTTPUpdateResult HTTPUpdate::handleUpdate(HTTPClient &http, const String &curren
     http.setAuthorization(_auth.c_str());
   }
 
-  const char *headerkeys[] = {"x-MD5"};
+  const char *headerkeys[] = {"x-MD5", "x-SHA256", "x-SHA512"};
   size_t headerkeyssize = sizeof(headerkeys) / sizeof(char *);
 
   // track these headers
@@ -229,19 +284,49 @@ HTTPUpdateResult HTTPUpdate::handleUpdate(HTTPClient &http, const String &curren
   log_d(" - code: %d\n", code);
   log_d(" - len: %d\n", len);
 
-  String md5;
+  // Precedence: setMD5sum()/setSHA256sum()/setSHA512sum() > response header > sidecar URL
   if (_md5Sum.length()) {
     md5 = _md5Sum;
   } else if (http.hasHeader("x-MD5")) {
     md5 = http.header("x-MD5");
+  } else if ((sidecarFailures & SIDECAR_MD5_FAILED) && code == HTTP_CODE_OK && len > 0) {
+    _lastError = HTTP_UE_SERVER_FAULTY_MD5;
+    http.end();
+    return HTTP_UPDATE_FAILED;
   }
   if (md5.length()) {
     log_d(" - MD5: %s\n", md5.c_str());
   }
 
+  if (_sha256Sum.length()) {
+    sha256 = _sha256Sum;
+  } else if (http.hasHeader("x-SHA256")) {
+    sha256 = http.header("x-SHA256");
+  } else if ((sidecarFailures & SIDECAR_SHA256_FAILED) && code == HTTP_CODE_OK && len > 0) {
+    _lastError = HTTP_UE_SERVER_FAULTY_SHA256;
+    http.end();
+    return HTTP_UPDATE_FAILED;
+  }
+  if (sha256.length()) {
+    log_d(" - SHA256: %s\n", sha256.c_str());
+  }
+
+  if (_sha512Sum.length()) {
+    sha512 = _sha512Sum;
+  } else if (http.hasHeader("x-SHA512")) {
+    sha512 = http.header("x-SHA512");
+  } else if ((sidecarFailures & SIDECAR_SHA512_FAILED) && code == HTTP_CODE_OK && len > 0) {
+    _lastError = HTTP_UE_SERVER_FAULTY_SHA512;
+    http.end();
+    return HTTP_UPDATE_FAILED;
+  }
+  if (sha512.length()) {
+    log_d(" - SHA512: %s\n", sha512.c_str());
+  }
+
   log_d("ESP32 info:\n");
-  log_d(" - free Space: %d\n", ESP.getFreeSketchSpace());
-  log_d(" - current Sketch Size: %d\n", ESP.getSketchSize());
+  log_d(" - free Space: %" PRIu32 "\n", ESP.getFreeSketchSpace());
+  log_d(" - current Sketch Size: %" PRIu32 "\n", ESP.getSketchSize());
 
   if (currentVersion && currentVersion[0] != 0x00) {
     log_d(" - current version: %s\n", currentVersion.c_str());
@@ -251,15 +336,31 @@ HTTPUpdateResult HTTPUpdate::handleUpdate(HTTPClient &http, const String &curren
     case HTTP_CODE_OK:  ///< OK (Start Update)
       if (len > 0) {
         bool startUpdate = true;
-        if (spiffs) {
-          const esp_partition_t *_partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_SPIFFS, NULL);
+        if (type != U_FLASH) {
+          const esp_partition_t *_partition = NULL;
+          if (type == U_SPIFFS) {
+            _partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_SPIFFS, NULL);
+          } else if (type == U_FATFS) {
+            _partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_FAT, NULL);
+          } else if (type == U_LITTLEFS) {
+            _partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_LITTLEFS, NULL);
+          } else if (type == U_FLASHFS) {
+            _partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_SPIFFS, NULL);
+            if (!_partition) {
+              _partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_FAT, NULL);
+            }
+            if (!_partition) {
+              _partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_LITTLEFS, NULL);
+            }
+          }
+
           if (!_partition) {
             _lastError = HTTP_UE_NO_PARTITION;
             return HTTP_UPDATE_FAILED;
           }
 
           if (len > _partition->size) {
-            log_e("spiffsSize to low (%d) needed: %d\n", _partition->size, len);
+            log_e("spiffsSize to low (%" PRIu32 ") needed: %" PRIu32 "\n", _partition->size, len);
             startUpdate = false;
           }
         } else {
@@ -291,17 +392,15 @@ HTTPUpdateResult HTTPUpdate::handleUpdate(HTTPClient &http, const String &curren
 
           delay(100);
 
-          int command;
+          int command = type;
 
-          if (spiffs) {
-            command = U_SPIFFS;
-            log_d("runUpdate spiffs...\n");
-          } else {
-            command = U_FLASH;
+          if (type == U_FLASH) {
             log_d("runUpdate flash...\n");
+          } else {
+            log_d("runUpdate file system...\n");
           }
 
-          if (!spiffs) {
+          if (type == U_FLASH) {
             /* To do
                     uint8_t buf[4];
                     if(tcp->peekBytes(&buf[0], 4) != 4) {
@@ -332,7 +431,7 @@ HTTPUpdateResult HTTPUpdate::handleUpdate(HTTPClient &http, const String &curren
                     }
 */
           }
-          if (runUpdate(*tcp, len, md5, command)) {
+          if (runUpdate(*tcp, len, md5, command, sha256, sha512)) {
             ret = HTTP_UPDATE_OK;
             log_d("Update ok\n");
             http.end();
@@ -341,7 +440,7 @@ HTTPUpdateResult HTTPUpdate::handleUpdate(HTTPClient &http, const String &curren
               _cbEnd();
             }
 
-            if (_rebootOnUpdate && !spiffs) {
+            if (_rebootOnUpdate && type == U_FLASH) {
               ESP.restart();
             }
 
@@ -385,19 +484,25 @@ HTTPUpdateResult HTTPUpdate::handleUpdate(HTTPClient &http, const String &curren
  * @param in Stream&
  * @param size uint32_t
  * @param md5 String
+ * @param command int
+ * @param sha256 String
+ * @param sha512 String
  * @return true if Update ok
  */
-bool HTTPUpdate::runUpdate(Stream &in, uint32_t size, String md5, int command) {
+bool HTTPUpdate::runUpdate(Stream &in, uint32_t size, String md5, int command, String sha256, String sha512) {
+  if (!_updater) {
+    return false;
+  }
 
   StreamString error;
 
   if (_cbProgress) {
-    Update.onProgress(_cbProgress);
+    _updater->onProgress(_cbProgress);
   }
 
-  if (!Update.begin(size, command, _ledPin, _ledOn)) {
-    _lastError = Update.getError();
-    Update.printError(error);
+  if (!_updater->begin(size, command, _ledPin, _ledOn)) {
+    _lastError = _updater->getError();
+    _updater->printError(error);
     error.trim();  // remove line ending
     log_e("Update.begin failed! (%s)\n", error.c_str());
     return false;
@@ -408,20 +513,38 @@ bool HTTPUpdate::runUpdate(Stream &in, uint32_t size, String md5, int command) {
   }
 
   if (md5.length()) {
-    if (!Update.setMD5(md5.c_str())) {
+    if (!_updater->setMD5(md5.c_str())) {
       _lastError = HTTP_UE_SERVER_FAULTY_MD5;
       log_e("Update.setMD5 failed! (%s)\n", md5.c_str());
+      _updater->abort();
       return false;
     }
   }
 
-  // To do: the SHA256 could be checked if the server sends it
+  if (sha256.length()) {
+    if (!_updater->setSHA256(sha256.c_str())) {
+      _lastError = HTTP_UE_SERVER_FAULTY_SHA256;
+      log_e("Update.setSHA256 failed! (%s)\n", sha256.c_str());
+      _updater->abort();
+      return false;
+    }
+  }
 
-  if (Update.writeStream(in) != size) {
-    _lastError = Update.getError();
-    Update.printError(error);
+  if (sha512.length()) {
+    if (!_updater->setSHA512(sha512.c_str())) {
+      _lastError = HTTP_UE_SERVER_FAULTY_SHA512;
+      log_e("Update.setSHA512 failed! (%s)\n", sha512.c_str());
+      _updater->abort();
+      return false;
+    }
+  }
+
+  if (_updater->writeStream(in) != size) {
+    _lastError = _updater->getError();
+    _updater->printError(error);
     error.trim();  // remove line ending
     log_e("Update.writeStream failed! (%s)\n", error.c_str());
+    _updater->abort();
     return false;
   }
 
@@ -429,9 +552,9 @@ bool HTTPUpdate::runUpdate(Stream &in, uint32_t size, String md5, int command) {
     _cbProgress(size, size);
   }
 
-  if (!Update.end()) {
-    _lastError = Update.getError();
-    Update.printError(error);
+  if (!_updater->end()) {
+    _lastError = _updater->getError();
+    _updater->printError(error);
     error.trim();  // remove line ending
     log_e("Update.end failed! (%s)\n", error.c_str());
     return false;

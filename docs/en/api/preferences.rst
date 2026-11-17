@@ -9,10 +9,19 @@ The Preferences library is unique to arduino-esp32. It should be considered as t
 
 It uses a portion of the on-board non-volatile memory (NVS) of the ESP32 to store data. This data is retained across restarts and loss of power events to the system.
 
-Preferences works best for storing many small values, rather than a few large values. If large amounts of data are to be stored, consider using a file system library such as LitteFS.
+Namespaces, Keys and Values
+***************************
+
+Preferences data is stored in a "namespace" which operates on "key-value" pairs. Namespaces and keys are ASCII strings with a maximum length of 15 characters currently.
+
+Note
+****
+
+Preferences works best for storing many small values, rather than a few large values. If large amounts of data are to be stored, consider using a file system library such as LittleFS.
 
 The Preferences library is usable by all ESP32 variants.
 
+See also the `Preferences Tutorial <https://docs.espressif.com/projects/arduino-esp32/en/latest/tutorials/preferences.html>`__.
 
 Header File
 -----------
@@ -73,11 +82,13 @@ Preferences directly supports the following data types:
    |                   | const char*       | variable      |
    | String            +-------------------+               |
    |                   | String            |               |
+   |                   +-------------------+               |
+   |                   | std::string       |               |
    +-------------------+-------------------+---------------+
    | Bytes             | uint8_t           | variable      |
    +-------------------+-------------------+---------------+
 
-String values can be stored and retrieved either as an Arduino String or as a null terminated ``char`` array (c-string).
+String values can be stored and retrieved as an Arduino ``String``, a ``std::string``, or a null terminated ``char`` array (c-string). All three write and read the same NVS string entry. A ``std::string`` is stored through ``c_str()``, so the saved text stops at the first null character.
 
 Bytes type is used for storing and retrieving an arbitrary number of bytes in a namespace.
 
@@ -354,6 +365,7 @@ Arduino-esp32 Preferences API
 
        size_t putString(const char* key, const char* value);
        size_t putString(const char* key, String value);
+       size_t putString(const char* key, const std::string& value);
 
    ..
 
@@ -364,6 +376,7 @@ Arduino-esp32 Preferences API
       * ``value`` (Required)
          - if ``const char*``, a null-terminated (c-string) character array.
          - if ``String``, a valid Arduino String type.
+         - if ``std::string``, a standard string. The stored bytes are ``value.c_str()``.
 
    **Returns**
       * if successful: the number of bytes stored; ``0`` otherwise.
@@ -540,22 +553,22 @@ Arduino-esp32 Preferences API
 
 .. code-block:: arduino
 
-    size_t getString(const char* key, char* value, size_t len);
+    size_t getString(const char* key, char* value, size_t maxLen);
 ..
 
    **Parameters**
       * ``key`` (Required)
       * ``value`` (Required)
-         - a buffer of a size large enough to hold ``len`` bytes
-      * ``len`` (Required)
-         - the number of type ``char``` to be written to the buffer pointed to by ``value``
+         - buffer to receive the null-terminated string
+      * ``maxLen`` (Required)
+         - maximum number of bytes (including the null terminator) that can be written to ``value``
 
    **Returns**
-      * if successful; the number of bytes equal to ``len`` is written to the buffer pointed to by ``value``, and the method returns ``1``.
-      * if the method fails, nothing is written to the buffer pointed to by ``value`` and the method returns ``0``.
+      * if successful: that many bytes (including the null terminator) are written to the buffer pointed to by ``value``, and the method returns that number of bytes.
+      * if the method fails: nothing is written to the buffer and the method returns ``0``.
 
    **Notes**
-      * ``len`` must equal the number of bytes stored against the key or the call will fail.
+      * ``maxLen`` must be greater than or equal to the number of bytes stored against the key (including the null terminator) or the call will fail. Use ``getStringLength`` to obtain the required size before calling.
       * A message providing the reason for a failed call is sent to the arduino-esp32 ``log_e`` facility.
 
 
@@ -567,19 +580,71 @@ Arduino-esp32 Preferences API
 .. code-block:: arduino
 
     String getString(const char* key, String defaultValue = String());
+    String getString(const char* key, const char* defaultValue);
 
 ..
 
    **Parameters**
       * ``key`` (Required)
-      * ``defaultValue`` (Optional)
+      * ``defaultValue`` (Optional for the ``String`` overload)
+         - ``String``, or a null-terminated ``char`` array. A string literal uses the ``const char*`` overload.
 
    **Returns**
       * the value stored against ``key`` if the call if successful
       * if the method fails: it returns ``defaultValue``, if provided; ``""`` (an empty String) otherwise.
 
    **Notes**
-      * ``defaultValue`` must be of type ``String``.
+      * ``getString(key)`` returns an Arduino ``String``.
+      * ``getString(key, "literal")`` also returns an Arduino ``String``. Pass a ``std::string`` to the overload below when the result should be a ``std::string``.
+
+
+``getString``
+*************
+
+   Retrieve a ``std::string`` value stored against a given key in the currently open namespace.
+
+.. code-block:: arduino
+
+    std::string getString(const char* key, const std::string& defaultValue);
+
+..
+
+   **Parameters**
+      * ``key`` (Required)
+      * ``defaultValue`` (Required)
+         - a ``std::string``, returned when the key is missing or the call fails.
+         - pass the ``std::string`` you already have. Pass ``std::string()`` when the fallback is empty, or ``std::string("fallback")`` for other text.
+         - a string literal returns an Arduino ``String`` from the overload above.
+
+   **Returns**
+      * the stored text, as a ``std::string``, when the call succeeds
+      * ``defaultValue`` when the key is missing or the call fails
+
+   **Notes**
+      * ``name = preferences.getString("name", name);``
+      * The stored value is the same NVS string written by every ``putString`` overload.
+
+
+``getStringLength``
+*******************
+
+   Get the number of bytes (including the null terminator) stored for a string value against a key in the currently open namespace. Use this to size a buffer before calling ``getString(key, value, maxLen)``.
+
+.. code-block:: arduino
+
+   size_t getStringLength(const char* key);
+
+..
+
+   **Parameters**
+      * ``key`` (Required)
+
+   **Returns**
+      * if successful: the number of bytes in the value stored against ``key`` (including the null terminator); ``0`` otherwise.
+
+   **Notes**
+      * This method will fail (return 0) if the key does not exist or is not of type String.
+      * A message providing the reason for a failed call is sent to the arduino-esp32 ``log_e`` facility.
 
 
 ``getBytes``
@@ -589,23 +654,23 @@ Copy a series of bytes stored against a given key in the currently open namespac
 
 .. code-block:: arduino
 
-   size_t getBytes(const char* key, void * buf, size_t len);
+   size_t getBytes(const char* key, void * buf, size_t maxLen);
 
 ..
 
    **Parameters**
       * ``key`` (Required)
       * ``buf`` (Required)
-         - a buffer of a size large enough to hold ``len`` bytes.
-      * ``len`` (Required)
-         - the number of bytes to be written to the buffer pointed to by ``buf``
+         - buffer to receive the bytes
+      * ``maxLen`` (Required)
+         - maximum number of bytes that can be written to ``buf``
 
    **Returns**
-      * if successful, the number of bytes equal to ``len`` is written to buffer ``buf``, and the method returns ``len``.
-      * if the method fails, nothing is written to the buffer and the method returns ``0``.
+      * if successful: that many bytes are written to the buffer pointed to by ``buf``, and the method returns that number of bytes.
+      * if the method fails: nothing is written to the buffer and the method returns ``0``.
 
    **Notes**
-      * ``len`` must equal the number of bytes stored against the key or the call will fail.
+      * ``maxLen`` must be greater than or equal to the number of bytes stored against the key or the call will fail. Use ``getBytesLength`` to obtain the required size before calling.
       * A message providing the reason for a failed call is sent to the arduino-esp32 ``log_e`` facility.
 
 

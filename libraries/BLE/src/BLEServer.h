@@ -1,4 +1,23 @@
 /*
+ * Copyright 2017-2026 Espressif Systems (Shanghai) PTE LTD
+ * Copyright 2020-2025 Ryan Powell <ryan@nable-embedded.io> and
+ * esp-nimble-cpp, NimBLE-Arduino contributors.
+ * Copyright 2017 Neil Kolban
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
  * BLEServer.h
  *
  *  Created on: Apr 16, 2017
@@ -11,10 +30,10 @@
 
 #ifndef COMPONENTS_CPP_UTILS_BLESERVER_H_
 #define COMPONENTS_CPP_UTILS_BLESERVER_H_
-#include "soc/soc_caps.h"
-#if SOC_BLE_SUPPORTED
 
+#include "soc/soc_caps.h"
 #include "sdkconfig.h"
+#if defined(SOC_BLE_SUPPORTED) || defined(CONFIG_ESP_HOSTED_ENABLE_BT_NIMBLE)
 #if defined(CONFIG_BLUEDROID_ENABLED) || defined(CONFIG_NIMBLE_ENABLED)
 
 /*****************************************************************************
@@ -23,6 +42,7 @@
 
 #include <string>
 #include <string.h>
+#include "Arduino.h"
 #include "BLEDevice.h"
 #include "BLEConnInfo.h"
 #include "BLEUUID.h"
@@ -113,7 +133,8 @@ public:
    *                        Common public properties                         *
    ***************************************************************************/
 
-  uint16_t m_appId;
+  /** GATT application id passed to esp_ble_gatts_app_register. */
+  uint16_t m_gattAppId;
 
   /***************************************************************************
    *                       Common public declarations                        *
@@ -129,6 +150,10 @@ public:
   BLEService *getServiceByUUID(const char *uuid);
   BLEService *getServiceByUUID(BLEUUID uuid);
   void start();
+  bool isStarted();
+#if !defined(CONFIG_BT_NIMBLE_EXT_ADV) || defined(CONFIG_BLUEDROID_ENABLED)
+  void advertiseOnDisconnect(bool enable);
+#endif
 
   // Connection management functions
   std::map<uint16_t, conn_status_t> getPeerDevices(bool client);
@@ -145,8 +170,23 @@ public:
 
 #if defined(CONFIG_BLUEDROID_ENABLED)
   bool connect(BLEAddress address);
+  bool requestConnParams(esp_bd_addr_t remote_bda, uint16_t minInterval, uint16_t maxInterval, uint16_t latency, uint16_t timeout);
+  [[deprecated("Use requestConnParams() instead.")]]
   void updateConnParams(esp_bd_addr_t remote_bda, uint16_t minInterval, uint16_t maxInterval, uint16_t latency, uint16_t timeout);
   void disconnect(uint16_t connId);
+
+  /**
+   * @brief Restore CCCD values for a bonded device from NVS.
+   *
+   * This should be called after a bonded device reconnects and authentication completes.
+   * It restores the notification/indication subscription state that was persisted
+   * when the client originally wrote to the CCCD descriptors.
+   *
+   * @param [in] peerAddress The address of the bonded peer device.
+   */
+  void restoreCCCDValues(const BLEAddress &peerAddress);
+
+  void handleGAPEvent(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param);
 #endif
 
   /***************************************************************************
@@ -155,6 +195,8 @@ public:
 
 #if defined(CONFIG_NIMBLE_ENABLED)
   uint16_t getHandle();
+  bool requestConnParams(uint16_t conn_handle, uint16_t minInterval, uint16_t maxInterval, uint16_t latency, uint16_t timeout);
+  [[deprecated("Use requestConnParams() instead.")]]
   void updateConnParams(uint16_t conn_handle, uint16_t minInterval, uint16_t maxInterval, uint16_t latency, uint16_t timeout);
   int disconnect(uint16_t connId, uint8_t reason = BLE_ERR_REM_USER_CONN_TERM);
 #endif
@@ -174,9 +216,16 @@ private:
   uint32_t m_connectedCount;
   bool m_gattsStarted;
   std::map<uint16_t, conn_status_t> m_connectedServersMap;
+#if !defined(CONFIG_BT_NIMBLE_EXT_ADV) || defined(CONFIG_BLUEDROID_ENABLED)
+  bool m_advertiseOnDisconnect;
+#endif
   FreeRTOS::Semaphore m_semaphoreRegisterAppEvt = FreeRTOS::Semaphore("RegisterAppEvt");
   FreeRTOS::Semaphore m_semaphoreCreateEvt = FreeRTOS::Semaphore("CreateEvt");
   FreeRTOS::Semaphore m_semaphoreOpenEvt = FreeRTOS::Semaphore("OpenEvt");
+  // IMPORTANT:
+  // m_semaphoreMapAccess must never be held while invoking callbacks
+  // or calling into external code. This prevents re-entrant deadlocks.
+  FreeRTOS::Semaphore m_semaphoreMapAccess = FreeRTOS::Semaphore("MapAccess");
   BLEServiceMap m_serviceMap;
   BLEServerCallbacks *m_pServerCallbacks = nullptr;
 
@@ -251,6 +300,7 @@ public:
   virtual void onConnect(BLEServer *pServer, esp_ble_gatts_cb_param_t *param);
   virtual void onDisconnect(BLEServer *pServer, esp_ble_gatts_cb_param_t *param);
   virtual void onMtuChanged(BLEServer *pServer, esp_ble_gatts_cb_param_t *param);
+  virtual void onConnParamsUpdate(esp_bd_addr_t remote_bda, uint16_t interval, uint16_t latency, uint16_t timeout, esp_bt_status_t status);
 #endif
 
   /***************************************************************************
@@ -261,12 +311,11 @@ public:
   virtual void onConnect(BLEServer *pServer, ble_gap_conn_desc *desc);
   virtual void onDisconnect(BLEServer *pServer, ble_gap_conn_desc *desc);
   virtual void onMtuChanged(BLEServer *pServer, ble_gap_conn_desc *desc, uint16_t mtu);
-  virtual uint32_t onPassKeyRequest();
-  virtual void onAuthenticationComplete(ble_gap_conn_desc *desc);
-  virtual bool onConfirmPIN(uint32_t pin);
+  virtual void onConnParamsUpdate(uint16_t conn_handle, uint16_t interval, uint16_t latency, uint16_t timeout, uint8_t status);
 #endif
 };  // BLEServerCallbacks
 
 #endif /* CONFIG_BLUEDROID_ENABLED || CONFIG_NIMBLE_ENABLED */
-#endif /* SOC_BLE_SUPPORTED */
+#endif /* SOC_BLE_SUPPORTED || CONFIG_ESP_HOSTED_ENABLE_BT_NIMBLE */
+
 #endif /* COMPONENTS_CPP_UTILS_BLESERVER_H_ */

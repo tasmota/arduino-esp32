@@ -100,6 +100,9 @@ public:
 
   size_t write(const uint8_t *data, size_t len);
   size_t write(uint8_t data);
+
+  // Copy assignment operator
+  AsyncUDPPacket &operator=(const AsyncUDPPacket &packet);
 };
 
 class AsyncUDP : public Print {
@@ -148,6 +151,8 @@ public:
 
   size_t broadcastTo(AsyncUDPMessage &message, uint16_t port, tcpip_adapter_if_t tcpip_if = TCPIP_ADAPTER_IF_MAX);
   size_t broadcast(AsyncUDPMessage &message);
+
+  size_t dropCount();
 
   IPAddress listenIP();
 #if CONFIG_LWIP_IPV6

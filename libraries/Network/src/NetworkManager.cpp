@@ -3,10 +3,15 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+
+#include "Arduino.h"
 #include "NetworkManager.h"
 #include "IPAddress.h"
 #include "esp_netif.h"
 #include "lwip/dns.h"
+#if CONFIG_LWIP_TCPIP_CORE_LOCKING
+#include "lwip/priv/tcpip_priv.h"
+#endif
 #include "esp_mac.h"
 #include "netdb.h"
 
@@ -20,7 +25,7 @@ bool NetworkManager::begin() {
     initialized = true;
 #if CONFIG_IDF_TARGET_ESP32
     uint8_t mac[8];
-    if (esp_efuse_mac_get_default(mac) == ESP_OK) {
+    if (esp_base_mac_addr_get(mac) != ESP_OK && esp_efuse_mac_get_default(mac) == ESP_OK) {
       esp_base_mac_addr_set(mac);
     }
 #endif
@@ -79,7 +84,19 @@ int NetworkManager::hostByName(const char *aHostname, IPAddress &aResult) {
   if (hasGlobalV6 != hasGlobalV6Now || hasGlobalV4 != hasGlobalV4Now) {
     hasGlobalV6 = hasGlobalV6Now;
     hasGlobalV4 = hasGlobalV4Now;
+#if CONFIG_LWIP_TCPIP_CORE_LOCKING
+    bool locked = false;
+    if (!sys_thread_tcpip(LWIP_CORE_LOCK_QUERY_HOLDER)) {
+      LOCK_TCPIP_CORE();
+      locked = true;
+    }
+#endif
     dns_clear_cache();
+#if CONFIG_LWIP_TCPIP_CORE_LOCKING
+    if (locked) {
+      UNLOCK_TCPIP_CORE();
+    }
+#endif
     log_d("Clearing DNS cache");
   }
 
@@ -146,7 +163,7 @@ String NetworkManager::macAddress(void) {
   uint8_t mac[6];
   char macStr[18] = {0};
   macAddress(mac);
-  sprintf(macStr, "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+  snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
   return String(macStr);
 }
 
@@ -183,6 +200,18 @@ NetworkInterface *NetworkManager::getDefaultInterface() {
     }
   }
   return NULL;
+}
+
+bool NetworkManager::isOnline() {
+  for (int i = 0; i < ESP_NETIF_ID_MAX; ++i) {
+    if (i != ESP_NETIF_ID_AP) {
+      NetworkInterface *iface = getNetifByID((Network_Interface_ID)i);
+      if (iface != NULL && iface->connected() && (iface->hasIP() || iface->hasGlobalIPv6())) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 size_t NetworkManager::printTo(Print &out) const {

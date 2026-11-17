@@ -1,7 +1,6 @@
 #ifndef __HTTP_UPDATE_SERVER_H
 #define __HTTP_UPDATE_SERVER_H
 
-#include <SPIFFS.h>
 #include <StreamString.h>
 #include <Update.h>
 #include <WebServer.h>
@@ -123,13 +122,13 @@ public:
             Serial.printf("Update: %s\n", upload.filename.c_str());
           }
           if (upload.name == "filesystem") {
-            if (!Update.begin(SPIFFS.totalBytes(), U_SPIFFS)) {  //start with max available size
+            if (!Update.begin(UPDATE_SIZE_UNKNOWN, U_FLASHFS)) {  //Instead of SPIFFS.totalBytes(). Fix https://github.com/espressif/arduino-esp32/issues/9967
               if (_serial_output) {
                 Update.printError(Serial);
               }
             }
           } else {
-            uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
+            uint32_t maxSketchSpace = ESP.getFreeSketchSpace() & 0xFFFFF000;
             if (!Update.begin(maxSketchSpace, U_FLASH)) {  //start with max available size
               _setUpdaterError();
             }
@@ -144,7 +143,7 @@ public:
         } else if (_authenticated && upload.status == UPLOAD_FILE_END && !_updaterError.length()) {
           if (Update.end(true)) {  //true to set the size to the current progress
             if (_serial_output) {
-              Serial.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
+              Serial.printf("Update Success: %lu\nRebooting...\n", (unsigned long)upload.totalSize);
             }
           } else {
             _setUpdaterError();

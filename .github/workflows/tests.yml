@@ -4,38 +4,47 @@
 # As the Wokwi tests require access to secrets, they are run in a separate workflow.
 # We need to ensure that the artifacts from previous tests in the chain are propagated for publishing the results.
 # This is the current trigger sequence for the tests:
-#  tests.yml -> tests_wokwi.yml -> tests_results.yml
+#  tests.yml -> tests_hw_wokwi.yml -> tests_results.yml
 #   ⌙> tests_build.yml
-#   ⌙> tests_hw.yml
 #   ⌙> tests_qemu.yml
 
 name: Runtime Tests
 
 on:
   workflow_dispatch:
+    inputs:
+      publish_results:
+        description: 'Publish test results to gh-pages (report, badge, history)'
+        type: boolean
+        default: true
   pull_request:
     types: [opened, reopened, closed, synchronize, labeled, unlabeled]
     paths:
+      - ".github/scripts/install*.sh"
       - ".github/workflows/tests*"
-      - ".github/scripts/*.sh"
-      - "!.github/scripts/check-cmakelists.sh"
-      - "!.github/scripts/find_*"
-      - "!.github/scripts/on-*.sh"
-      - "!.github/scripts/set_push_chunks.sh"
-      - "!.github/scripts/update-version.sh"
-      - "!.github/scripts/upload_py_tools.sh"
+      - ".github/scripts/sketch_utils.sh"
+      - "tools/arduino_cmake.py"
       - "tests/**"
       - "cores/**"
       - "libraries/*/src/**.cpp"
       - "libraries/*/src/**.h"
       - "libraries/*/src/**.c"
       - "package/**"
+      - "!*.md"
+      - "!*.properties"
   schedule:
-    - cron: "0 2 * * *"
+    - cron: "0 0 * * *"
 
 concurrency:
   group: tests-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+  # tests_build.yml needs it for the cross-run binary hand-off; a called
+  # workflow cannot have more permissions than its caller.
+  actions: read
 
 jobs:
   push-event-file:
@@ -43,7 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Upload
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: event_file
           path: ${{ github.event_path }}
@@ -53,25 +62,28 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       build-types: ${{ steps.set-matrix.outputs.build-types }}
-      hw-types: ${{ steps.set-matrix.outputs.hw-types }}
-      wokwi-types: ${{ steps.set-matrix.outputs.wokwi-types }}
+      build-targets: ${{ steps.set-matrix.outputs.build-targets }}
+      qemu-enabled: ${{ steps.set-matrix.outputs.qemu-enabled }}
       qemu-types: ${{ steps.set-matrix.outputs.qemu-types }}
-      targets: ${{ steps.set-matrix.outputs.targets }}
+      qemu-targets: ${{ steps.set-matrix.outputs.qemu-targets }}
     env:
       IS_PR: ${{ github.event.pull_request.number != null }}
       PERFORMANCE_ENABLED: ${{ contains(github.event.pull_request.labels.*.name, 'perf_test') }}
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          sparse-checkout: .github/scripts/tests_matrix.sh
+          persist-credentials: false
+          sparse-checkout: |
+            .github/scripts/tests_matrix.sh
+            .github/scripts/socs_config.sh
 
       - name: Set matrix
         id: set-matrix
         run: bash .github/scripts/tests_matrix.sh
 
       - name: Upload
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: matrix_info
           path: info/*
@@ -81,43 +93,91 @@ jobs:
     uses: ./.github/workflows/tests_build.yml
     needs: gen-matrix
     strategy:
-      matrix:
-        type: ${{ fromJson(needs.gen-matrix.outputs.build-types) }}
-        chip: ${{ fromJson(needs.gen-matrix.outputs.targets) }}
-    with:
-      type: ${{ matrix.type }}
-      chip: ${{ matrix.chip }}
-
-  call-hardware-tests:
-    name: Hardware
-    uses: ./.github/workflows/tests_hw.yml
-    needs: [gen-matrix, call-build-tests]
-    if: |
-      github.repository == 'espressif/arduino-esp32' &&
-      (github.event_name != 'pull_request' ||
-      contains(github.event.pull_request.labels.*.name, 'hil_test'))
-    strategy:
       fail-fast: false
       matrix:
-        type: ${{ fromJson(needs.gen-matrix.outputs.hw-types) }}
-        chip: ${{ fromJson(needs.gen-matrix.outputs.targets) }}
+        type: ${{ fromJson(needs.gen-matrix.outputs.build-types) }}
+        chip: ${{ fromJson(needs.gen-matrix.outputs.build-targets) }}
     with:
       type: ${{ matrix.type }}
       chip: ${{ matrix.chip }}
 
-  # This job is disabled for now
+  # Union per-chip ccache dirs into one GHA cache. Artifacts (1-day) avoid
+  # one key per matrix cell against the 10 GB quota. Runtime Tests has no
+  # master push, so save on schedule / workflow_dispatch; PRs restore only.
+  merge-tests-ccache:
+    name: Merge tests ccache
+    needs: call-build-tests
+    if: >
+      always() &&
+      !cancelled() &&
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') &&
+      contains(fromJSON('["success", "failure"]'), needs.call-build-tests.result)
+    runs-on: ubuntu-latest
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_MAXSIZE: 2G
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install ccache
+        uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # v1.6.3
+        with:
+          packages: ccache
+          version: 1
+
+      - name: Download job caches
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: ccache_tests_*
+          path: ccache_chunks
+          merge-multiple: false
+          if-no-files-found: warn
+
+      - name: Merge job caches
+        id: merge
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          srcs=(ccache_chunks/ccache_tests_*)
+          if [ ${#srcs[@]} -eq 0 ]; then
+            echo "No tests ccache artifacts; skipping save"
+            echo "has_cache=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          merged=$(python3 .github/scripts/merge_ccache.py "$CCACHE_DIR" "${srcs[@]}")
+          echo "$merged"
+          rm -rf ccache_chunks
+          if [[ "$merged" == merged\ 0\ caches:* || "$merged" == *"0 files added, 0 already present" ]]; then
+            echo "No ccache objects to save"
+            echo "has_cache=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          ccache -c
+          ccache -sv
+          echo "has_cache=true" >> "$GITHUB_OUTPUT"
+
+      - name: Save ccache
+        if: steps.merge.outputs.has_cache == 'true'
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ccache-tests-linux-${{ hashFiles('platform.txt', 'package.json', 'package/package_esp32_index.template.json', 'tools/get.py') }}-${{ github.sha }}
+
   call-qemu-tests:
     name: QEMU
     uses: ./.github/workflows/tests_qemu.yml
     needs: [gen-matrix, call-build-tests]
-    if: false
+    if: ${{ needs.gen-matrix.outputs.qemu-enabled == 'true' }}
     strategy:
       fail-fast: false
       matrix:
         type: ${{ fromJson(needs.gen-matrix.outputs.qemu-types) }}
-        chip: ["esp32", "esp32c3"]
+        chip: ${{ fromJson(needs.gen-matrix.outputs.qemu-targets) }}
     with:
       type: ${{ matrix.type }}
       chip: ${{ matrix.chip }}
 
-  # Wokwi tests are run after this workflow as it needs access to secrets
+  # Hardware and Wokwi tests are run after this workflow as they need access to secrets

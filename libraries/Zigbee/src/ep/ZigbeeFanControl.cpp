@@ -1,8 +1,23 @@
+// Copyright 2025 Espressif Systems (Shanghai) PTE LTD
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include "ZigbeeFanControl.h"
 #if CONFIG_ZB_ENABLED
 
 ZigbeeFanControl::ZigbeeFanControl(uint8_t endpoint) : ZigbeeEP(endpoint) {
   _device_id = ESP_ZB_HA_THERMOSTAT_DEVICE_ID;  //There is no FAN_CONTROL_DEVICE_ID in the Zigbee spec
+  _on_fan_mode_change = nullptr;
 
   //Create basic analog sensor clusters without configuration
   _cluster_list = esp_zb_zcl_cluster_list_create();
@@ -39,13 +54,22 @@ void ZigbeeFanControl::zbAttributeSet(const esp_zb_zcl_set_attr_value_message_t 
   //check the data and call right method
   if (message->info.cluster == ESP_ZB_ZCL_CLUSTER_ID_FAN_CONTROL) {
     if (message->attribute.id == ESP_ZB_ZCL_ATTR_FAN_CONTROL_FAN_MODE_ID && message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_8BIT_ENUM) {
-      _current_fan_mode = *(ZigbeeFanMode *)message->attribute.data.value;
-      fanModeChanged();
+      if (message->attribute.data.value != nullptr && message->attribute.data.size >= 1) {
+        uint8_t raw_mode = *(const uint8_t *)message->attribute.data.value;
+        if (raw_mode <= FAN_MODE_SMART) {
+          _current_fan_mode = (ZigbeeFanMode)raw_mode;
+          fanModeChanged();
+        } else {
+          log_w("Fan mode value out of range: %u, ignoring", raw_mode);
+        }
+      } else {
+        log_w("Invalid fan mode attribute: value=%p size=%u", message->attribute.data.value, message->attribute.data.size);
+      }
     } else {
-      log_w("Received message ignored. Attribute ID: %d not supported for Fan Control", message->attribute.id);
+      log_w("Received message ignored. Attribute ID: %u not supported for Fan Control", message->attribute.id);
     }
   } else {
-    log_w("Received message ignored. Cluster ID: %d not supported for Fan Control", message->info.cluster);
+    log_w("Received message ignored. Cluster ID: %u not supported for Fan Control", message->info.cluster);
   }
 }
 

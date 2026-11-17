@@ -3,6 +3,9 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+
+#include <new>  //std::nothrow
+
 #include "NetworkEvents.h"
 #include "NetworkManager.h"
 #include "esp_task.h"
@@ -32,6 +35,10 @@ NetworkEvents::~NetworkEvents() {
     vQueueDelete(_arduino_event_queue);
     _arduino_event_queue = NULL;
   }
+  if (_mtx != NULL) {
+    vSemaphoreDelete(_mtx);
+    _mtx = NULL;
+  }
 }
 
 static uint32_t _initial_bits = 0;
@@ -50,6 +57,14 @@ bool NetworkEvents::initNetworkEvents() {
     _arduino_event_queue = xQueueCreate(32, sizeof(arduino_event_t *));
     if (!_arduino_event_queue) {
       log_e("Network Event Queue Create Failed!");
+      return false;
+    }
+  }
+
+  if (!_mtx) {
+    _mtx = xSemaphoreCreateMutex();
+    if (!_mtx) {
+      log_e("Network Event Mutex Create Failed!");
       return false;
     }
   }
@@ -82,7 +97,7 @@ bool NetworkEvents::postEvent(const arduino_event_t *data) {
   if (data == NULL || _arduino_event_queue == NULL) {
     return false;
   }
-  arduino_event_t *event = new arduino_event_t();
+  arduino_event_t *event = new (std::nothrow) arduino_event_t();
   if (event == NULL) {
     log_e("Arduino Event Malloc Failed!");
     return false;
@@ -116,9 +131,7 @@ void NetworkEvents::_checkForEvent() {
     }
     log_v("Network Event: %d - %s", event->event_id, eventName(event->event_id));
 
-#if defined NETWORK_EVENTS_MUTEX && SOC_CPU_CORES_NUM > 1
-    std::unique_lock<std::mutex> lock(_mtx);
-#endif  // defined NETWORK_EVENTS_MUTEX &&  SOC_CPU_CORES_NUM > 1
+    _lock();
 
     // iterate over registered callbacks
     for (auto &i : _cbEventList) {
@@ -139,9 +152,7 @@ void NetworkEvents::_checkForEvent() {
       }
     }
 
-#if defined NETWORK_EVENTS_MUTEX && SOC_CPU_CORES_NUM > 1
-    lock.unlock();
-#endif  // defined NETWORK_EVENTS_MUTEX &&  SOC_CPU_CORES_NUM > 1
+    _unlock();
 
     // release the event object's memory
     delete event;
@@ -164,12 +175,11 @@ network_event_handle_t NetworkEvents::onEvent(NetworkEventCb cbEvent, arduino_ev
     return 0;
   }
 
-#if defined NETWORK_EVENTS_MUTEX && SOC_CPU_CORES_NUM > 1
-  std::lock_guard<std::mutex> lock(_mtx);
-#endif  // defined NETWORK_EVENTS_MUTEX &&  SOC_CPU_CORES_NUM > 1
-
+  _lock();
   _cbEventList.emplace_back(++_current_id, cbEvent, nullptr, nullptr, event);
-  return _cbEventList.back().id;
+  network_event_handle_t id = _cbEventList.back().id;
+  _unlock();
+  return id;
 }
 
 network_event_handle_t NetworkEvents::onEvent(NetworkEventFuncCb cbEvent, arduino_event_id_t event) {
@@ -177,12 +187,11 @@ network_event_handle_t NetworkEvents::onEvent(NetworkEventFuncCb cbEvent, arduin
     return 0;
   }
 
-#if defined NETWORK_EVENTS_MUTEX && SOC_CPU_CORES_NUM > 1
-  std::lock_guard<std::mutex> lock(_mtx);
-#endif  // defined NETWORK_EVENTS_MUTEX &&  SOC_CPU_CORES_NUM > 1
-
+  _lock();
   _cbEventList.emplace_back(++_current_id, nullptr, cbEvent, nullptr, event);
-  return _cbEventList.back().id;
+  network_event_handle_t id = _cbEventList.back().id;
+  _unlock();
+  return id;
 }
 
 network_event_handle_t NetworkEvents::onEvent(NetworkEventSysCb cbEvent, arduino_event_id_t event) {
@@ -190,12 +199,11 @@ network_event_handle_t NetworkEvents::onEvent(NetworkEventSysCb cbEvent, arduino
     return 0;
   }
 
-#if defined NETWORK_EVENTS_MUTEX && SOC_CPU_CORES_NUM > 1
-  std::lock_guard<std::mutex> lock(_mtx);
-#endif  // defined NETWORK_EVENTS_MUTEX &&  SOC_CPU_CORES_NUM > 1
-
+  _lock();
   _cbEventList.emplace_back(++_current_id, nullptr, nullptr, cbEvent, event);
-  return _cbEventList.back().id;
+  network_event_handle_t id = _cbEventList.back().id;
+  _unlock();
+  return id;
 }
 
 network_event_handle_t NetworkEvents::onSysEvent(NetworkEventCb cbEvent, arduino_event_id_t event) {
@@ -203,12 +211,11 @@ network_event_handle_t NetworkEvents::onSysEvent(NetworkEventCb cbEvent, arduino
     return 0;
   }
 
-#if defined NETWORK_EVENTS_MUTEX && SOC_CPU_CORES_NUM > 1
-  std::lock_guard<std::mutex> lock(_mtx);
-#endif  // defined NETWORK_EVENTS_MUTEX &&  SOC_CPU_CORES_NUM > 1
-
+  _lock();
   _cbEventList.emplace(_cbEventList.begin(), ++_current_id, cbEvent, nullptr, nullptr, event);
-  return _cbEventList.front().id;
+  network_event_handle_t id = _cbEventList.front().id;
+  _unlock();
+  return id;
 }
 
 network_event_handle_t NetworkEvents::onSysEvent(NetworkEventFuncCb cbEvent, arduino_event_id_t event) {
@@ -216,12 +223,11 @@ network_event_handle_t NetworkEvents::onSysEvent(NetworkEventFuncCb cbEvent, ard
     return 0;
   }
 
-#if defined NETWORK_EVENTS_MUTEX && SOC_CPU_CORES_NUM > 1
-  std::lock_guard<std::mutex> lock(_mtx);
-#endif  // defined NETWORK_EVENTS_MUTEX &&  SOC_CPU_CORES_NUM > 1
-
+  _lock();
   _cbEventList.emplace(_cbEventList.begin(), ++_current_id, nullptr, cbEvent, nullptr, event);
-  return _cbEventList.front().id;
+  network_event_handle_t id = _cbEventList.front().id;
+  _unlock();
+  return id;
 }
 
 network_event_handle_t NetworkEvents::onSysEvent(NetworkEventSysCb cbEvent, arduino_event_id_t event) {
@@ -229,12 +235,11 @@ network_event_handle_t NetworkEvents::onSysEvent(NetworkEventSysCb cbEvent, ardu
     return 0;
   }
 
-#if defined NETWORK_EVENTS_MUTEX && SOC_CPU_CORES_NUM > 1
-  std::lock_guard<std::mutex> lock(_mtx);
-#endif  // defined NETWORK_EVENTS_MUTEX &&  SOC_CPU_CORES_NUM > 1
-
+  _lock();
   _cbEventList.emplace(_cbEventList.begin(), ++_current_id, nullptr, nullptr, cbEvent, event);
-  return _cbEventList.front().id;
+  network_event_handle_t id = _cbEventList.front().id;
+  _unlock();
+  return id;
 }
 
 void NetworkEvents::removeEvent(NetworkEventCb cbEvent, arduino_event_id_t event) {
@@ -242,10 +247,7 @@ void NetworkEvents::removeEvent(NetworkEventCb cbEvent, arduino_event_id_t event
     return;
   }
 
-#if defined NETWORK_EVENTS_MUTEX && SOC_CPU_CORES_NUM > 1
-  std::lock_guard<std::mutex> lock(_mtx);
-#endif  // defined NETWORK_EVENTS_MUTEX &&  SOC_CPU_CORES_NUM > 1
-
+  _lock();
   _cbEventList.erase(
     std::remove_if(
       _cbEventList.begin(), _cbEventList.end(),
@@ -255,6 +257,7 @@ void NetworkEvents::removeEvent(NetworkEventCb cbEvent, arduino_event_id_t event
     ),
     _cbEventList.end()
   );
+  _unlock();
 }
 
 void NetworkEvents::removeEvent(NetworkEventFuncCb cbEvent, arduino_event_id_t event) {
@@ -262,10 +265,7 @@ void NetworkEvents::removeEvent(NetworkEventFuncCb cbEvent, arduino_event_id_t e
     return;
   }
 
-#if defined NETWORK_EVENTS_MUTEX && SOC_CPU_CORES_NUM > 1
-  std::lock_guard<std::mutex> lock(_mtx);
-#endif  // defined NETWORK_EVENTS_MUTEX &&  SOC_CPU_CORES_NUM > 1
-
+  _lock();
   _cbEventList.erase(
     std::remove_if(
       _cbEventList.begin(), _cbEventList.end(),
@@ -275,6 +275,7 @@ void NetworkEvents::removeEvent(NetworkEventFuncCb cbEvent, arduino_event_id_t e
     ),
     _cbEventList.end()
   );
+  _unlock();
 }
 
 void NetworkEvents::removeEvent(NetworkEventSysCb cbEvent, arduino_event_id_t event) {
@@ -282,10 +283,7 @@ void NetworkEvents::removeEvent(NetworkEventSysCb cbEvent, arduino_event_id_t ev
     return;
   }
 
-#if defined NETWORK_EVENTS_MUTEX && SOC_CPU_CORES_NUM > 1
-  std::lock_guard<std::mutex> lock(_mtx);
-#endif  // defined NETWORK_EVENTS_MUTEX &&  SOC_CPU_CORES_NUM > 1
-
+  _lock();
   _cbEventList.erase(
     std::remove_if(
       _cbEventList.begin(), _cbEventList.end(),
@@ -295,13 +293,11 @@ void NetworkEvents::removeEvent(NetworkEventSysCb cbEvent, arduino_event_id_t ev
     ),
     _cbEventList.end()
   );
+  _unlock();
 }
 
 void NetworkEvents::removeEvent(network_event_handle_t id) {
-#if defined NETWORK_EVENTS_MUTEX && SOC_CPU_CORES_NUM > 1
-  std::lock_guard<std::mutex> lock(_mtx);
-#endif  // defined NETWORK_EVENTS_MUTEX &&  SOC_CPU_CORES_NUM > 1
-
+  _lock();
   _cbEventList.erase(
     std::remove_if(
       _cbEventList.begin(), _cbEventList.end(),
@@ -311,6 +307,7 @@ void NetworkEvents::removeEvent(network_event_handle_t id) {
     ),
     _cbEventList.end()
   );
+  _unlock();
 }
 
 int NetworkEvents::setStatusBits(int bits) {
@@ -372,7 +369,7 @@ const char *NetworkEvents::eventName(arduino_event_id_t id) {
     case ARDUINO_EVENT_PPP_GOT_IP:       return "PPP_GOT_IP";
     case ARDUINO_EVENT_PPP_LOST_IP:      return "PPP_LOST_IP";
     case ARDUINO_EVENT_PPP_GOT_IP6:      return "PPP_GOT_IP6";
-#if SOC_WIFI_SUPPORTED || CONFIG_ESP_WIFI_REMOTE_ENABLED
+#if SOC_WIFI_SUPPORTED || CONFIG_ESP_HOSTED_ENABLED
     case ARDUINO_EVENT_WIFI_OFF:                 return "WIFI_OFF";
     case ARDUINO_EVENT_WIFI_READY:               return "WIFI_READY";
     case ARDUINO_EVENT_WIFI_SCAN_DONE:           return "SCAN_DONE";

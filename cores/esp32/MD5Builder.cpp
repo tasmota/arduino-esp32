@@ -17,9 +17,8 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include <Arduino.h>
-#include <HEXBuilder.h>
-#include <MD5Builder.h>
+#include "HEXBuilder.h"
+#include "MD5Builder.h"
 
 void MD5Builder::begin(void) {
   memset(_buf, 0x00, ESP_ROM_MD5_DIGEST_LEN);
@@ -30,20 +29,9 @@ void MD5Builder::add(const uint8_t *data, size_t len) {
   esp_rom_md5_update(&_ctx, data, len);
 }
 
-void MD5Builder::addHexString(const char *data) {
-  size_t len = strlen(data);
-  uint8_t *tmp = (uint8_t *)malloc(len / 2);
-  if (tmp == NULL) {
-    return;
-  }
-  hex2bytes(tmp, len / 2, data);
-  add(tmp, len / 2);
-  free(tmp);
-}
-
 bool MD5Builder::addStream(Stream &stream, const size_t maxLen) {
-  const int buf_size = 512;
-  int maxLengthLeft = maxLen;
+  const size_t buf_size = 512;
+  size_t maxLengthLeft = maxLen;
   uint8_t *buf = (uint8_t *)malloc(buf_size);
 
   if (!buf) {
@@ -54,7 +42,7 @@ bool MD5Builder::addStream(Stream &stream, const size_t maxLen) {
   while ((bytesAvailable > 0) && (maxLengthLeft > 0)) {
 
     // determine number of bytes to read
-    int readBytes = bytesAvailable;
+    size_t readBytes = (size_t)bytesAvailable;
     if (readBytes > maxLengthLeft) {
       readBytes = maxLengthLeft;  // read only until max_len
     }
@@ -63,7 +51,7 @@ bool MD5Builder::addStream(Stream &stream, const size_t maxLen) {
     }
 
     // read data and check if we got something
-    int numBytesRead = stream.readBytes(buf, readBytes);
+    size_t numBytesRead = stream.readBytes(buf, readBytes);
     if (numBytesRead < 1) {
       free(buf);
       return false;

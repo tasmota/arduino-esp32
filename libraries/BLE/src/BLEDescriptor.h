@@ -1,4 +1,23 @@
 /*
+ * Copyright 2017-2026 Espressif Systems (Shanghai) PTE LTD
+ * Copyright 2020-2025 Ryan Powell <ryan@nable-embedded.io> and
+ * esp-nimble-cpp, NimBLE-Arduino contributors.
+ * Copyright 2017 Neil Kolban
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
  * BLEDescriptor.h
  *
  *  Created on: Jun 22, 2017
@@ -11,10 +30,10 @@
 
 #ifndef COMPONENTS_CPP_UTILS_BLEDESCRIPTOR_H_
 #define COMPONENTS_CPP_UTILS_BLEDESCRIPTOR_H_
-#include "soc/soc_caps.h"
-#if SOC_BLE_SUPPORTED
 
+#include "soc/soc_caps.h"
 #include "sdkconfig.h"
+#if defined(SOC_BLE_SUPPORTED) || defined(CONFIG_ESP_HOSTED_ENABLE_BT_NIMBLE)
 #if defined(CONFIG_BLUEDROID_ENABLED) || defined(CONFIG_NIMBLE_ENABLED)
 
 /***************************************************************************
@@ -41,6 +60,9 @@
 #if defined(CONFIG_NIMBLE_ENABLED)
 #include <host/ble_att.h>
 #include "BLEConnInfo.h"
+
+// Bluedroid compatibility
+// NimBLE does not support signed reads and writes
 
 #define ESP_GATT_PERM_READ                BLE_ATT_F_READ
 #define ESP_GATT_PERM_WRITE               BLE_ATT_F_WRITE
@@ -86,18 +108,18 @@ public:
   BLEDescriptor(BLEUUID uuid, uint16_t max_len = 100);
   virtual ~BLEDescriptor();
 
-  uint16_t getHandle();                    // Get the handle of the descriptor.
-  size_t getLength();                      // Get the length of the value of the descriptor.
-  BLEUUID getUUID();                       // Get the UUID of the descriptor.
-  uint8_t *getValue();                     // Get a pointer to the value of the descriptor.
-  BLECharacteristic *getCharacteristic();  // Get the characteristic that this descriptor belongs to.
+  uint16_t getHandle() const;                    // Get the handle of the descriptor.
+  size_t getLength() const;                      // Get the length of the value of the descriptor.
+  BLEUUID getUUID() const;                       // Get the UUID of the descriptor.
+  uint8_t *getValue() const;                     // Get a pointer to the value of the descriptor.
+  BLECharacteristic *getCharacteristic() const;  // Get the characteristic that this descriptor belongs to.
 
-  void setAccessPermissions(uint8_t perm);                // Set the permissions of the descriptor.
+  void setAccessPermissions(uint16_t perm);               // Set the permissions of the descriptor.
   void setCallbacks(BLEDescriptorCallbacks *pCallbacks);  // Set callbacks to be invoked for the descriptor.
-  void setValue(uint8_t *data, size_t size);              // Set the value of the descriptor as a pointer to data.
-  void setValue(String value);                            // Set the value of the descriptor as a data buffer.
+  void setValue(const uint8_t *data, size_t size);        // Set the value of the descriptor as a pointer to data.
+  void setValue(const String &value);                     // Set the value of the descriptor as a data buffer.
 
-  String toString();  // Convert the descriptor to a string representation.
+  String toString() const;  // Convert the descriptor to a string representation.
 
   /***************************************************************************
    *                           Bluedroid public declarations                 *
@@ -140,7 +162,7 @@ private:
 
 #if defined(CONFIG_BLUEDROID_ENABLED)
   FreeRTOS::Semaphore m_semaphoreCreateEvt = FreeRTOS::Semaphore("CreateEvt");
-  uint8_t m_permissions = ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE;
+  uint16_t m_permissions = ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE;
 #endif
 
   /***************************************************************************
@@ -179,5 +201,6 @@ public:
 };
 
 #endif /* CONFIG_BLUEDROID_ENABLED || CONFIG_NIMBLE_ENABLED */
-#endif /* SOC_BLE_SUPPORTED */
+#endif /* SOC_BLE_SUPPORTED || CONFIG_ESP_HOSTED_ENABLE_BT_NIMBLE */
+
 #endif /* COMPONENTS_CPP_UTILS_BLEDESCRIPTOR_H_ */

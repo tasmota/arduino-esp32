@@ -49,10 +49,12 @@ size_t File::write(const uint8_t *buf, size_t size) {
 
 int File::available() {
   if (!*this) {
-    return false;
+    return 0;
   }
 
-  return _p->size() - _p->position();
+  size_t fileSize = _p->size();
+  size_t filePosition = _p->position();
+  return filePosition < fileSize ? fileSize - filePosition : 0;
 }
 
 int File::read() {
@@ -273,6 +275,13 @@ const char *FS::mountpoint() {
 
 void FSImpl::mountpoint(const char *mp) {
   _mountpoint = mp;
+  if (mp && !_mtx && fsMutexEnabled()) {
+    _mtx = fsMutexCreate();
+    if (!_mtx) {
+      log_w("Failed to create recursive mutex for filesystem in mountpoint %s", mp ? mp : "NULL");
+      log_w("Some filesystem operations on this mountpoint will continue without synchronization and will not be serialized.");
+    }
+  }
 }
 
 const char *FSImpl::mountpoint() {

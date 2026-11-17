@@ -39,6 +39,11 @@ protected:
   std::shared_ptr<NetworkClientSocketHandle> clientSocketHandle = nullptr;
   std::shared_ptr<NetworkClientRxBuffer> _rxBuffer = nullptr;
   bool _connected = false;
+  bool _readEOF = false;
+  // SSE marker fallback used only when there is no socket handle (e.g.
+  // NetworkClientSecure, which owns its fd outside NetworkClientSocketHandle).
+  // Whenever a handle is present the flag lives on the handle instead, so all
+  // copies sharing a connection observe a single per-connection flag.
   bool _sse = false;
   int _timeout;
   int _lastWriteTimeout = 0;
@@ -57,7 +62,7 @@ public:
   size_t write(const uint8_t *buf, size_t size);
   size_t write_P(PGM_P buf, size_t size);
   size_t write(Stream &stream);
-  [[deprecated("Use clear() instead.")]]
+  size_t write(Stream &stream, size_t length);
   void flush();  // Print::flush tx
   int available();
   int read();

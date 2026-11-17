@@ -1,3 +1,17 @@
+// Copyright 2025 Espressif Systems (Shanghai) PTE LTD
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 /* Common Class for Zigbee End point */
 
 #pragma once
@@ -57,7 +71,10 @@ public:
     _cluster_list = cluster_list;
   }
 
+  // Set application version and hardware version
   void setVersion(uint8_t version);
+  void setHardwareVersion(uint8_t version);
+
   uint8_t getEndpoint() {
     return _endpoint;
   }
@@ -129,19 +146,35 @@ public:
   */
   void requestOTAUpdate();
 
+  // Register a privilege command to intercept standard cluster commands before the stack processes them
+  void addPrivilegeCommand(uint16_t cluster_id, uint16_t command_id);
+
+  // Send an IAS Zone Enroll Response (CIE/coordinator side) to a device that issued an enroll request.
+  // Typically called from within a zbIASZoneEnrollRequest() override using the request message src address/endpoint.
+  bool sendIASZoneEnrollResponse(
+    uint16_t dst_short_addr, uint8_t dst_endpoint, uint8_t zone_id,
+    esp_zb_zcl_ias_zone_enroll_response_code_t response_code = ESP_ZB_ZCL_IAS_ZONE_ENROLL_RESPONSE_CODE_SUCCESS
+  );
+
   // findEndpoint may be implemented by EPs to find and bind devices
   virtual void findEndpoint(esp_zb_zdo_match_desc_req_param_t *cmd_req) {};
 
   // list of all handlers function calls, to be override by EPs implementation
   virtual void zbAttributeSet(const esp_zb_zcl_set_attr_value_message_t *message) {};
   virtual void zbAttributeRead(uint16_t cluster_id, const esp_zb_zcl_attribute_t *attribute, uint8_t src_endpoint, esp_zb_zcl_addr_t src_address) {};
+  virtual void
+    zbWriteAttributeResponse(uint16_t cluster_id, uint16_t attribute_id, esp_zb_zcl_status_t status, uint8_t src_endpoint, esp_zb_zcl_addr_t src_address) {};
   virtual void zbReadBasicCluster(const esp_zb_zcl_attribute_t *attribute);  //already implemented
   virtual void zbIdentify(const esp_zb_zcl_set_attr_value_message_t *message);
+  virtual void zbOTAState(bool otaActive);
   virtual void zbWindowCoveringMovementCmd(const esp_zb_zcl_window_covering_movement_message_t *message) {};
   virtual void zbReadTimeCluster(const esp_zb_zcl_attribute_t *attribute);  //already implemented
   virtual void zbIASZoneStatusChangeNotification(const esp_zb_zcl_ias_zone_status_change_notification_message_t *message) {};
+  virtual void zbIASZoneEnrollRequest(const esp_zb_zcl_ias_zone_enroll_request_message_t *message) {};
   virtual void zbIASZoneEnrollResponse(const esp_zb_zcl_ias_zone_enroll_response_message_t *message) {};
   virtual void zbDefaultResponse(const esp_zb_zcl_cmd_default_resp_message_t *message);  //already implemented
+  virtual void zbPrivilegeCommand(const esp_zb_zcl_privilege_command_message_t *message);
+  virtual void zbCustomClusterCommand(const esp_zb_zcl_custom_cluster_command_message_t *message);
 
   virtual void addBoundDevice(zb_device_params_t *device) {
     _bound_devices.push_back(device);
@@ -160,8 +193,20 @@ public:
     _on_identify = callback;
   }
 
+  void onOTAStateChange(void (*callback)(bool state)) {
+    _on_ota_state_change = callback;
+  }
+
   void onDefaultResponse(void (*callback)(zb_cmd_type_t resp_to_cmd, esp_zb_zcl_status_t status)) {
     _on_default_response = callback;
+  }
+
+  void onPrivilegeCommand(void (*callback)(const esp_zb_zcl_privilege_command_message_t *message)) {
+    _on_privilege_command = callback;
+  }
+
+  void onCustomClusterCommand(void (*callback)(const esp_zb_zcl_custom_cluster_command_message_t *message)) {
+    _on_custom_cluster_command = callback;
   }
 
   // Convert ZCL status to name
@@ -170,7 +215,10 @@ private:
   char *_read_manufacturer;
   char *_read_model;
   void (*_on_identify)(uint16_t time);
+  void (*_on_ota_state_change)(bool state);
   void (*_on_default_response)(zb_cmd_type_t resp_to_cmd, esp_zb_zcl_status_t status);
+  void (*_on_privilege_command)(const esp_zb_zcl_privilege_command_message_t *message);
+  void (*_on_custom_cluster_command)(const esp_zb_zcl_custom_cluster_command_message_t *message);
   time_t _read_time;
   int32_t _read_timezone;
 
@@ -186,6 +234,18 @@ protected:
   SemaphoreHandle_t lock;
   zb_power_source_t _power_source;
   uint8_t _time_status;
+
+  // Thread-safe outgoing ZCL helpers (not related to stack callbacks).
+  esp_zb_zcl_status_t setClusterAttribute(uint16_t cluster_id, uint8_t cluster_role, uint16_t attr_id, void *value, bool check = false);
+  bool getClusterAttribute(uint16_t cluster_id, uint8_t cluster_role, uint16_t attr_id, void *value, uint16_t value_size);
+  bool reportClusterAttribute(esp_zb_zcl_report_attr_cmd_t *report_attr_cmd);
+  bool readClusterAttribute(esp_zb_zcl_read_attr_cmd_t *read_req);
+  bool setClusterReporting(esp_zb_zcl_reporting_info_t *reporting_info);
+  bool configureClusterReporting(esp_zb_zcl_config_report_cmd_t *report_cmd);
+
+  // Acquire/release pair for outgoing ZCL/ZDO commands (caller invokes SDK between them).
+  bool acquireCommandLock();
+  void releaseCommandLock();
 
   // Friend class declaration to allow access to protected members
   friend class ZigbeeCore;

@@ -1,6 +1,0 @@
-hello-world:
-  stage: test
-  script:
-    - echo "Hello, World from GitLab CI!"
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "push"

@@ -1,4 +1,21 @@
 /*
+ * Copyright 2017-2026 Espressif Systems (Shanghai) PTE LTD
+ * Copyright 2017 Neil Kolban
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
  * BLEEddystoneURL.cpp
  *
  *  Created on: Mar 12, 2018
@@ -13,10 +30,10 @@
  */
 
 #include "soc/soc_caps.h"
-#if SOC_BLE_SUPPORTED
-
 #include "sdkconfig.h"
+#if defined(SOC_BLE_SUPPORTED) || defined(CONFIG_ESP_HOSTED_ENABLE_BT_NIMBLE)
 #if defined(CONFIG_BLUEDROID_ENABLED) || defined(CONFIG_NIMBLE_ENABLED)
+
 #include <string.h>
 #include "esp32-hal-log.h"
 #include "BLEEddystoneURL.h"
@@ -55,19 +72,20 @@ BLEEddystoneURL::BLEEddystoneURL() {
 }  // BLEEddystoneURL
 
 BLEEddystoneURL::BLEEddystoneURL(BLEAdvertisedDevice *advertisedDevice) {
-  const char *payload = (char *)advertisedDevice->getPayload();
+  const uint8_t *payload = advertisedDevice->getPayload();
+  const size_t payloadLength = advertisedDevice->getPayloadLength();
   memset(m_eddystoneData.url, 0, sizeof(m_eddystoneData.url));
   lengthURL = 0;
   m_eddystoneData.advertisedTxPower = 0;
-  for (int i = 0; i < advertisedDevice->getPayloadLength(); ++i) {
-    if (payload[i] == 0x16 && advertisedDevice->getPayloadLength() >= i + 2 + sizeof(m_eddystoneData) && payload[i + 1] == 0xAA && payload[i + 2] == 0xFE
-        && payload[i + 3] == 0x10) {
-      lengthURL = payload[i - 1] - 5;  // Subtracting 5 Bytes containing header and other data which are not actual URL data
-      m_eddystoneData.advertisedTxPower = payload[i + 1];
-      if (lengthURL <= 18) {
-        setData(String(payload + i + 4, lengthURL + 1));
+  for (size_t i = 1; i < payloadLength; ++i) {
+    const size_t fieldLength = payload[i - 1];
+    if (fieldLength >= 6 && fieldLength <= payloadLength - i && payload[i] == 0x16 && payload[i + 1] == 0xAA && payload[i + 2] == 0xFE
+        && payload[i + 3] == EDDYSTONE_URL_FRAME_TYPE) {
+      const size_t urlLength = fieldLength - 5;
+      if (urlLength <= sizeof(m_eddystoneData.url)) {
+        setData(String((const char *)(payload + i + 4), urlLength + 1));
       } else {
-        log_e("Too long URL %d", lengthURL);
+        log_e("Too long URL %u", (unsigned int)urlLength);
       }
     }
   }
@@ -108,7 +126,7 @@ String BLEEddystoneURL::getPrefix() {
 }
 
 String BLEEddystoneURL::getSuffix() {
-  if (m_eddystoneData.url[lengthURL - 1] <= 0x0D) {
+  if (lengthURL > 0 && m_eddystoneData.url[lengthURL - 1] <= 0x0D) {
     return EDDYSTONE_URL_SUFFIX[m_eddystoneData.url[lengthURL - 1]];
   } else {
     return "";
@@ -155,7 +173,7 @@ String BLEEddystoneURL::getDecodedURL() {
  */
 void BLEEddystoneURL::setData(String data) {
   if (data.length() > sizeof(m_eddystoneData)) {
-    log_e("Unable to set the data ... length passed in was %d and max expected %d", data.length(), sizeof(m_eddystoneData));
+    log_e("Unable to set the data ... length passed in was %u and max expected %lu", data.length(), (unsigned long)sizeof(m_eddystoneData));
     return;
   }
   memset(&m_eddystoneData, 0, sizeof(m_eddystoneData));
@@ -174,34 +192,22 @@ void BLEEddystoneURL::setUUID(BLEUUID l_uuid) {
 }  // setUUID
 
 void BLEEddystoneURL::setPower(esp_power_level_t advertisedTxPower) {
-  int tx_power;
+  int tx_power = 0;
+#if SOC_BLE_SUPPORTED
   switch (advertisedTxPower) {
-    case ESP_PWR_LVL_N12:  // 12dbm
-      tx_power = -12;
-      break;
-    case ESP_PWR_LVL_N9:  // -9dbm
-      tx_power = -9;
-      break;
-    case ESP_PWR_LVL_N6:  // -6dbm
-      tx_power = -6;
-      break;
-    case ESP_PWR_LVL_N3:  // -3dbm
-      tx_power = -3;
-      break;
-    case ESP_PWR_LVL_N0:  //  0dbm
-      tx_power = 0;
-      break;
-    case ESP_PWR_LVL_P3:  // +3dbm
-      tx_power = +3;
-      break;
-    case ESP_PWR_LVL_P6:  // +6dbm
-      tx_power = +6;
-      break;
-    case ESP_PWR_LVL_P9:  // +9dbm
-      tx_power = +9;
-      break;
-    default: tx_power = 0;
+    case ESP_PWR_LVL_N12: tx_power = -12; break;
+    case ESP_PWR_LVL_N9:  tx_power = -9; break;
+    case ESP_PWR_LVL_N6:  tx_power = -6; break;
+    case ESP_PWR_LVL_N3:  tx_power = -3; break;
+    case ESP_PWR_LVL_N0:  tx_power = 0; break;
+    case ESP_PWR_LVL_P3:  tx_power = +3; break;
+    case ESP_PWR_LVL_P6:  tx_power = +6; break;
+    case ESP_PWR_LVL_P9:  tx_power = +9; break;
+    default:              tx_power = 0; break;
   }
+#else
+  log_w("setPower not supported with hosted HCI - power controlled by co-processor");
+#endif
   m_eddystoneData.advertisedTxPower = int8_t((tx_power - -100) / 2);
 }  // setPower
 
@@ -217,7 +223,7 @@ void BLEEddystoneURL::setPower(int8_t advertisedTxPower) {
 // | Decoded | http:// |   g o o g l e  .com   |
 void BLEEddystoneURL::setURL(String url) {
   if (url.length() > sizeof(m_eddystoneData.url)) {
-    log_e("Unable to set the url ... length passed in was %d and max expected %d", url.length(), sizeof(m_eddystoneData.url));
+    log_e("Unable to set the url ... length passed in was %u and max expected %lu", url.length(), (unsigned long)sizeof(m_eddystoneData.url));
     return;
   }
   memset(m_eddystoneData.url, 0, sizeof(m_eddystoneData.url));
@@ -240,7 +246,7 @@ int BLEEddystoneURL::setSmartURL(String url) {
   bool hasSuffix = false;
   m_eddystoneData.url[0] = 0x00;  // Init with default prefix "http://www."
   uint8_t suffix = 0x0E;          // Init with empty string
-  log_d("Encode url \"%s\" with length %d", url.c_str(), url.length());
+  log_d("Encode url \"%s\" with length %u", url.c_str(), url.length());
   for (uint8_t i = 0; i < 4; ++i) {
     if (url.substring(0, EDDYSTONE_URL_PREFIX[i].length()) == EDDYSTONE_URL_PREFIX[i]) {
       m_eddystoneData.url[0] = i;
@@ -268,7 +274,7 @@ int BLEEddystoneURL::setSmartURL(String url) {
   size_t baseUrlLen = url.length() - (hasPrefix ? EDDYSTONE_URL_PREFIX[m_eddystoneData.url[0]].length() : 0) - EDDYSTONE_URL_SUFFIX[suffix].length();
   lengthURL = baseUrlLen + 1 + (hasSuffix ? 1 : 0);
   if (lengthURL > 18) {
-    log_e("Encoded URL is too long %d B - max 18 B", lengthURL);
+    log_e("Encoded URL is too long %u B - max 18 B", lengthURL);
     return 0;  // ERROR
   }
   String baseUrl = url.substring(
@@ -300,4 +306,4 @@ void BLEEddystoneURL::_initHeadder() {
 }
 
 #endif
-#endif /* SOC_BLE_SUPPORTED */
+#endif /* SOC_BLE_SUPPORTED || CONFIG_ESP_HOSTED_ENABLE_BT_NIMBLE */

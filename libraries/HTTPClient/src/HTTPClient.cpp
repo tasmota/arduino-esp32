@@ -35,6 +35,32 @@
 /// Cookie jar support
 #include <time.h>
 
+// Strip RFC 3986 brackets so connect() and Host formatting share one canonical form.
+static String stripHttpHostBrackets(const String &host) {
+  if (host.startsWith("[") && host.endsWith("]") && host.length() >= 2) {
+    return host.substring(1, host.length() - 1);
+  }
+  return host;
+}
+
+// Parse an explicit port string from a URL authority (digits only, 0..65535).
+static bool parseHttpPortString(const String &port_str, uint16_t &port_out) {
+  if (port_str.length() == 0) {
+    return false;
+  }
+  for (unsigned i = 0; i < port_str.length(); i++) {
+    if (!isDigit(port_str[i])) {
+      return false;
+    }
+  }
+  long value = port_str.toInt();
+  if (value < 0 || value > 65535) {
+    return false;
+  }
+  port_out = (uint16_t)value;
+  return true;
+}
+
 #ifdef HTTPCLIENT_1_1_COMPATIBLE
 class TransportTraits {
 public:
@@ -89,9 +115,6 @@ HTTPClient::HTTPClient() {}
 HTTPClient::~HTTPClient() {
   if (_client) {
     _client->stop();
-  }
-  if (_currentHeaders) {
-    delete[] _currentHeaders;
   }
   if (_tcpDeprecated) {
     _tcpDeprecated.reset(nullptr);
@@ -170,7 +193,7 @@ bool HTTPClient::begin(NetworkClient &client, String host, uint16_t port, String
   _client = &client;
 
   clear();
-  _host = host;
+  _host = stripHttpHostBrackets(host);
   _port = port;
   _uri = uri;
   _protocol = (https ? "https" : "http");
@@ -273,15 +296,46 @@ bool HTTPClient::beginInternal(String url, const char *expectedProtocol) {
     _base64Authorization = base64::encode(auth);
   }
 
-  // get port
-  index = host.indexOf(':');
+  // Host / port. RFC 3986 IPv6 literals use brackets: [2001:db8::1]:8080
   String the_host;
-  if (index >= 0) {
-    the_host = host.substring(0, index);  // hostname
-    host.remove(0, (index + 1));          // remove hostname + :
-    _port = host.toInt();                 // get port
+  if (host.startsWith("[")) {
+    int closing = host.indexOf(']');
+    if (closing < 0) {
+      log_e("failed to parse IPv6 host (missing ']')");
+      return false;
+    }
+    the_host = host.substring(1, closing);
+    if (the_host.length() == 0) {
+      log_e("failed to parse IPv6 host (empty)");
+      return false;
+    }
+    if ((size_t)(closing + 1) < host.length()) {
+      if (host.charAt(closing + 1) != ':') {
+        log_e("failed to parse IPv6 URL (expected ':' after ']')");
+        return false;
+      }
+      String port_str = host.substring(closing + 2);
+      uint16_t parsed_port = 0;
+      if (!parseHttpPortString(port_str, parsed_port)) {
+        log_e("failed to parse IPv6 URL port '%s'", port_str.c_str());
+        return false;
+      }
+      _port = parsed_port;
+    }
   } else {
-    the_host = host;
+    index = host.indexOf(':');
+    if (index >= 0) {
+      the_host = host.substring(0, index);  // hostname
+      String port_str = host.substring(index + 1);
+      uint16_t parsed_port = 0;
+      if (!parseHttpPortString(port_str, parsed_port)) {
+        log_e("failed to parse URL port '%s'", port_str.c_str());
+        return false;
+      }
+      _port = parsed_port;
+    } else {
+      the_host = host;
+    }
   }
   if (_host != the_host && connected()) {
     log_d("switching host from '%s' to '%s'. disconnecting first", _host.c_str(), the_host.c_str());
@@ -290,7 +344,7 @@ bool HTTPClient::beginInternal(String url, const char *expectedProtocol) {
   }
   _host = the_host;
   _uri = url;
-  log_d("protocol: %s, host: %s port: %d url: %s", _protocol.c_str(), _host.c_str(), _port, _uri.c_str());
+  log_d("protocol: %s, host: %s port: %u url: %s", _protocol.c_str(), _host.c_str(), _port, _uri.c_str());
   return true;
 }
 
@@ -303,11 +357,11 @@ bool HTTPClient::begin(String host, uint16_t port, String uri) {
   }
 
   clear();
-  _host = host;
+  _host = stripHttpHostBrackets(host);
   _port = port;
   _uri = uri;
   _transportTraits = TransportTraitsPtr(new TransportTraits());
-  log_d("host: %s port: %d uri: %s", host.c_str(), port, uri.c_str());
+  log_d("host: %s port: %u uri: %s", _host.c_str(), port, uri.c_str());
   return true;
 }
 
@@ -320,7 +374,7 @@ bool HTTPClient::begin(String host, uint16_t port, String uri, const char *CAcer
   }
 
   clear();
-  _host = host;
+  _host = stripHttpHostBrackets(host);
   _port = port;
   _uri = uri;
 
@@ -340,7 +394,7 @@ bool HTTPClient::begin(String host, uint16_t port, String uri, const char *CAcer
   }
 
   clear();
-  _host = host;
+  _host = stripHttpHostBrackets(host);
   _port = port;
   _uri = uri;
 
@@ -564,14 +618,17 @@ int HTTPClient::sendRequest(const char *type, uint8_t *payload, size_t size) {
   bool redirect = false;
   uint16_t redirectCount = 0;
   do {
-    // wipe out any existing headers from previous request
-    for (size_t i = 0; i < _headerKeysCount; i++) {
-      if (_currentHeaders[i].value.length() > 0) {
+    // wipe out any existing headers from previous request, but preserve the keys if collecting specific headers
+    if (_collectAllHeaders) {
+      _currentHeaders.clear();
+    } else {
+      // Only clear values, keep the keys for specific header collection
+      for (size_t i = 0; i < _currentHeaders.size(); ++i) {
         _currentHeaders[i].value.clear();
       }
     }
 
-    log_d("request type: '%s' redirCount: %d\n", type, redirectCount);
+    log_d("request type: '%s' redirCount: %u\n", type, redirectCount);
 
     // connect to server
     if (!connect()) {
@@ -637,7 +694,7 @@ int HTTPClient::sendRequest(const char *type, uint8_t *payload, size_t size) {
               // allow GET and HEAD methods without force
               !strcmp(type, "GET") || !strcmp(type, "HEAD")) {
             redirectCount += 1;
-            log_d("following redirect (the same method): '%s' redirCount: %d\n", _location.c_str(), redirectCount);
+            log_d("following redirect (the same method): '%s' redirCount: %u\n", _location.c_str(), redirectCount);
             if (!setURL(_location)) {
               log_d("failed setting URL for redirection\n");
               // no redirection
@@ -654,7 +711,7 @@ int HTTPClient::sendRequest(const char *type, uint8_t *payload, size_t size) {
         case HTTP_CODE_SEE_OTHER:
         {
           redirectCount += 1;
-          log_d("following redirect (dropped to GET/HEAD): '%s' redirCount: %d\n", _location.c_str(), redirectCount);
+          log_d("following redirect (dropped to GET/HEAD): '%s' redirCount: %u\n", _location.c_str(), redirectCount);
           if (!setURL(_location)) {
             log_d("failed setting URL for redirection\n");
             // no redirection
@@ -770,7 +827,7 @@ int HTTPClient::sendRequest(const char *type, Stream *stream, size_t size) {
           // some time for the stream
           delay(1);
 
-          int leftBytes = (readBytes - bytesWrite);
+          int leftBytes = (bytesRead - bytesWrite);
 
           // retry to send the missed bytes
           bytesWrite = _client->write((const uint8_t *)(buff + bytesWrite), leftBytes);
@@ -793,7 +850,7 @@ int HTTPClient::sendRequest(const char *type, Stream *stream, size_t size) {
 
         // count bytes to read left
         if (len > 0) {
-          len -= readBytes;
+          len -= bytesRead;
         }
 
         delay(0);
@@ -805,7 +862,7 @@ int HTTPClient::sendRequest(const char *type, Stream *stream, size_t size) {
     free(buff);
 
     if (size && (int)size != bytesWritten) {
-      log_d("Stream payload bytesWritten %d and size %d mismatch!.", bytesWritten, size);
+      log_d("Stream payload bytesWritten %d and size %lu mismatch!.", bytesWritten, (unsigned long)size);
       log_d("ERROR SEND PAYLOAD FAILED!");
       return returnError(HTTPC_ERROR_SEND_PAYLOAD_FAILED);
     } else {
@@ -854,6 +911,29 @@ NetworkClient *HTTPClient::getStreamPtr(void) {
 
   log_w("getStreamPtr: not connected");
   return nullptr;
+}
+
+NetworkClient *HTTPClient::getClient(void) {
+#ifdef HTTPCLIENT_1_1_COMPATIBLE
+  if (_transportTraits && !_client) {
+    _tcpDeprecated = _transportTraits->create();
+    if (!_tcpDeprecated) {
+      log_e("could not create client");
+      return nullptr;
+    }
+    _client = _tcpDeprecated.get();
+  }
+  // Reapply transport settings on every retrieval. Deprecated begin() calls can
+  // replace the traits while retaining the lazily allocated client.
+  if (_tcpDeprecated && !_transportTraits->verify(*_client, _host.c_str())) {
+    log_e("transport level verify failed");
+    _client->stop();
+    _client = nullptr;
+    _tcpDeprecated.reset(nullptr);
+    return nullptr;
+  }
+#endif
+  return _client;
 }
 
 /**
@@ -1015,19 +1095,24 @@ void HTTPClient::addHeader(const String &name, const String &value, bool first, 
   }
 }
 
+void HTTPClient::collectAllHeaders(bool collectAll) {
+  _collectAllHeaders = collectAll;
+}
+
 void HTTPClient::collectHeaders(const char *headerKeys[], const size_t headerKeysCount) {
-  _headerKeysCount = headerKeysCount;
-  if (_currentHeaders) {
-    delete[] _currentHeaders;
+  if (_collectAllHeaders) {
+    log_w("collectHeaders is ignored when collectAllHeaders is set");
+    return;
   }
-  _currentHeaders = new RequestArgument[_headerKeysCount];
-  for (size_t i = 0; i < _headerKeysCount; i++) {
+  _currentHeaders.clear();
+  _currentHeaders.resize(headerKeysCount);
+  for (size_t i = 0; i < headerKeysCount; i++) {
     _currentHeaders[i].key = headerKeys[i];
   }
 }
 
 String HTTPClient::header(const char *name) {
-  for (size_t i = 0; i < _headerKeysCount; ++i) {
+  for (size_t i = 0; i < _currentHeaders.size(); ++i) {
     if (_currentHeaders[i].key.equalsIgnoreCase(name)) {
       return _currentHeaders[i].value;
     }
@@ -1036,25 +1121,25 @@ String HTTPClient::header(const char *name) {
 }
 
 String HTTPClient::header(size_t i) {
-  if (i < _headerKeysCount) {
+  if (i < _currentHeaders.size()) {
     return _currentHeaders[i].value;
   }
   return String();
 }
 
 String HTTPClient::headerName(size_t i) {
-  if (i < _headerKeysCount) {
+  if (i < _currentHeaders.size()) {
     return _currentHeaders[i].key;
   }
   return String();
 }
 
 int HTTPClient::headers() {
-  return _headerKeysCount;
+  return _currentHeaders.size();
 }
 
 bool HTTPClient::hasHeader(const char *name) {
-  for (size_t i = 0; i < _headerKeysCount; ++i) {
+  for (size_t i = 0; i < _currentHeaders.size(); ++i) {
     if ((_currentHeaders[i].key.equalsIgnoreCase(name)) && (_currentHeaders[i].value.length() > 0)) {
       return true;
     }
@@ -1070,37 +1155,23 @@ bool HTTPClient::connect(void) {
   if (connected()) {
     if (_reuse) {
       log_d("already connected, reusing connection");
-    } else {
-      log_d("already connected, try reuse!");
+      while (_client->available() > 0) {
+        _client->read();
+      }
+      return true;
     }
-    while (_client->available() > 0) {
-      _client->read();
-    }
-    return true;
+    // HTTP/1.0 and Connection: close cannot reuse the socket. The previous
+    // response (including a 302 with no body) may still look "connected"
+    // because the peer FIN has not been observed yet. Sending the next
+    // request on that socket — typical after a redirect — fails.
+    log_d("already connected, closing because reuse is disabled");
+    _client->stop();
   }
 
-#ifdef HTTPCLIENT_1_1_COMPATIBLE
-  if (_transportTraits && !_client) {
-    _tcpDeprecated = _transportTraits->create();
-    if (!_tcpDeprecated) {
-      log_e("failed to create client");
-      return false;
-    }
-    _client = _tcpDeprecated.get();
-  }
-#endif
-
-  if (!_client) {
+  if (!getClient()) {
     log_d("HTTPClient::begin was not called or returned error");
     return false;
   }
-#ifdef HTTPCLIENT_1_1_COMPATIBLE
-  if (_tcpDeprecated && !_transportTraits->verify(*_client, _host.c_str())) {
-    log_d("transport level verify failed");
-    _client->stop();
-    return false;
-  }
-#endif
   if (!_client->connect(_host.c_str(), _port, _connectTimeout)) {
     log_d("failed connect to %s:%u", _host.c_str(), _port);
     return false;
@@ -1137,7 +1208,17 @@ bool HTTPClient::sendHeader(const char *type) {
     header += "1";
   }
 
-  header += String(F("\r\nHost: ")) + _host;
+  // RFC 3986 / RFC 7230: IPv6 literals in Host must be bracketed (once).
+  header += String(F("\r\nHost: "));
+  if (_host.startsWith("[")) {
+    header += _host;
+  } else if (_host.indexOf(':') >= 0) {
+    header += '[';
+    header += _host;
+    header += ']';
+  } else {
+    header += _host;
+  }
   if (_port != 80 && _port != 443) {
     header += ':';
     header += String(_port);
@@ -1238,17 +1319,14 @@ int HTTPClient::handleHeaderResponse() {
           setCookie(date, headerValue);
         }
 
-        for (size_t i = 0; i < _headerKeysCount; i++) {
-          if (_currentHeaders[i].key.equalsIgnoreCase(headerName)) {
-            // Uncomment the following lines if you need to add support for multiple headers with the same key:
-            // if (!_currentHeaders[i].value.isEmpty()) {
-            //     // Existing value, append this one with a comma
-            //     _currentHeaders[i].value += ',';
-            //     _currentHeaders[i].value += headerValue;
-            // } else {
-            _currentHeaders[i].value = headerValue;
-            // }
-            break;  // We found a match, stop looking
+        if (_collectAllHeaders && headerName.length() > 0) {
+          _currentHeaders.push_back({headerName, headerValue});
+        } else {
+          for (size_t i = 0; i < _currentHeaders.size(); ++i) {
+            if (_currentHeaders[i].key.equalsIgnoreCase(headerName)) {
+              _currentHeaders[i].value = headerValue;
+              break;  // We found a match, stop looking
+            }
           }
         }
       }
@@ -1312,6 +1390,10 @@ int HTTPClient::writeToStreamDataBlock(Stream *stream, int size) {
   uint8_t *buff = (uint8_t *)malloc(buff_size);
 
   if (buff) {
+    // a server gone silent without closing stays connected(): give up
+    // after _tcpTimeout without data, as handleHeaderResponse() does
+    unsigned long lastDataTime = millis();
+
     // read all data from server
     while (connected() && (len > 0 || len == -1)) {
 
@@ -1342,6 +1424,19 @@ int HTTPClient::writeToStreamDataBlock(Stream *stream, int size) {
 
         // read data
         int bytesRead = _client->readBytes(buff, readBytes);
+
+        // readBytes() returns nothing once the stream timeout passes without
+        // data, or at once over TLS when nothing has arrived yet
+        if (bytesRead == 0) {
+          if ((millis() - lastDataTime) >= _tcpTimeout) {
+            log_w("read timeout after %d bytes", bytesWritten);
+            free(buff);
+            return HTTPC_ERROR_READ_TIMEOUT;
+          }
+          delay(1);
+          continue;
+        }
+        lastDataTime = millis();
 
         // write it to Stream
         int bytesWrite = stream->write(buff, bytesRead);
@@ -1390,6 +1485,11 @@ int HTTPClient::writeToStreamDataBlock(Stream *stream, int size) {
 
         delay(0);
       } else {
+        if ((millis() - lastDataTime) >= _tcpTimeout) {
+          log_w("read timeout after %d bytes", bytesWritten);
+          free(buff);
+          return HTTPC_ERROR_READ_TIMEOUT;
+        }
         delay(1);
       }
     }
@@ -1593,8 +1693,9 @@ void HTTPClient::setCookie(String date, String headerValue) {
 
   // overwrite or delete cookie in/from cookie jar
   time_t now_local = time(NULL);
-  time_t now_gmt = mktime(gmtime(&now_local));
-
+  struct tm tm_gmt;
+  gmtime_r(&now_local, &tm_gmt);
+  time_t now_gmt = mktime(&tm_gmt);
   bool found = false;
 
   for (auto c = _cookieJar->begin(); c != _cookieJar->end(); ++c) {
@@ -1619,8 +1720,9 @@ void HTTPClient::setCookie(String date, String headerValue) {
 
 bool HTTPClient::generateCookieString(String *cookieString) {
   time_t now_local = time(NULL);
-  time_t now_gmt = mktime(gmtime(&now_local));
-
+  struct tm tm_gmt;
+  gmtime_r(&now_local, &tm_gmt);
+  time_t now_gmt = mktime(&tm_gmt);
   *cookieString = "";
   bool found = false;
 

@@ -49,13 +49,13 @@ private:
     if (_fd < 0) {
       return 0;
     }
-    int count;
+    int count = -1;
 #ifdef ESP_IDF_VERSION_MAJOR
     int res = lwip_ioctl(_fd, FIONREAD, &count);
 #else
     int res = lwip_ioctl_r(_fd, FIONREAD, &count);
 #endif
-    if (res < 0) {
+    if (res < 0 || count < 0) {
       _failed = true;
       return 0;
     }
@@ -148,6 +148,10 @@ public:
     return _fill - _pos + r_available();
   }
 
+  size_t buffered() const {
+    return _fill - _pos;
+  }
+
   void clear() {
     if (r_available()) {
       _pos = _fill;
@@ -165,6 +169,12 @@ private:
   int sockfd;
 
 public:
+  // Server-Sent Events marker for this connection. Stored on the handle
+  // (rather than on NetworkClient) so every copy sharing the socket observes
+  // a single flag; a fresh accept() creates a fresh handle, so each new
+  // connection starts clear.
+  bool sse = false;
+
   NetworkClientSocketHandle(int fd) : sockfd(fd) {}
 
   ~NetworkClientSocketHandle() {
@@ -176,6 +186,7 @@ public:
       ::close(sockfd);
       sockfd = -1;
     }
+    sse = false;
   }
 
   int fd() {
@@ -199,6 +210,8 @@ void NetworkClient::stop() {
   clientSocketHandle = NULL;
   _rxBuffer = NULL;
   _connected = false;
+  _readEOF = false;
+  _sse = false;
   _lastReadTimeout = 0;
   _lastWriteTimeout = 0;
 }
@@ -300,6 +313,7 @@ int NetworkClient::connect(IPAddress ip, uint16_t port, int32_t timeout_ms) {
   _rxBuffer.reset(new NetworkClientRxBuffer(sockfd));
 
   _connected = true;
+  _readEOF = false;
   return 1;
 }
 
@@ -309,7 +323,7 @@ int NetworkClient::connect(const char *host, uint16_t port) {
 
 int NetworkClient::connect(const char *host, uint16_t port, int32_t timeout_ms) {
   IPAddress srv((uint32_t)0);
-  if (!Network.hostByName(host, srv)) {
+  if (Network.hostByName(host, srv) != 1) {
     return 0;
   }
   return connect(srv, port, timeout_ms);
@@ -380,7 +394,7 @@ int NetworkClient::read() {
 }
 
 void NetworkClient::flush() {
-  clear();
+  // NetworkClient has no TX buffer; clear() is the explicit RX discard API.
 }
 
 size_t NetworkClient::write(const uint8_t *buf, size_t size) {
@@ -444,6 +458,13 @@ size_t NetworkClient::write(const uint8_t *buf, size_t size) {
       }
     }
   }
+  if (totalBytesSent < size && _connected) {
+    // Nothing could be sent for WIFI_CLIENT_MAX_WRITE_RETRY tries in a row: the peer has stopped
+    // acknowledging (it may be gone without a reset). Give up on the connection, as on a send
+    // error, so that later writes return at once rather than each waiting as long again.
+    log_w("write timed out on fd %d after %u of %u bytes, closing", fd(), (unsigned)totalBytesSent, (unsigned)size);
+    stop();
+  }
   return totalBytesSent;
 }
 
@@ -456,13 +477,43 @@ size_t NetworkClient::write(Stream &stream) {
   if (!buf) {
     return 0;
   }
-  size_t toRead = 0, toWrite = 0, written = 0;
-  size_t available = stream.available();
-  while (available) {
-    toRead = (available > 1360) ? 1360 : available;
-    toWrite = stream.readBytes(buf, toRead);
-    written += write(buf, toWrite);
+  size_t written = 0;
+  int available = stream.available();
+  while (available > 0) {
+    size_t toRead = (available > 1360) ? 1360 : available;
+    size_t toWrite = stream.readBytes(buf, toRead);
+    if (!toWrite) {
+      break;
+    }
+    size_t sent = write(buf, toWrite);
+    written += sent;
+    if (sent < toWrite) {
+      break;
+    }
     available = stream.available();
+  }
+  free(buf);
+  return written;
+}
+
+size_t NetworkClient::write(Stream &stream, size_t length) {
+  uint8_t *buf = (uint8_t *)malloc(1360);
+  if (!buf) {
+    return 0;
+  }
+  size_t written = 0;
+  while (length) {
+    size_t toRead = (length > 1360) ? 1360 : length;
+    size_t toWrite = stream.readBytes(buf, toRead);
+    if (!toWrite) {
+      break;
+    }
+    size_t sent = write(buf, toWrite);
+    written += sent;
+    if (sent < toWrite) {
+      break;
+    }
+    length -= sent;
   }
   free(buf);
   return written;
@@ -554,12 +605,16 @@ uint8_t NetworkClient::connected() {
     stop();
   }
   if (_connected) {
+    if (_readEOF) {
+      // The peer already sent FIN. Keep reporting connected only while the
+      // receive buffer still holds data that has not been read yet.
+      return (_rxBuffer && _rxBuffer->buffered()) ? 1 : 0;
+    }
+
     uint8_t dummy;
     int res = recv(fd(), &dummy, 1, MSG_DONTWAIT | MSG_PEEK);
-    // avoid unused var warning by gcc
-    (void)res;
-    // recv only sets errno if res is <= 0
-    if (res <= 0) {
+    // recv only sets errno when it returns -1
+    if (res < 0) {
       switch (errno) {
         case EWOULDBLOCK:
         case ENOENT:  //caused by vfs
@@ -578,6 +633,12 @@ uint8_t NetworkClient::connected() {
           _connected = true;
           break;
       }
+    } else if (res == 0) {
+      // Orderly shutdown by the peer. lwIP reports ERR_CLSD as recv() == 0 on
+      // the first probe and ENOTCONN on later probes, so remember the EOF
+      // instead of relying on the next recv().
+      _readEOF = true;
+      return (_rxBuffer && _rxBuffer->buffered()) ? 1 : 0;
     } else {
       _connected = true;
     }
@@ -683,8 +744,16 @@ int NetworkClient::fd() const {
 
 void NetworkClient::setSSE(bool sse) {
   _sse = sse;
+  if (clientSocketHandle) {
+    clientSocketHandle->sse = sse;
+  }
 }
 
 bool NetworkClient::isSSE() {
+  if (clientSocketHandle) {
+    return clientSocketHandle->sse;
+  }
+  // No socket handle (e.g. NetworkClientSecure, which owns its fd outside
+  // NetworkClientSocketHandle): fall back to the per-object marker.
   return _sse;
 }

@@ -1,0 +1,587 @@
+/*
+  server.ino - WebServer device for multi-DUT validation test.
+
+  Runs a WiFi softAP and WebServer with test endpoints for the
+  WebServer::send(code, content_type, Stream&) overload, plus a set of
+  endpoints configured the same way as the upstream WebServer examples so the
+  client device can exercise request-parsing robustness properties: malformed
+  multipart bodies, oversized query strings, authentication headers,
+  static-file path traversal, regex routes, sendHeader CRLF/NUL injection,
+  and cross-request argument state.
+
+  Communicates with the Python test runner via serial protocol.
+*/
+
+#include <Arduino.h>
+#include <WiFi.h>
+#include <WebServer.h>
+#include <LittleFS.h>
+#include <Preferences.h>
+#include <uri/UriRegex.h>
+#include "esp_system.h"
+
+#define SERVER_PORT         80
+#define DERIVED_SERVER_PORT 8081
+
+// --- SSE regression state (validates PR #13089 compat) ---
+#define SSE_PUSH_INTERVAL_MS 250
+static unsigned long sseLastPush = 0;
+static unsigned long sseCopyLastPush = 0;
+static unsigned sseEventId = 0;
+static unsigned sseCopyEventId = 0;
+static NetworkClient sseCopy;
+static bool sseCopyActive = false;
+
+static WebServer server(SERVER_PORT);
+static Preferences prefs;
+
+// Per-boot identifier reported by /alive. The client uses it to detect whether
+// a request caused the server to reset (the id changes) versus hang (no reply).
+static String bootId;
+
+// Credentials for the authentication-protected endpoint.
+static const char *www_username = "admin";
+static const char *www_password = "SuperSecurePassword";
+
+// Files used by the serveStatic() traversal check. The public file lives inside
+// the configured static root; the secret file deliberately lives outside of it.
+static const char *STATIC_ROOT = "/www/";
+static const char *PUBLIC_PATH = "/www/public.txt";
+static const char *PUBLIC_BODY = "PUBLIC_FILE_OK";
+static const char *SECRET_PATH = "/secret.txt";
+static const char *SECRET_BODY = "TOP_SECRET_OUTSIDE_ROOT";
+
+// File served through a serveStatic() route whose filesystem root is "/", the
+// mapping used by the WebServer example. Kept separate from the traversal check
+// above so that check keeps a root it must not escape.
+static const char *ROOT_FILE_PATH = "/root_ok.txt";
+static const char *ROOT_FILE_BODY = "ROOT_FILE_OK";
+
+// In-memory stream for testing (simulates a File)
+class TestStream : public Stream {
+  const uint8_t *_buf;
+  size_t _size;
+  size_t _pos;
+
+public:
+  TestStream(const uint8_t *buf, size_t size) : _buf(buf), _size(size), _pos(0) {}
+
+  size_t size() const {
+    return _size;
+  }
+
+  const char *name() const {
+    return "test.txt";
+  }
+
+  int available() override {
+    return (int)(_size - _pos);
+  }
+
+  int read() override {
+    if (_pos >= _size) {
+      return -1;
+    }
+    return _buf[_pos++];
+  }
+
+  int peek() override {
+    if (_pos >= _size) {
+      return -1;
+    }
+    return _buf[_pos];
+  }
+
+  size_t write(uint8_t) override {
+    return 0;
+  }
+};
+
+// Forwards every write normally and counts the bytes that go through client().
+class CountingClient : public NetworkClient {
+public:
+  CountingClient() : NetworkClient() {}
+
+  void adopt(const NetworkClient &other) {
+    NetworkClient::operator=(other);
+  }
+
+  void resetStats() {
+    _bytes = 0;
+    _writes = 0;
+    _readBytes = 0;
+  }
+
+  size_t bytes() const {
+    return _bytes;
+  }
+
+  size_t writes() const {
+    return _writes;
+  }
+
+  size_t bytesRead() const {
+    return _readBytes;
+  }
+
+  int read() override {
+    int byteRead = NetworkClient::read();
+    if (byteRead >= 0) {
+      _readBytes++;
+    }
+    return byteRead;
+  }
+
+  int read(uint8_t *buf, size_t size) override {
+    int readCount = NetworkClient::read(buf, size);
+    if (readCount > 0) {
+      _readBytes += readCount;
+    }
+    return readCount;
+  }
+
+  size_t write(const uint8_t *buf, size_t size) override {
+    size_t sent = NetworkClient::write(buf, size);
+    _bytes += sent;
+    _writes++;
+    return sent;
+  }
+
+  size_t write(uint8_t b) override {
+    return write(&b, 1);
+  }
+
+private:
+  size_t _bytes = 0;
+  size_t _writes = 0;
+  size_t _readBytes = 0;
+};
+
+class CountingServer : public WebServer {
+public:
+  explicit CountingServer(uint16_t port) : WebServer(port) {}
+
+  NetworkClient &client() override {
+    return _counting;
+  }
+
+  size_t countingBytes() const {
+    return _counting.bytes();
+  }
+
+  size_t countingWrites() const {
+    return _counting.writes();
+  }
+
+  size_t countingReads() const {
+    return _counting.bytesRead();
+  }
+
+  size_t countingCloses() const {
+    return _closeCount;
+  }
+
+protected:
+  void closeClient() override {
+    _closeCount++;
+    // The default closeClient() only releases the server's reference; a
+    // derived server that owns the connection wrapper stops it here.
+    _counting.stop();
+    WebServer::closeClient();
+  }
+
+  NetworkClient &acceptClient() override {
+    NetworkClient accepted = _server.accept();
+    if (!accepted) {
+      // A failed accept must return a disconnected client. Stop any leftover
+      // session so it cannot be mistaken for a newly accepted client.
+      _counting.stop();
+      return _currentClient;
+    }
+    _counting.adopt(accepted);
+    _counting.resetStats();
+    _closeCount = 0;
+    return _counting;
+  }
+
+private:
+  CountingClient _counting;
+  size_t _closeCount = 0;
+};
+
+static CountingServer derivedServer(DERIVED_SERVER_PORT);
+
+// Set by a derived-server handler; printed after handleClient() has finished
+// the response, so the final chunk from _finalizeResponse() is included.
+static const char *pendingStatsCase = nullptr;
+
+// Test data
+static const char test_body[] = "Hello from Stream!";
+static const uint8_t test_data[] = {0xDE, 0xAD, 0xBE, 0xEF};
+
+String ssid = "";
+String password = "";
+
+// Dummy upload/raw body sink. Mirrors the upstream FSBrowser upload-callback
+// pattern: the callback reads server.upload() on every invocation. Used by the
+// multipart and non-multipart upload robustness checks.
+void handleUpload() {
+  // Touch members through server.upload() the same way application callbacks do.
+  // A bare (void)upload.status can be optimized away and hide a null dereference.
+  HTTPUpload &upload = server.upload();
+  Serial.printf("[SERVER] upload status=%d name=%s\n", (int)upload.status, upload.name.c_str());
+}
+
+// Raw (non-multipart) body sink, registered in the same callback slot as an
+// upload handler. Mirrors the upstream UploadHugeFile example.
+static size_t rawTotalSize = 0;
+static bool rawSawStart = false;
+
+void handleRawBody() {
+  HTTPRaw &raw = server.raw();
+  if (raw.status == RAW_START) {
+    rawTotalSize = 0;
+    rawSawStart = true;
+  } else if (raw.status == RAW_WRITE) {
+    rawTotalSize += raw.currentSize;
+  } else if (raw.status == RAW_END) {
+    Serial.printf("[SERVER] raw end total=%u\n", (unsigned)rawTotalSize);
+  }
+}
+
+void readWiFiCredentials() {
+  Serial.println("[SERVER] Send SSID:");
+  while (ssid.length() == 0) {
+    if (Serial.available()) {
+      ssid = Serial.readStringUntil('\n');
+      ssid.trim();
+    }
+    delay(100);
+  }
+
+  Serial.println("[SERVER] Send Password:");
+  bool password_received = false;
+  while (!password_received) {
+    if (Serial.available()) {
+      password = Serial.readStringUntil('\n');
+      password.trim();
+      password_received = true;
+    }
+    delay(100);
+  }
+
+  Serial.printf("[SERVER] SSID: %s\n", ssid.c_str());
+  Serial.printf("[SERVER] Password: %s\n", password.c_str());
+}
+
+void setupFilesystem() {
+  if (!LittleFS.begin(true)) {
+    Serial.println("[SERVER] LittleFS mount failed");
+    return;
+  }
+  LittleFS.mkdir("/www");
+  File pub = LittleFS.open(PUBLIC_PATH, "w");
+  if (pub) {
+    pub.print(PUBLIC_BODY);
+    pub.close();
+    Serial.println("[SERVER] Wrote public file");
+  } else {
+    Serial.println("[SERVER] Failed to write public file");
+  }
+  File secret = LittleFS.open(SECRET_PATH, "w");
+  if (secret) {
+    secret.print(SECRET_BODY);
+    secret.close();
+    Serial.println("[SERVER] Wrote secret file");
+  } else {
+    Serial.println("[SERVER] Failed to write secret file");
+  }
+  File rootFile = LittleFS.open(ROOT_FILE_PATH, "w");
+  if (rootFile) {
+    rootFile.print(ROOT_FILE_BODY);
+    rootFile.close();
+    Serial.println("[SERVER] Wrote root file");
+  } else {
+    Serial.println("[SERVER] Failed to write root file");
+  }
+}
+
+void registerEndpoints() {
+  // --- Stream send() overload endpoints (existing coverage) ---
+  server.on("/stream_text", HTTP_GET, []() {
+    TestStream stream((const uint8_t *)test_body, strlen(test_body));
+    server.send(200, "text/plain", stream);
+    Serial.println("[SERVER] Served /stream_text");
+  });
+
+  server.on("/stream_binary", HTTP_GET, []() {
+    TestStream stream(test_data, sizeof(test_data));
+    server.send(200, "application/octet-stream", stream);
+    Serial.println("[SERVER] Served /stream_binary");
+  });
+
+  server.on("/stream_explicit_len", HTTP_GET, []() {
+    TestStream stream((const uint8_t *)test_body, strlen(test_body));
+    server.send(200, "text/plain", stream, strlen(test_body));
+    Serial.println("[SERVER] Served /stream_explicit_len");
+  });
+
+  server.on("/stream_empty", HTTP_GET, []() {
+    uint8_t empty = 0;
+    TestStream stream(&empty, 0);
+    server.send(200, "text/plain", stream);
+    Serial.println("[SERVER] Served /stream_empty");
+  });
+
+  server.on("/string", HTTP_GET, []() {
+    server.send(200, "text/plain", "OK");
+    Serial.println("[SERVER] Served /string");
+  });
+
+  // --- SSE regression endpoints (PR #13089 compat) ---
+  server.on("/sse", HTTP_GET, []() {
+    server.client().setSSE(true);
+    server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+    server.send(200, "text/event-stream", "");
+    Serial.println("[SERVER] Served /sse");
+  });
+
+  server.on("/ssecopy", HTTP_GET, []() {
+    // Deliberately keeps only a copy, without setSSE: pre-PR teardown only
+    // dropped the server's reference, so pushes through the copy survived.
+    sseCopy = server.client();
+    sseCopyActive = true;
+    sseCopyEventId = 0;
+    sseCopyLastPush = 0;
+    server.send(200, "text/event-stream", "");
+    Serial.println("[SERVER] Served /ssecopy");
+  });
+
+  server.on("/ssecopyflag", HTTP_GET, []() {
+    // Sets the flag on a copy only. Held open only when the flag is shared
+    // per-connection rather than per wrapper object.
+    NetworkClient flagged = server.client();
+    flagged.setSSE(true);
+    server.send(200, "text/event-stream", "");
+    Serial.println("[SERVER] Served /ssecopyflag");
+  });
+
+  // --- Liveness probe: used to confirm the server task survives each attack ---
+  // The boot id lets the client distinguish "still alive" from "reset and
+  // recovered" (id changes) and from "hung" (no response).
+  server.on("/alive", HTTP_GET, []() {
+    server.send(200, "text/plain", "ALIVE " + bootId);
+  });
+
+  // --- Query-argument echo: reports how many args were parsed (report 3) ---
+  // Also logs the parsed argument count so an oversized query string that gets
+  // truncated in transit can be told apart from one the parser fully consumed.
+  server.on("/args", HTTP_ANY, []() {
+    Serial.printf("[SERVER] /args count=%d uri_len=%u\n", server.args(), (unsigned)server.uri().length());
+    server.send(200, "text/plain", String(server.args()));
+  });
+
+  // --- Authentication-protected endpoint (reports 2 and 8) ---
+  // Mirrors the upstream HttpBasicAuth example. Returns the "path" argument so
+  // the client can also observe cross-request argument state.
+  server.on("/secure", HTTP_GET, []() {
+    if (!server.authenticate(www_username, www_password)) {
+      return server.requestAuthentication();
+    }
+    server.send(200, "text/plain", "PATH=" + server.arg("path"));
+  });
+
+  // Digest auth: signed nonces must stay valid for more than one client, and a
+  // correct response for an unknown nonce must be challenged with stale=true.
+  server.on("/digest", HTTP_ANY, []() {
+    if (!server.authenticate(www_username, www_password)) {
+      return server.requestAuthentication(DIGEST_AUTH);
+    }
+    server.send(200, "text/plain", String(server.method() == HTTP_POST ? "DIGEST_POST_OK" : "DIGEST_OK"));
+  });
+
+  // --- Upload endpoints (reports 1 and 4) ---
+  // Mirrors the upstream FSBrowser POST /edit route: a handler plus an upload
+  // callback that touches server.upload().
+  server.on(
+    "/edit", HTTP_POST,
+    []() {
+      server.send(200, "text/plain", "UPLOAD_OK");
+    },
+    handleUpload
+  );
+
+  // --- Regex route (report 7) ---
+  // Mirrors the upstream PathArgServer example: unbounded repetition consuming
+  // attacker-controlled path characters.
+  server.on(UriRegex("^\\/users\\/([0-9]+)$"), HTTP_GET, []() {
+    server.send(200, "text/plain", "USER=" + server.pathArg(0));
+  });
+
+  // --- Regex route with nested quantifiers (report 7, second vector) ---
+  // A recursive backtracking engine explores 2^n paths for a non-matching input
+  // of n characters, blocking the server task for hours on a short request.
+  server.on(UriRegex("^\\/nested\\/(a+)+$"), HTTP_GET, []() {
+    server.send(200, "text/plain", "NESTED=" + server.pathArg(0));
+  });
+
+  // --- Raw (non-multipart) request body route ---
+  // Same registration shape as an upload route, but the callback consumes
+  // server.raw(). Confirms raw bodies still stream to the callback instead of
+  // being buffered whole or dropped.
+  server.on(
+    "/raw", HTTP_PUT,
+    []() {
+      server.send(200, "text/plain", rawSawStart ? "RAW=" + String(rawTotalSize) : "RAW_CALLBACK_MISSING");
+      rawSawStart = false;
+    },
+    handleRawBody
+  );
+
+  // --- Header echo: sendHeader() must reject CR/LF/NUL in name and value ---
+  // Forwards request arguments the same way a vulnerable application would.
+  server.on("/echo_header", HTTP_GET, []() {
+    if (server.hasArg("n")) {
+      server.sendHeader(server.arg("n"), "ok");
+    }
+    if (server.hasArg("x")) {
+      server.sendHeader("X-Echo", server.arg("x"));
+    }
+    server.send(200, "text/plain", "ECHO_OK");
+  });
+
+  // --- Static file serving with a non-root mapping (report 6) ---
+  server.serveStatic("/static", LittleFS, STATIC_ROOT);
+
+  // --- Static file serving mapped to the filesystem root ---
+  server.serveStatic("/root", LittleFS, "/");
+}
+
+// --- Derived WebServer endpoints ---
+// Every response byte must go through client(). The client compares the raw
+// response length with the byte count printed after each request.
+void registerDerivedEndpoints() {
+  derivedServer.on("/plain", HTTP_GET, []() {
+    derivedServer.send(200, "text/plain", "PLAIN");
+    pendingStatsCase = "derived_plain";
+  });
+
+  derivedServer.on("/sendp", HTTP_GET, []() {
+    derivedServer.send_P(200, "text/plain", PSTR("SENDP"));
+    pendingStatsCase = "derived_sendp";
+  });
+
+  derivedServer.on("/chunked", HTTP_GET, []() {
+    derivedServer.chunkResponseBegin("text/plain");
+    derivedServer.chunkWrite("CHUNK1", 6);
+    derivedServer.chunkWrite("CHUNK2", 6);
+    derivedServer.chunkResponseEnd();
+    pendingStatsCase = "derived_chunked";
+  });
+
+  derivedServer.on("/streamfile", HTTP_GET, []() {
+    TestStream stream((const uint8_t *)test_body, strlen(test_body));
+    derivedServer.streamFile(stream, "text/plain");
+    pendingStatsCase = "derived_streamfile";
+  });
+
+  derivedServer.on("/sendstream", HTTP_GET, []() {
+    TestStream stream((const uint8_t *)test_body, strlen(test_body));
+    derivedServer.send(200, "text/plain", stream, strlen(test_body));
+    pendingStatsCase = "derived_sendstream";
+  });
+
+  derivedServer.on("/sendcontent", HTTP_GET, []() {
+    derivedServer.setContentLength(CONTENT_LENGTH_UNKNOWN);
+    derivedServer.send(200, "text/plain", "CHUNKBODY");
+    derivedServer.setContentLength(CONTENT_LENGTH_NOT_SET);
+    pendingStatsCase = "derived_sendcontent";
+  });
+}
+
+// True when the device just came back from a non-power-on reset and previously
+// stored valid credentials in NVS. Power-on / external / brownout resets always
+// force the serial handshake so the test runner can hand over fresh credentials.
+bool shouldAutoRecover() {
+  esp_reset_reason_t reason = esp_reset_reason();
+  Serial.printf("[SERVER] Reset reason: %d\n", (int)reason);
+  if (reason == ESP_RST_POWERON || reason == ESP_RST_EXT || reason == ESP_RST_BROWNOUT) {
+    return false;
+  }
+  prefs.begin("wstest", true);
+  bool have = prefs.isKey("ssid") && prefs.isKey("pass");
+  prefs.end();
+  return have;
+}
+
+void setup() {
+  Serial.begin(115200);
+  while (!Serial) {
+    delay(100);
+  }
+
+  // New id for this boot so the client can detect resets.
+  bootId = String(esp_random(), HEX);
+
+  if (shouldAutoRecover()) {
+    prefs.begin("wstest", true);
+    ssid = prefs.getString("ssid", "");
+    password = prefs.getString("pass", "");
+    prefs.end();
+    Serial.println("[SERVER] Recovering AP after reset");
+  } else {
+    Serial.println("[SERVER] Device ready for WiFi credentials");
+    readWiFiCredentials();
+    prefs.begin("wstest", false);
+    prefs.putString("ssid", ssid);
+    prefs.putString("pass", password);
+    prefs.end();
+  }
+
+  setupFilesystem();
+
+  // Start WiFi softAP
+  WiFi.AP.begin();
+  bool ok = WiFi.AP.create(ssid, password);
+  if (!ok) {
+    Serial.println("[SERVER] Failed to start AP");
+    return;
+  }
+
+  IPAddress ip = WiFi.AP.localIP();
+  Serial.printf("[SERVER] AP started IP=%s\n", ip.toString().c_str());
+
+  registerEndpoints();
+  registerDerivedEndpoints();
+
+  server.begin();
+  derivedServer.begin();
+  Serial.println("[SERVER] Server started");
+}
+
+void loop() {
+  server.handleClient();
+  derivedServer.handleClient();
+
+  if (pendingStatsCase != nullptr) {
+    Serial.printf(
+      "[SERVER] STATS %s bytes=%u writes=%u reads=%u closes=%u\n", pendingStatsCase, (unsigned)derivedServer.countingBytes(),
+      (unsigned)derivedServer.countingWrites(), (unsigned)derivedServer.countingReads(), (unsigned)derivedServer.countingCloses()
+    );
+    pendingStatsCase = nullptr;
+  }
+
+  // SSE event pumps (regression probes for PR #13089).
+  unsigned long now = millis();
+  if (server.client().isSSE() && server.client().connected() && now - sseLastPush >= SSE_PUSH_INTERVAL_MS) {
+    sseLastPush = now;
+    server.client().printf("data: %u\n\n", (unsigned)++sseEventId);
+  }
+  if (sseCopyActive && sseCopy.connected() && now - sseCopyLastPush >= SSE_PUSH_INTERVAL_MS) {
+    sseCopyLastPush = now;
+    sseCopy.printf("data: %u\n\n", (unsigned)++sseCopyEventId);
+  }
+  if (sseCopyActive && !sseCopy.connected()) {
+    sseCopyActive = false;
+  }
+}

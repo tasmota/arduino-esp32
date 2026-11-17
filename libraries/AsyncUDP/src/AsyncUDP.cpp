@@ -13,7 +13,35 @@ extern "C" {
 #include <esp_wifi.h>
 }
 
+#include "bits/atomic_base.h"
 #include "lwip/priv/tcpip_priv.h"
+
+#define CONFIG_UDP_MSS 1460
+
+#ifndef CONFIG_ARDUINO_UDP_QUEUE_SIZE
+#define CONFIG_ARDUINO_UDP_QUEUE_SIZE 32
+#endif
+
+#ifndef CONFIG_ARDUINO_UDP_TASK_STACK_SIZE
+#define CONFIG_ARDUINO_UDP_TASK_STACK_SIZE 4096
+#endif
+#ifndef ARDUINO_UDP_TASK_STACK_SIZE
+#define ARDUINO_UDP_TASK_STACK_SIZE CONFIG_ARDUINO_UDP_TASK_STACK_SIZE
+#endif
+
+#ifndef CONFIG_ARDUINO_UDP_TASK_PRIORITY
+#define CONFIG_ARDUINO_UDP_TASK_PRIORITY 3
+#endif
+#ifndef ARDUINO_UDP_TASK_PRIORITY
+#define ARDUINO_UDP_TASK_PRIORITY CONFIG_ARDUINO_UDP_TASK_PRIORITY
+#endif
+
+#ifndef CONFIG_ARDUINO_UDP_RUNNING_CORE
+#define CONFIG_ARDUINO_UDP_RUNNING_CORE -1
+#endif
+#ifndef ARDUINO_UDP_RUNNING_CORE
+#define ARDUINO_UDP_RUNNING_CORE CONFIG_ARDUINO_UDP_RUNNING_CORE
+#endif
 
 #ifdef CONFIG_LWIP_TCPIP_CORE_LOCKING
 #define UDP_MUTEX_LOCK()                                \
@@ -30,6 +58,7 @@ extern "C" {
 #define UDP_MUTEX_UNLOCK()
 #endif  // CONFIG_LWIP_TCPIP_CORE_LOCKING
 
+static volatile size_t _udp_drops = 0;  // Holds dropped incoming packets due to queue being full
 static const char *netif_ifkeys[TCPIP_ADAPTER_IF_MAX] = {"WIFI_STA_DEF", "WIFI_AP_DEF", "ETH_DEF", "PPP_DEF"};
 
 static esp_err_t tcpip_adapter_get_netif(tcpip_adapter_if_t tcpip_if, void **netif) {
@@ -164,6 +193,7 @@ static QueueHandle_t _udp_queue;
 static volatile TaskHandle_t _udp_task_handle = NULL;
 
 static void _udp_task(void *pvParameters) {
+  (void)pvParameters;
   lwip_event_packet_t *e = NULL;
   for (;;) {
     if (xQueueReceive(_udp_queue, &e, portMAX_DELAY) == pdTRUE) {
@@ -181,14 +211,14 @@ static void _udp_task(void *pvParameters) {
 
 static bool _udp_task_start() {
   if (!_udp_queue) {
-    _udp_queue = xQueueCreate(32, sizeof(lwip_event_packet_t *));
+    _udp_queue = xQueueCreate(CONFIG_ARDUINO_UDP_QUEUE_SIZE, sizeof(lwip_event_packet_t *));
     if (!_udp_queue) {
       return false;
     }
   }
   if (!_udp_task_handle) {
     xTaskCreateUniversal(
-      _udp_task, "async_udp", 4096, NULL, CONFIG_ARDUINO_UDP_TASK_PRIORITY, (TaskHandle_t *)&_udp_task_handle, CONFIG_ARDUINO_UDP_RUNNING_CORE
+      _udp_task, "async_udp", ARDUINO_UDP_TASK_STACK_SIZE, NULL, ARDUINO_UDP_TASK_PRIORITY, (TaskHandle_t *)&_udp_task_handle, ARDUINO_UDP_RUNNING_CORE
     );
     if (!_udp_task_handle) {
       return false;
@@ -211,8 +241,9 @@ static bool _udp_task_post(void *arg, udp_pcb *pcb, pbuf *pb, const ip_addr_t *a
   e->addr = addr;
   e->port = port;
   e->netif = netif;
-  if (xQueueSend(_udp_queue, &e, portMAX_DELAY) != pdPASS) {
+  if (xQueueSend(_udp_queue, &e, 0) != pdPASS) {
     free((void *)(e));
+    __atomic_fetch_add(&_udp_drops, 1, __ATOMIC_RELAXED);
     return false;
   }
   return true;
@@ -251,8 +282,8 @@ static bool _udp_task_stop(){
 
 AsyncUDPMessage::AsyncUDPMessage(size_t size) {
   _index = 0;
-  if (size > CONFIG_TCP_MSS) {
-    size = CONFIG_TCP_MSS;
+  if (size > CONFIG_UDP_MSS) {
+    size = CONFIG_UDP_MSS;
   }
   _size = size;
   _buffer = (uint8_t *)malloc(size);
@@ -315,6 +346,33 @@ AsyncUDPPacket::AsyncUDPPacket(AsyncUDPPacket &packet) {
   memcpy(_remoteMac, packet._remoteMac, 6);
 
   pbuf_ref(_pb);
+}
+
+AsyncUDPPacket &AsyncUDPPacket::operator=(const AsyncUDPPacket &packet) {
+  if (this != &packet) {
+    if (_pb) {
+      // Free existing pbuf reference
+      pbuf_free(_pb);
+    }
+
+    // Copy all members
+    _udp = packet._udp;
+    _pb = packet._pb;
+    _if = packet._if;
+    _data = packet._data;
+    _len = packet._len;
+    _index = 0;
+
+    memcpy(&_remoteIp, &packet._remoteIp, sizeof(ip_addr_t));
+    memcpy(&_localIp, &packet._localIp, sizeof(ip_addr_t));
+    _localPort = packet._localPort;
+    _remotePort = packet._remotePort;
+    memcpy(_remoteMac, packet._remoteMac, 6);
+
+    // Increment reference count for the new pbuf
+    pbuf_ref(_pb);
+  }
+  return *this;
 }
 
 AsyncUDPPacket::AsyncUDPPacket(AsyncUDP *udp, pbuf *pb, const ip_addr_t *raddr, uint16_t rport, struct netif *ntif) {
@@ -715,8 +773,8 @@ size_t AsyncUDP::writeTo(const uint8_t *data, size_t len, const ip_addr_t *addr,
       return 0;
     }
   }
-  if (len > CONFIG_TCP_MSS) {
-    len = CONFIG_TCP_MSS;
+  if (len > CONFIG_UDP_MSS) {
+    len = CONFIG_UDP_MSS;
   }
   _lastErr = ERR_OK;
   pbuf *pbt = pbuf_alloc(PBUF_TRANSPORT, len, PBUF_RAM);
@@ -786,6 +844,10 @@ size_t AsyncUDP::writeTo(const uint8_t *data, size_t len, const IPAddress addr, 
   ip_addr_t daddr;
   addr.to_ip_addr_t(&daddr);
   return writeTo(data, len, &daddr, port, tcpip_if);
+}
+
+size_t AsyncUDP::dropCount() {
+  return _udp_drops;
 }
 
 IPAddress AsyncUDP::listenIP() {

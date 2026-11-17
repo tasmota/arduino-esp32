@@ -1,4 +1,21 @@
 /*
+ * Copyright 2017-2026 Espressif Systems (Shanghai) PTE LTD
+ * Copyright 2017 Neil Kolban
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
  * BLEDescriptorMap.cpp
  *
  *  Created on: Jun 22, 2017
@@ -10,9 +27,8 @@
  */
 
 #include "soc/soc_caps.h"
-#if SOC_BLE_SUPPORTED
-
 #include "sdkconfig.h"
+#if defined(SOC_BLE_SUPPORTED) || defined(CONFIG_ESP_HOSTED_ENABLE_BT_NIMBLE)
 #if defined(CONFIG_BLUEDROID_ENABLED) || defined(CONFIG_NIMBLE_ENABLED)
 
 /***************************************************************************
@@ -52,7 +68,7 @@
  * @param [in] UUID The UUID to look up the descriptor.
  * @return The descriptor.  If not present, then nullptr is returned.
  */
-BLEDescriptor *BLEDescriptorMap::getByUUID(const char *uuid) {
+BLEDescriptor *BLEDescriptorMap::getByUUID(const char *uuid) const {
   return getByUUID(BLEUUID(uuid));
 }
 
@@ -61,7 +77,7 @@ BLEDescriptor *BLEDescriptorMap::getByUUID(const char *uuid) {
  * @param [in] UUID The UUID to look up the descriptor.
  * @return The descriptor.  If not present, then nullptr is returned.
  */
-BLEDescriptor *BLEDescriptorMap::getByUUID(BLEUUID uuid) {
+BLEDescriptor *BLEDescriptorMap::getByUUID(BLEUUID uuid) const {
   for (auto &myPair : m_uuidMap) {
     if (myPair.first->getUUID().equals(uuid)) {
       return myPair.first;
@@ -76,7 +92,7 @@ BLEDescriptor *BLEDescriptorMap::getByUUID(BLEUUID uuid) {
  * @param [in] handle The handle to look up the descriptor.
  * @return The descriptor.
  */
-BLEDescriptor *BLEDescriptorMap::getByHandle(uint16_t handle) {
+BLEDescriptor *BLEDescriptorMap::getByHandle(uint16_t handle) const {
   return m_handleMap.at(handle);
 }  // getByHandle
 
@@ -114,7 +130,7 @@ void BLEDescriptorMap::setByHandle(uint16_t handle, BLEDescriptor *pDescriptor) 
  * @brief Get the number of registered descriptors.
  * @return The number of registered descriptors.
  */
-int BLEDescriptorMap::getRegisteredDescriptorCount() {
+int BLEDescriptorMap::getRegisteredDescriptorCount() const {
   return m_uuidMap.size();
 }
 
@@ -132,7 +148,7 @@ void BLEDescriptorMap::removeDescriptor(BLEDescriptor *pDescriptor) {
  * @brief Return a string representation of the descriptor map.
  * @return A string representation of the descriptor map.
  */
-String BLEDescriptorMap::toString() {
+String BLEDescriptorMap::toString() const {
   String res;
   char hex[5];
   int count = 0;
@@ -213,4 +229,4 @@ void BLEDescriptorMap::handleGATTServerEvent(uint16_t conn_handle, uint16_t attr
 #endif
 
 #endif /* CONFIG_BLUEDROID_ENABLED || CONFIG_NIMBLE_ENABLED */
-#endif /* SOC_BLE_SUPPORTED */
+#endif /* SOC_BLE_SUPPORTED || CONFIG_ESP_HOSTED_ENABLE_BT_NIMBLE */
