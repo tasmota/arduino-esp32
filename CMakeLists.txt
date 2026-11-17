@@ -82,6 +82,7 @@ if(IDF_TARGET MATCHES "esp32s2|esp32s3|esp32p4" AND CONFIG_TINYUSB_ENABLED)
   list(APPEND CORE_SRCS
     cores/esp32/esp32-hal-tinyusb.c
     cores/esp32/USB.cpp
+    cores/esp32/USBHost.cpp
     cores/esp32/USBCDC.cpp
     cores/esp32/USBMSC.cpp)
 endif()
@@ -144,13 +145,13 @@ set(ARDUINO_LIBRARY_Hash_SRCS
 
 set(ARDUINO_LIBRARY_HTTPClient_SRCS libraries/HTTPClient/src/HTTPClient.cpp)
 
+set(ARDUINO_LIBRARY_HTTPUpdate_SRCS libraries/HTTPUpdate/src/HTTPUpdate.cpp libraries/HTTPUpdate/src/HTTPUpdateChecksum.cpp)
+
 set(ARDUINO_LIBRARY_LittleFS_SRCS libraries/LittleFS/src/LittleFS.cpp)
 
 set(ARDUINO_LIBRARY_NetBIOS_SRCS libraries/NetBIOS/src/NetBIOS.cpp)
 
-set(ARDUINO_LIBRARY_PPP_SRCS
-  libraries/PPP/src/PPP.cpp
-  libraries/PPP/src/ppp.c)
+set(ARDUINO_LIBRARY_PPP_SRCS libraries/PPP/src/PPP.cpp)
 
 set(ARDUINO_LIBRARY_Preferences_SRCS libraries/Preferences/src/Preferences.cpp)
 
@@ -167,21 +168,37 @@ set(ARDUINO_LIBRARY_Ticker_SRCS libraries/Ticker/src/Ticker.cpp)
 
 set(ARDUINO_LIBRARY_Update_SRCS
   libraries/Update/src/Updater.cpp
-  libraries/Update/src/HttpsOTAUpdate.cpp)
+  libraries/Update/src/UpdaterSHA256.cpp
+  libraries/Update/src/UpdaterSHA512.cpp
+  libraries/Update/src/HttpsOTAUpdate.cpp
+  libraries/Update/src/Updater_Signing.cpp)
 
 if(IDF_TARGET MATCHES "esp32s2|esp32s3|esp32p4" AND CONFIG_TINYUSB_ENABLED)
   set(ARDUINO_LIBRARY_USB_SRCS
+    libraries/USB/src/USBAudioCard.cpp
     libraries/USB/src/USBHID.cpp
+    libraries/USB/src/USBHIDReportMapParse.c
     libraries/USB/src/USBMIDI.cpp
     libraries/USB/src/USBHIDMouse.cpp
+    libraries/USB/src/USBHostHID.cpp
+    libraries/USB/src/USBHostHIDMouse.cpp
+    libraries/USB/src/USBHostHIDGamepad.cpp
+    libraries/USB/src/USBHostHIDKeyboard.cpp
+    libraries/USB/src/USBHostHIDKeyboardDecode.cpp
+    libraries/USB/src/USBHostHIDReportMapDump.cpp
+    libraries/USB/src/USBHostMSC.cpp
+    libraries/USB/src/USBHostSerial.cpp
+    libraries/USB/src/USBMSCFS.cpp
     libraries/USB/src/USBHIDKeyboard.cpp
     libraries/USB/src/keyboardLayout/KeyboardLayout_da_DK.cpp
     libraries/USB/src/keyboardLayout/KeyboardLayout_de_DE.cpp
     libraries/USB/src/keyboardLayout/KeyboardLayout_en_US.cpp
     libraries/USB/src/keyboardLayout/KeyboardLayout_es_ES.cpp
+    libraries/USB/src/keyboardLayout/KeyboardLayout_fr_CH.cpp
     libraries/USB/src/keyboardLayout/KeyboardLayout_fr_FR.cpp
     libraries/USB/src/keyboardLayout/KeyboardLayout_hu_HU.cpp
     libraries/USB/src/keyboardLayout/KeyboardLayout_it_IT.cpp
+    libraries/USB/src/keyboardLayout/KeyboardLayout_ja_JP.cpp
     libraries/USB/src/keyboardLayout/KeyboardLayout_pt_BR.cpp
     libraries/USB/src/keyboardLayout/KeyboardLayout_pt_PT.cpp
     libraries/USB/src/keyboardLayout/KeyboardLayout_sv_SE.cpp
@@ -241,8 +258,15 @@ endforeach()
 set(includedirs variants/${CONFIG_ARDUINO_VARIANT}/ cores/esp32/ ${ARDUINO_LIBRARIES_INCLUDEDIRS})
 set(srcs ${CORE_SRCS} ${ARDUINO_LIBRARIES_SRCS})
 set(priv_includes cores/esp32/libb64)
-set(requires spi_flash esp_partition mbedtls wpa_supplicant esp_adc esp_eth http_parser esp_ringbuf esp_driver_gptimer esp_driver_usb_serial_jtag driver esp_http_client esp_https_ota)
-set(priv_requires fatfs nvs_flash app_update bootloader_support bt esp_hid usb esp_psram ${ARDUINO_LIBRARIES_REQUIRES})
+set(requires spi_flash esp_partition mbedtls wpa_supplicant esp_adc esp_eth http_parser esp_ringbuf esp_driver_gptimer esp_driver_usb_serial_jtag driver esp_http_client esp_https_ota esp_timer)
+set(priv_requires fatfs nvs_flash app_update bootloader_support bt esp_hid esp_psram ${ARDUINO_LIBRARIES_REQUIRES})
+
+set(min_v6_idf_version "6.0.0")
+if (idf_version VERSION_LESS min_v6_idf_version)
+  list(APPEND priv_requires usb)
+else()
+  list(APPEND requires esp_hal_uart esp_hal_ledc esp_hal_ana_conv esp_hal_gpio esp_hal_i2c esp_hal_gpspi esp_hal_timg esp_driver_i2c esp_driver_ledc esp_driver_sdm esp_driver_tsens esp_driver_rmt esp_driver_i2s esp_driver_uart esp_driver_dac)
+endif()
 
 if(IDF_TARGET STREQUAL "esp32" OR IDF_TARGET STREQUAL "esp32s2" OR IDF_TARGET STREQUAL "esp32s3" OR IDF_TARGET STREQUAL "esp32p4")
   list(APPEND requires esp_driver_touch_sens)
