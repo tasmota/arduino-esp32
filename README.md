@@ -1,12 +1,6 @@
-# Tasmota Platformio Arduino for espressif32 MUCs
+# Tasmota Platformio Arduino for ESP32, ESP32-P4, ESP32-S2, ESP32-S3, ESP32-C2, ESP32-C3, ESP32-C6 and ESP32-H2
 
 ### [![GitHub Releases](https://img.shields.io/github/downloads/tasmota/arduino-esp32/total?label=downloads)](https://github.com/tasmota/arduino-esp32/releases/latest)
-
-### Latest Stable Release
-
-[![Release Version](https://img.shields.io/github/release/tasmota/arduino-esp32.svg)](https://github.com/tasmota/arduino-esp32/releases/latest/)
-[![Release Date](https://img.shields.io/github/release-date/tasmota/arduino-esp32.svg)](https://github.com/tasmota/arduino-esp32/releases/latest/)
-[![Downloads](https://img.shields.io/github/downloads/tasmota/arduino-esp32/latest/total.svg)](https://github.com/tasmota/arduino-esp32/releases/latest/)
 
 ### Documentation
 

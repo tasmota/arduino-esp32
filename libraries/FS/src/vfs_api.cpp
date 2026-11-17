@@ -78,9 +78,8 @@ FileImplPtr VFSImpl::open(const char *fpath, const char *mode, const bool create
     return std::make_shared<VFSFileImpl>(this, fpath, mode);
   }
 
-  // For read mode, let the VFSFileImpl constructor handle the file opening
-  // This avoids the TOCTOU race condition while maintaining proper functionality
-  return std::make_shared<VFSFileImpl>(this, fpath, mode);
+  free(temp);
+  return FileImplPtr();
 }
 
 bool VFSImpl::exists(const char *fpath) {
