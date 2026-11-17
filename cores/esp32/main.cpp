@@ -52,10 +52,7 @@ __attribute__((weak)) uint64_t getArduinoSetupWaitTime_ms(void) {
 }
 
 void loopTask(void *pvParameters) {
-#if !defined(NO_GLOBAL_INSTANCES) && !defined(NO_GLOBAL_SERIAL)
-  // sets UART0 (default console) RX/TX pins as already configured in boot or as defined in variants/pins_arduino.h
-  Serial0.setPins(gpioNumberToDigitalPin(SOC_RX0), gpioNumberToDigitalPin(SOC_TX0));
-#endif
+  delay(getArduinoSetupWaitTime_ms());
 #if defined __has_include && __has_include("chip-debug-report.h")
 #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_DEBUG
   printBeforeSetupInfo();
@@ -64,6 +61,14 @@ void loopTask(void *pvParameters) {
     printBeforeSetupInfo();
   }
 #endif
+#endif
+#if !defined(NO_GLOBAL_INSTANCES) && !defined(NO_GLOBAL_SERIAL)
+  // sets UART0 (default console) RX/TX pins as already configured in boot or as defined in variants/pins_arduino.h
+  // Registers the UART0 console pads with Peripheral Manager through the UART HAL, so it does not
+  // link HardwareSerial into sketches that never use Serial0.
+  uartRegisterConsolePins(SOC_RX0, SOC_TX0);
+  // time in ms that the sketch may wait before starting its execution - default is zero
+  // usually done for opening the Serial Monitor and seeing all debug messages
 #endif
   setup();
 #if defined __has_include && __has_include("chip-debug-report.h")
