@@ -112,9 +112,8 @@ enum HTTPAuthMethod {
 // Basic-only application would otherwise link because Basic and Digest share
 // the same entry points. Digest requests are rejected, and a Digest challenge
 // is refused rather than silently downgraded to Basic.
-#define WEBSERVER_DIGEST_AUTH 0
 #ifndef WEBSERVER_DIGEST_AUTH
-#define WEBSERVER_DIGEST_AUTH 1
+#define WEBSERVER_DIGEST_AUTH 0
 #endif
 
 #define CONTENT_LENGTH_UNKNOWN ((size_t) - 1)
