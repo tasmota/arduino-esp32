@@ -5,12 +5,28 @@ BLE API
 About
 -----
 
+<<<<<<< HEAD
 The BLE (Bluetooth Low Energy) library provides a unified, stack-agnostic API for Bluetooth Low Energy on ESP32 family chips.
 It supports both the **NimBLE** and **Bluedroid** host stacks transparently -- the same application code compiles and runs
 on either backend without ``#ifdef`` guards.
 
 Key Features:
 
+=======
+.. warning::
+
+    The BLE library was rewritten for Arduino Core 4.0 and the API might not
+    be stable yet. While breaking changes will be avoided where possible, they
+    may still happen in future releases. Pin your core version if you need a
+    frozen API.
+
+The BLE (Bluetooth Low Energy) library provides a unified, stack-agnostic API for Bluetooth Low Energy on ESP32 family chips.
+It supports both the **NimBLE** and **Bluedroid** host stacks transparently -- the same application code compiles and runs
+on either backend without ``#ifdef`` guards.
+
+Key Features:
+
+>>>>>>> refs/remotes/origin/main
 * **Stack-agnostic API** -- same code compiles for NimBLE and Bluedroid
 * **GATT Server and Client** with shared-handle semantics (PIMPL pattern)
 * **BLE 5.0** extended advertising, periodic advertising, PHY selection, Data Length Extension
@@ -234,7 +250,12 @@ Deinitialize the BLE stack. Pass ``true`` to release controller memory (cannot r
 Local GATT services are dropped; ``createServer()`` still returns the same server object after a later
 ``begin()``, so the sketch must recreate services before ``start()``. User-held service and characteristic
 handles become detached shells: they remain non-null because the sketch still owns them, but no longer have
+<<<<<<< HEAD
 a parent or native attribute handle.
+=======
+a parent or native attribute handle. When called from a stack callback, shutdown is claimed immediately
+(a following ``begin()`` returns ``InvalidState``) and the teardown body is deferred to a worker.
+>>>>>>> refs/remotes/origin/main
 
 .. code-block:: cpp
 
@@ -306,6 +327,23 @@ setOwnAddress
 
 Set a custom local address.
 
+<<<<<<< HEAD
+=======
+Connections
+***********
+
+.. code-block:: cpp
+
+    std::vector<uint16_t> getConnHandles(const BTAddress &peerAddress) const;
+    std::vector<BLEConnInfo> getConnections(const BTAddress &peerAddress) const;
+    BLEConnInfo getConnInfo(const BTAddress &peerAddress) const;
+
+Look up live connections by peer address (OTA, or the identity address on NimBLE).
+The address lookup normalizes volatile fields (PHY/RSSI); an ambiguous raw handle
+matching links to different peers is refused with ``NotConnected`` — use the owning
+``BLEClient``/``BLEServer`` handle for a specific GATT application.
+
+>>>>>>> refs/remotes/origin/main
 Factory Methods
 ***************
 
@@ -354,6 +392,20 @@ getSecurity
 
 Returns the security manager singleton handle.
 
+<<<<<<< HEAD
+=======
+getAudioController
+^^^^^^^^^^^^^^^^^^
+
+.. code-block:: cpp
+
+    BLEAudio getAudioController();
+
+Returns the LE Audio controller handle (declared here so the core builds without the audio
+library; include ``<BLEAudio.h>`` before using it). The audio subsystem is documented
+separately in :doc:`ble_audio`.
+
+>>>>>>> refs/remotes/origin/main
 Power
 *****
 
@@ -550,7 +602,13 @@ removeService
 
     BTStatus removeService(const BLEService &service);
 
+<<<<<<< HEAD
 Remove a previously created service.
+=======
+Remove a previously created service. Returns ``Busy`` while the service is included by
+another service or has an outgoing value in flight. On NimBLE the whole GATT table is
+rebuilt, so prefer calling when no central is connected.
+>>>>>>> refs/remotes/origin/main
 
 Server Lifecycle
 ^^^^^^^^^^^^^^^^
@@ -563,7 +621,12 @@ start
     BTStatus start();
 
 Register all services with the stack and start the GATT server. Call after creating services and
+<<<<<<< HEAD
 characteristics.
+=======
+characteristics. Returns ``InvalidState`` after LE Audio has committed the shared GATT table
+(the audio freeze): restage classic services before ``audio.start()``, not after.
+>>>>>>> refs/remotes/origin/main
 
 isStarted
 """""""""
@@ -704,6 +767,7 @@ disconnect
 
 Disconnect a specific client by connection handle.
 
+<<<<<<< HEAD
 connect
 """""""
 
@@ -713,6 +777,8 @@ connect
 
 Initiate a connection to a peripheral (server acting as central).
 
+=======
+>>>>>>> refs/remotes/origin/main
 getPeerMTU
 """"""""""
 
@@ -841,7 +907,11 @@ Accessors
 BLECharacteristic
 *****************
 
+<<<<<<< HEAD
 Created via ``service.createCharacteristic(uuid, properties)``. Represents a GATT characteristic.
+=======
+Created via ``service.createCharacteristic(uuid, properties, permissions)``. Represents a GATT characteristic.
+>>>>>>> refs/remotes/origin/main
 
 Construction and Validity
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1529,8 +1599,12 @@ Subscribe / Unsubscribe
 
 .. code-block:: cpp
 
+<<<<<<< HEAD
     enum class Delivery : uint8_t { Notification, Indication };
     using NotifyCallback = std::function<void(BLERemoteCharacteristic &chr, const uint8_t *, size_t, Delivery)>;
+=======
+    using NotifyCallback = std::function<void(BLERemoteCharacteristic &chr, const uint8_t *, size_t, BLESubscription)>;
+>>>>>>> refs/remotes/origin/main
     BTStatus subscribe(BLESubscription mode, NotifyCallback callback = nullptr);
     BTStatus unsubscribe();
 
@@ -1538,7 +1612,12 @@ Subscribe to notifications (``BLESubscription::Notify``), indications (``BLESubs
 or both simultaneously (``BLESubscription::Notify | BLESubscription::Indicate``, which writes ``0x0003``
 to the CCCD). The selected bits replace any previous subscription; ``BLESubscription::None`` is rejected
 (use ``unsubscribe()``). The callback receives the characteristic, data pointer, data length, and a
+<<<<<<< HEAD
 ``Delivery`` value saying whether the value arrived as a notification or an indication.
+=======
+``BLESubscription`` value saying whether the value arrived as a notification or an indication
+(never ``None``, never both bits for a single delivery).
+>>>>>>> refs/remotes/origin/main
 
 .. note::
 
@@ -1699,9 +1778,15 @@ start
 
 .. code-block:: cpp
 
+<<<<<<< HEAD
     BTStatus start(uint32_t durationMs, bool continueExisting = false);
 
 Start scanning for ``durationMs`` milliseconds (non-blocking). Set ``continueExisting`` to ``true`` to
+=======
+    BTStatus start(uint32_t durationMs, bool appendToExistingResults = false);
+
+Start scanning for ``durationMs`` milliseconds (non-blocking). Set ``appendToExistingResults`` to ``true`` to
+>>>>>>> refs/remotes/origin/main
 append to existing results instead of clearing them.
 
 startBlocking
@@ -1737,7 +1822,11 @@ onResult
 
 .. code-block:: cpp
 
+<<<<<<< HEAD
     void onResult(std::function<void(BLEAdvertisedDevice)> callback);
+=======
+    void onResult(std::function<void(const BLEAdvertisedDevice &)> callback);
+>>>>>>> refs/remotes/origin/main
 
 Called for each advertisement received during scanning.
 
@@ -1793,10 +1882,21 @@ Periodic Sync (BLE 5.0)
 
     BTStatus createPeriodicSync(const BTAddress &addr, uint8_t sid,
                                 uint16_t skipCount = 0, uint16_t timeoutMs = 10000);
+<<<<<<< HEAD
     BTStatus cancelPeriodicSync();
     BTStatus terminatePeriodicSync(uint16_t syncHandle);
 
 Synchronize to a periodic advertiser identified by address and advertising SID.
+=======
+    BTStatus cancelPeriodicSyncCreate();
+    BTStatus stopPeriodicSyncReceive(uint16_t syncHandle);
+    BTStatus stopPeriodicSyncReceive(const BLEConnInfo &peer);
+    BTStatus terminatePeriodicSync(uint16_t syncHandle);
+
+Synchronize to a periodic advertiser identified by address and advertising SID.
+``cancelPeriodicSyncCreate()`` aborts a pending create; the ``stopPeriodicSyncReceive()``
+overloads stop an established sync (by handle, or by peer).
+>>>>>>> refs/remotes/origin/main
 
 Periodic Sync Callbacks
 """""""""""""""""""""""
@@ -2137,15 +2237,27 @@ Vol 3, Part C, Section 11.
 
 .. code-block:: cpp
 
+<<<<<<< HEAD
     void setFlags(uint8_t flags);
+=======
+    void setFlags(BLEAdvFlag flags);
+>>>>>>> refs/remotes/origin/main
     void addServiceUUID(const BLEUUID &uuid);
     void setPartialServices(const BLEUUID &uuid);
     void setServiceData(const BLEUUID &uuid, const uint8_t *data, size_t len);
     void setManufacturerData(uint16_t companyId, const uint8_t *data, size_t len);
     void setName(const String &name, bool complete = true);
+<<<<<<< HEAD
     void setAppearance(uint16_t appearance);
     void setPreferredParams(uint16_t minInterval, uint16_t maxInterval);
     void setTxPower(int8_t txPower);
+=======
+    void setBroadcastName(const String &name);
+    void setAppearance(uint16_t appearance);
+    void setPreferredParams(uint16_t minInterval, uint16_t maxInterval);
+    void setTxPower(int8_t txPower);
+    void addField(uint8_t type, const uint8_t *data, size_t len);
+>>>>>>> refs/remotes/origin/main
     void addRaw(const uint8_t *data, size_t len);
     void clear();
 
@@ -2353,10 +2465,20 @@ Security Flow Methods
 .. code-block:: cpp
 
     BTStatus startSecurity(uint16_t connHandle);
+<<<<<<< HEAD
     bool waitForAuthenticationComplete(uint32_t timeoutMs = 10000);
     void resetSecurity();
 
 ``startSecurity()`` initiates pairing on a specific connection. ``waitForAuthenticationComplete()`` blocks
+=======
+    BTStatus startSecurity(const BLEConnInfo &peer);
+    bool waitForAuthenticationComplete(uint32_t timeoutMs = 10000);
+    void resetSecurity();
+
+``startSecurity()`` initiates pairing on a specific connection (by handle, or by peer
+via the ``BLEConnInfo`` overload, which refuses ambiguous raw handles to the wrong
+link). ``waitForAuthenticationComplete()`` blocks
+>>>>>>> refs/remotes/origin/main
 until pairing completes or times out.
 
 Shared Types
@@ -2720,6 +2842,75 @@ BLEPhy
 Specialty Features
 ------------------
 
+<<<<<<< HEAD
+=======
+BLEIso (Isochronous Transport)
+******************************
+
+Time-bounded, sequence-numbered SDU delivery over LE isochronous channels, without any
+audio profile on top: connected isochronous streams (CIS, point to point over an ACL link)
+and broadcast isochronous streams (BIS, one to many over periodic advertising). Payloads are
+transparent -- the application defines what an SDU carries. For LC3 audio with BAP/CAP
+interoperability use ``BLEAudio`` instead (see :doc:`ble_audio`); both can run in one sketch.
+
+.. code-block:: cpp
+
+    #include <BLE.h>   // BLEIso is part of the BLE library
+
+    BLEIso iso = BLE.getIsoController();
+    iso.begin();
+    BLEIso::CisParams qos;
+    BLEIso::Channel ch = iso.connectCis(client.getHandle(), qos);
+    ch.onConnected([](BLEIso::Channel &c) { /* CIS up */ });
+    ch.onDisconnected([](BLEIso::Channel &c, uint8_t reason) { /* CIS down */ });
+
+Roles, each guarded by its own ``BLE_ISO_*_SUPPORTED`` flag (the factory logs and returns
+an empty handle when its role is not compiled in):
+
+* CIS Central (``connectCis``) -- creates the CIG and connects a CIS on an existing ACL link.
+* CIS Peripheral (``listenCis``) -- registers the ISO server; the CIS is accepted when the
+  central establishes it.
+* BIS Broadcaster (``createBig``) -- creates a BIG on a running extended + periodic
+  advertising set.
+* BIS Receiver (``syncBig``) -- arms a BIG sync when the BIGInfo report arrives on the
+  synced periodic train.
+
+A CIS carries data central-to-peripheral (``CisParams::sduSize``) and optionally back
+(``CisParams::returnSduSize``); a BIS carries data broadcaster-to-receivers. Limits: one
+Central CIS, one BIG and one BIG sync at a time (one BIS each); a peripheral may listen on
+several channels, one per incoming CIS. Every channel comes from a fixed pool. Channels
+are shared handles returned by value: copies share the channel, and a handle outliving
+its channel (after ``disconnect()``, ``end()``, or slot reuse) becomes a detached shell
+whose operations fail safe.
+
+.. code-block:: cpp
+
+    BLEIso iso = BLE.getIsoController();
+    BTStatus begin();   // idempotent; call after BLE.begin()
+    BTStatus end();     // refused with Busy from a stack callback; defer to loop()
+    bool isActive();
+
+.. code-block:: cpp
+
+    Channel connectCis(uint16_t connHandle, const CisParams &params);
+    Channel connectCis(uint16_t connHandle);   // default QoS
+    Channel listenCis(const CisParams &params);
+    Channel listenCis();                        // default QoS
+
+Stale handles (``0xFFFF``, dead or recycled links) are refused before any CIG is created.
+``listenCis()`` keeps listening after its CIS disconnects; a second call reserves an
+additional concurrent channel. Never-started listening is stopped with ``disconnect()``.
+
+.. code-block:: cpp
+
+    BTStatus send(const uint8_t *sdu, uint16_t len);
+    BTStatus send(const uint8_t *sdu, uint16_t len, uint16_t seqNum);
+    BTStatus disconnect();   // onDisconnected follows once the controller confirms
+
+The controller consumes one SDU per SDU interval; ``onSent`` fires per consumed SDU and
+pacing against it keeps the stream in step with the controller.
+
+>>>>>>> refs/remotes/origin/main
 BLEBeacon (iBeacon)
 *******************
 
@@ -2895,6 +3086,7 @@ the same cached characteristic.
 HID Appearance Constants
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
+<<<<<<< HEAD
 Defined in ``hid/HIDTypes.h`` (pulled in transitively by ``<BLE.h>``) for use with ``adv.setAppearance()``:
 
 .. code-block:: cpp
@@ -2908,6 +3100,23 @@ Defined in ``hid/HIDTypes.h`` (pulled in transitively by ``<BLE.h>``) for use wi
     #define BLE_APPEARANCE_HID_CARD_READER     0x03C6
     #define BLE_APPEARANCE_HID_DIGITAL_PEN     0x03C7
     #define BLE_APPEARANCE_HID_BARCODE_SCANNER 0x03C8
+=======
+Defined in ``advertising/BLEAppearance.h`` (pulled in transitively by ``<BLE.h>``) for use with ``adv.setAppearance()``:
+
+.. code-block:: cpp
+
+    #define BLE_APPEARANCE_HID_GENERIC             0x03C0
+    #define BLE_APPEARANCE_HID_KEYBOARD            0x03C1
+    #define BLE_APPEARANCE_HID_MOUSE               0x03C2
+    #define BLE_APPEARANCE_HID_JOYSTICK            0x03C3
+    #define BLE_APPEARANCE_HID_GAMEPAD             0x03C4
+    #define BLE_APPEARANCE_HID_DIGITIZER_TABLET    0x03C5
+    #define BLE_APPEARANCE_HID_CARD_READER         0x03C6
+    #define BLE_APPEARANCE_HID_DIGITAL_PEN         0x03C7
+    #define BLE_APPEARANCE_HID_BARCODE_SCANNER     0x03C8
+    #define BLE_APPEARANCE_HID_TOUCHPAD            0x03C9
+    #define BLE_APPEARANCE_HID_PRESENTATION_REMOTE 0x03CA
+>>>>>>> refs/remotes/origin/main
 
 L2CAP CoC (Connection-Oriented Channels)
 *****************************************
@@ -3032,7 +3241,11 @@ Server Mode
 
     BLEStream bleStream;
     bleStream.begin("MyDevice");
+<<<<<<< HEAD
     if (bleStream.connected()) {
+=======
+    if (bleStream.isConnected()) {
+>>>>>>> refs/remotes/origin/main
         bleStream.println("Hello World!");  // broadcast to all peers
         if (bleStream.available()) {
             String s = bleStream.readStringUntil('\n');  // merged RX
@@ -3057,7 +3270,11 @@ Lifecycle
     BTStatus begin(const String &deviceName = "BLE_Stream");
     BTStatus beginClient(const BTAddress &address, uint32_t timeoutMs = 5000);
     void end();
+<<<<<<< HEAD
     bool connected() const;                 // true while any peer is connected
+=======
+    bool isConnected() const;                // true while any peer is connected
+>>>>>>> refs/remotes/origin/main
     explicit operator bool() const;         // true after begin / beginClient
 
 Multi-peer (server mode)

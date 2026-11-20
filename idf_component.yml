@@ -13,6 +13,12 @@ targets:
   - esp32c61
   - esp32h2
   - esp32p4
+<<<<<<< HEAD
+=======
+  - esp32s2
+  - esp32s3
+  - esp32s31
+>>>>>>> refs/remotes/origin/main
 tags:
   - arduino
 files:
@@ -28,6 +34,12 @@ files:
     - "variants/esp32c61/**/*"
     - "variants/esp32h2/**/*"
     - "variants/esp32p4/**/*"
+<<<<<<< HEAD
+=======
+    - "variants/esp32s2/**/*"
+    - "variants/esp32s3/**/*"
+    - "variants/esp32s31/**/*"
+>>>>>>> refs/remotes/origin/main
   exclude:
     - ".*" # All files in the root directory that start with a dot.
     - ".gitlab/"
@@ -59,10 +71,38 @@ dependencies:
     require: public
   espressif/esp_modem:
     version: "^2.0.2"
+<<<<<<< HEAD
     rules:
       - if: "target != esp32c2"
   espressif/esp-dsp:
     version: "^1.8.0"
+=======
+  espressif/esp-zigbee-lib:
+    version: "^2.1.0"
+    require: public
+    rules:
+      - if: "target not in [esp32c2, esp32c61, esp32p4]"
+  espressif/esp-dsp:
+    version: "^1.8.0"
+    rules:
+      - if: "target not in [esp32c2, esp32c61]"
+  espressif/esp_rainmaker:
+    version: ">=1.16.0"
+    rules:
+      - if: "target not in [esp32c2, esp32p4]"
+  espressif/esp_insights:
+    version: ">=1.3.4"
+    rules:
+      - if: "target not in [esp32c2, esp32p4]"
+  espressif/qrcode:
+    version: "0.2.0"
+    rules:
+      - if: "target not in [esp32c2, esp32p4]"
+  espressif/esp-sr:
+    version: "^2.5.3"
+    rules:
+      - if: "target in [esp32s3, esp32p4]"
+>>>>>>> refs/remotes/origin/main
   espressif/esp_hosted:
     version: "^2.12.13"
     rules:
@@ -71,6 +111,7 @@ dependencies:
     version: "^1.3.2"
     rules:
       - if: "target == esp32p4"
+<<<<<<< HEAD
   espressif/esp_h264:
     version: "^1.2.0~1"
     rules:
@@ -79,6 +120,14 @@ dependencies:
     version: "^1.3.1"
     rules:
       - if: "target == esp32p4 && idf_version >=5.4"
+=======
+  espressif/libsodium:
+    version: "^1.0.22~1"
+    require: public
+  espressif/esp-modbus:
+    version: "^2.1.3"
+    require: public
+>>>>>>> refs/remotes/origin/main
   joltwallet/littlefs:
     version: "^1.22.1"
   espressif/esp32-camera:

@@ -52,4 +52,11 @@ def test_bt_mem_wrap(dut):
     # phase is a compile-time no-op and always passes.
     run_phase(9, "Matter-style Classic BT release (BLEManagerImpl simulation)")
 
+<<<<<<< HEAD
+=======
+    # Phase 10: shared Bluedroid host manager — first/last user refcount,
+    # external host adoption, and the BTDM logical-only memory policy.
+    run_phase(10, "shared Bluedroid host manager")
+
+>>>>>>> refs/remotes/origin/main
     LOGGER.info("BT memory wrap test passed!")

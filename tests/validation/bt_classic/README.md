@@ -12,7 +12,22 @@ What *is* covered with two DUTs:
 
 - `peerCount()`, `peers()`, `onConnect` / `onDisconnect`, `onPeerData`, `writeTo()`,
   and `disconnect(addr)` (phase 2)
+<<<<<<< HEAD
 - Existing bidirectional data, bond management, and lifecycle phases
 
+=======
+- Shared Bluedroid host ownership: an externally enabled host is adopted and
+  left up by BLE and BluetoothSerial (phase 1); BLE-first and Classic-first
+  coexistence, `end()` of the non-owner, and `end(true)` of a non-owner while
+  the other library keeps the host up (phase 2)
+- Existing bidirectional data, bond management, and lifecycle phases
+
+**Future BTDM reclaim:** when the S31 controller can select a single half at
+runtime and `esp_bt_mem_release()` is implemented, this suite should also boot
+with the unused half released, verify the controller narrows, and check that
+SPP/BLE still run. The coordinated controller/core/test change list is in
+`libraries/BLE/DESIGN.md`, "To reclaim the unused half in a BTDM build".
+
+>>>>>>> refs/remotes/origin/main
 See `libraries/BluetoothSerial/examples/MultiClientSerial` for manual multi-client
 testing.

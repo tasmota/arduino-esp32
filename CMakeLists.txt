@@ -92,6 +92,13 @@ endif()
 set(ARDUINO_ALL_LIBRARIES
   ArduinoOTA
   AsyncUDP
+<<<<<<< HEAD
+=======
+  BLE
+  BLEAudio
+  BluetoothSerial
+  Console
+>>>>>>> refs/remotes/origin/main
   DNSServer
   EEPROM
   ESPmDNS
@@ -123,6 +130,28 @@ set(ARDUINO_LIBRARY_ArduinoOTA_SRCS libraries/ArduinoOTA/src/ArduinoOTA.cpp)
 
 set(ARDUINO_LIBRARY_AsyncUDP_SRCS libraries/AsyncUDP/src/AsyncUDP.cpp)
 
+<<<<<<< HEAD
+=======
+file(GLOB ARDUINO_LIBRARY_BLE_SRCS
+  libraries/BLE/src/*.cpp
+  libraries/BLE/src/*/*.cpp
+  libraries/BLE/src/*/*.c
+)
+list(SORT ARDUINO_LIBRARY_BLE_SRCS)
+
+file(GLOB ARDUINO_LIBRARY_BLEAudio_SRCS
+  libraries/BLEAudio/src/*.cpp
+  libraries/BLEAudio/src/engine/*.c
+)
+list(SORT ARDUINO_LIBRARY_BLEAudio_SRCS)
+
+set(ARDUINO_LIBRARY_BluetoothSerial_SRCS
+  libraries/BluetoothSerial/src/BluetoothSerial.cpp)
+
+set(ARDUINO_LIBRARY_Console_SRCS libraries/Console/src/Console.cpp)
+set(ARDUINO_LIBRARY_Console_REQUIRES console)
+
+>>>>>>> refs/remotes/origin/main
 set(ARDUINO_LIBRARY_DNSServer_SRCS libraries/DNSServer/src/DNSServer.cpp)
 
 set(ARDUINO_LIBRARY_EEPROM_SRCS libraries/EEPROM/src/EEPROM.cpp)
@@ -153,6 +182,50 @@ set(ARDUINO_LIBRARY_LittleFS_SRCS libraries/LittleFS/src/LittleFS.cpp)
 
 set(ARDUINO_LIBRARY_NetBIOS_SRCS libraries/NetBIOS/src/NetBIOS.cpp)
 
+<<<<<<< HEAD
+=======
+set(ARDUINO_LIBRARY_OpenThread_SRCS
+  libraries/OpenThread/src/OThread.cpp
+  libraries/OpenThread/src/OThreadCLI.cpp
+  libraries/OpenThread/src/OThreadUDP.cpp
+  libraries/OpenThread/src/OThreadCoAP.cpp
+  libraries/OpenThread/src/OThreadCLI_Util.cpp
+  libraries/OpenThread/src/OThreadScan.cpp
+  libraries/OpenThread/src/OThreadDNSSD.cpp)
+
+set(ARDUINO_LIBRARY_Matter_SRCS
+  libraries/Matter/src/MatterEndpoints/MatterGenericSwitch.cpp
+  libraries/Matter/src/MatterEndpoints/MatterOnOffLight.cpp
+  libraries/Matter/src/MatterEndpoints/MatterDimmableLight.cpp
+  libraries/Matter/src/MatterEndpoints/MatterColorTemperatureLight.cpp
+  libraries/Matter/src/MatterEndpoints/MatterColorLight.cpp
+  libraries/Matter/src/MatterEndpoints/MatterEnhancedColorLight.cpp
+  libraries/Matter/src/MatterEndpoints/MatterFan.cpp
+  libraries/Matter/src/MatterEndpoints/MatterTemperatureSensor.cpp
+  libraries/Matter/src/MatterEndpoints/MatterTemperatureControlledCabinet.cpp
+  libraries/Matter/src/MatterEndpoints/MatterHumiditySensor.cpp
+  libraries/Matter/src/MatterEndpoints/MatterContactSensor.cpp
+  libraries/Matter/src/MatterEndpoints/MatterWaterLeakDetector.cpp
+  libraries/Matter/src/MatterEndpoints/MatterWaterFreezeDetector.cpp
+  libraries/Matter/src/MatterEndpoints/MatterRainSensor.cpp
+  libraries/Matter/src/MatterEndpoints/MatterPressureSensor.cpp
+  libraries/Matter/src/MatterEndpoints/MatterOccupancySensor.cpp
+  libraries/Matter/src/MatterEndpoints/MatterOnOffPlugin.cpp
+  libraries/Matter/src/MatterEndpoints/MatterDimmablePlugin.cpp
+  libraries/Matter/src/MatterEndpoints/MatterThermostat.cpp
+  libraries/Matter/src/MatterEndpoints/MatterWindowCovering.cpp
+  libraries/Matter/src/MatterEndpoints/MatterLightSensor.cpp
+  libraries/Matter/src/MatterEndpoints/MatterSoilSensor.cpp
+  libraries/Matter/src/MatterEndpoints/MatterWaterHeater.cpp
+  libraries/Matter/src/MatterEndpoints/MatterWaterValve.cpp
+  libraries/Matter/src/Matter.cpp
+  libraries/Matter/src/MatterHelpers.cpp
+  libraries/Matter/src/MatterButton.cpp
+  libraries/Matter/src/MatterIdentity.cpp
+  libraries/Matter/src/MatterEndPoint.cpp
+  libraries/Matter/src/MatterMemWrap.cpp)
+
+>>>>>>> refs/remotes/origin/main
 set(ARDUINO_LIBRARY_PPP_SRCS libraries/PPP/src/PPP.cpp)
 
 set(ARDUINO_LIBRARY_Preferences_SRCS libraries/Preferences/src/Preferences.cpp)
@@ -240,6 +313,43 @@ set(ARDUINO_LIBRARY_WiFi_SRCS
 
 set(ARDUINO_LIBRARY_Wire_SRCS libraries/Wire/src/Wire.cpp)
 
+<<<<<<< HEAD
+=======
+set(ARDUINO_LIBRARY_Zigbee_SRCS
+  libraries/Zigbee/src/ZigbeeCore.cpp
+  libraries/Zigbee/src/ZigbeeEP.cpp
+  libraries/Zigbee/src/ZigbeeHandlers.cpp
+  libraries/Zigbee/src/ZigbeeOTAFileParser.cpp
+  libraries/Zigbee/src/ep/ZigbeeColorDimmableLight.cpp
+  libraries/Zigbee/src/ep/ZigbeeColorDimmerSwitch.cpp
+  libraries/Zigbee/src/ep/ZigbeeDimmableLight.cpp
+  libraries/Zigbee/src/ep/ZigbeeLight.cpp
+  libraries/Zigbee/src/ep/ZigbeeSwitch.cpp
+  libraries/Zigbee/src/ep/ZigbeeTempSensor.cpp
+  libraries/Zigbee/src/ep/ZigbeeThermostat.cpp
+  libraries/Zigbee/src/ep/ZigbeeFlowSensor.cpp
+  libraries/Zigbee/src/ep/ZigbeePressureSensor.cpp
+  libraries/Zigbee/src/ep/ZigbeeOccupancySensor.cpp
+  libraries/Zigbee/src/ep/ZigbeeCarbonDioxideSensor.cpp
+  libraries/Zigbee/src/ep/ZigbeeContactSwitch.cpp
+  libraries/Zigbee/src/ep/ZigbeeDoorWindowHandle.cpp
+  libraries/Zigbee/src/ep/ZigbeeWindowCovering.cpp
+  libraries/Zigbee/src/ep/ZigbeeVibrationSensor.cpp
+  libraries/Zigbee/src/ep/ZigbeeAnalog.cpp
+  libraries/Zigbee/src/ep/ZigbeeRangeExtender.cpp
+  libraries/Zigbee/src/ep/ZigbeeGateway.cpp
+  libraries/Zigbee/src/ep/ZigbeeWindSpeedSensor.cpp
+  libraries/Zigbee/src/ep/ZigbeeIlluminanceSensor.cpp
+  libraries/Zigbee/src/ep/ZigbeePM25Sensor.cpp
+  libraries/Zigbee/src/ep/ZigbeeElectricalMeasurement.cpp
+  libraries/Zigbee/src/ep/ZigbeeBinary.cpp
+  libraries/Zigbee/src/ep/ZigbeePowerOutlet.cpp
+  libraries/Zigbee/src/ep/ZigbeeFanControl.cpp
+  libraries/Zigbee/src/ep/ZigbeeDoorLock.cpp
+  libraries/Zigbee/src/ep/ZigbeeMultistate.cpp
+  )
+
+>>>>>>> refs/remotes/origin/main
 set(ARDUINO_LIBRARIES_SRCS)
 set(ARDUINO_LIBRARIES_REQUIRES)
 set(ARDUINO_LIBRARIES_INCLUDEDIRS)
@@ -270,6 +380,17 @@ else()
   list(APPEND requires esp_hal_uart esp_hal_ledc esp_hal_ana_conv esp_hal_gpio esp_hal_i2c esp_hal_gpspi esp_hal_timg esp_driver_i2c esp_driver_ledc esp_driver_sdm esp_driver_tsens esp_driver_rmt esp_driver_i2s esp_driver_uart esp_driver_dac)
 endif()
 
+<<<<<<< HEAD
+=======
+if(NOT CONFIG_ARDUINO_SELECTIVE_COMPILATION OR CONFIG_ARDUINO_SELECTIVE_OpenThread)
+  #if(CONFIG_SOC_IEEE802154_SUPPORTED) # Does not work!
+  #if(CONFIG_OPENTHREAD_ENABLED) # Does not work!
+  if(IDF_TARGET STREQUAL "esp32c6" OR IDF_TARGET STREQUAL "esp32h2" OR IDF_TARGET STREQUAL "esp32c5") # Sadly only this works
+    list(APPEND requires openthread)
+  endif()
+endif()
+
+>>>>>>> refs/remotes/origin/main
 if(IDF_TARGET STREQUAL "esp32" OR IDF_TARGET STREQUAL "esp32s2" OR IDF_TARGET STREQUAL "esp32s3" OR IDF_TARGET STREQUAL "esp32p4" OR IDF_TARGET STREQUAL "esp32s31")
   list(APPEND requires esp_driver_touch_sens)
 endif()
@@ -333,6 +454,38 @@ if(NOT CONFIG_DIAG_USE_EXTERNAL_LOG_WRAP)
     target_link_libraries(${COMPONENT_LIB} INTERFACE "-u __wrap_esp_log_write" "-u __wrap_esp_log_writev")
 endif()
 
+<<<<<<< HEAD
+=======
+# OpenThread message pool: redirect to Arduino wrapper (BOARD_HAS_PSRAM / PSRAM-aware allocation).
+# Same pattern as esp_log wrap: --wrap so calls use __wrap_* ; -u so linker keeps our wrapper .o.
+# Applied on OpenThread-capable targets (same targets that may add openthread to requires).
+if(CONFIG_OPENTHREAD_ENABLED AND CONFIG_SOC_IEEE802154_SUPPORTED)
+  idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=otPlatMessagePoolInit" APPEND)
+  idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=otPlatMessagePoolNew" APPEND)
+  idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=otPlatMessagePoolFree" APPEND)
+  idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=otPlatMessagePoolNumFreeBuffers" APPEND)
+  idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=otPlatMessagePoolDeinit" APPEND)
+  target_link_libraries(${COMPONENT_LIB} INTERFACE
+    "-u __wrap_otPlatMessagePoolInit"
+    "-u __wrap_otPlatMessagePoolNew"
+    "-u __wrap_otPlatMessagePoolFree"
+    "-u __wrap_otPlatMessagePoolNumFreeBuffers"
+    "-u __wrap_otPlatMessagePoolDeinit")
+endif()
+
+# Matter data model: prefer SPIRAM when that heap exists (bypass malloc 4096 rule).
+# C++ mangled names from harvested libespressif__esp_matter.a (nm-confirmed).
+if(CONFIG_ESP_MATTER_ENABLE_DATA_MODEL)
+  idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=_Z21esp_matter_mem_callocjj" APPEND)
+  idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=_Z22esp_matter_mem_reallocPvj" APPEND)
+  idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=_Z19esp_matter_mem_freePv" APPEND)
+  target_link_libraries(${COMPONENT_LIB} INTERFACE
+    "-u __wrap__Z21esp_matter_mem_callocjj"
+    "-u __wrap__Z22esp_matter_mem_reallocPvj"
+    "-u __wrap__Z19esp_matter_mem_freePv")
+endif()
+
+>>>>>>> refs/remotes/origin/main
 # This function adds a dependency on the given component if the component is included into the build.
 function(maybe_add_component component_name)
     idf_build_get_property(components BUILD_COMPONENTS)
@@ -351,3 +504,14 @@ endif()
 if(NOT CONFIG_ARDUINO_SELECTIVE_COMPILATION OR CONFIG_ARDUINO_SELECTIVE_LittleFS)
     maybe_add_component(joltwallet__littlefs)
 endif()
+<<<<<<< HEAD
+=======
+if(NOT CONFIG_ARDUINO_SELECTIVE_COMPILATION OR CONFIG_ARDUINO_SELECTIVE_WiFiProv)
+    maybe_add_component(espressif__network_provisioning)
+endif()
+if(NOT CONFIG_ARDUINO_SELECTIVE_COMPILATION OR CONFIG_ARDUINO_SELECTIVE_ESP_Video)
+    if(IDF_TARGET STREQUAL "esp32s3" OR IDF_TARGET STREQUAL "esp32p4" OR IDF_TARGET STREQUAL "esp32s31")
+        maybe_add_component(espressif__esp_video)
+    endif()
+endif()
+>>>>>>> refs/remotes/origin/main

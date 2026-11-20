@@ -63,6 +63,12 @@ def test_bt_classic(dut, ci_job_id, record_property):
     # -------------------------------------------------------------------------
     _start_phase(server, client, 1)
 
+<<<<<<< HEAD
+=======
+    # External Bluedroid owner: BLE and Classic must adopt it and leave it up
+    # when each library ends.
+    server.expect(r"\[SERVER\] ExtHost ble=1 bleKeep=1 spp=1 sppKeep=1", timeout=30)
+>>>>>>> refs/remotes/origin/main
     server.expect(r"\[SERVER\] Init OK, addr: [0-9a-fA-F:]+", timeout=30)
     server.expect_exact("[SERVER] Deinit OK", timeout=10)
     server.expect_exact("[SERVER] Reinit OK", timeout=30)
@@ -105,6 +111,25 @@ def test_bt_classic(dut, ci_job_id, record_property):
     server.expect_exact("[SERVER] Sent: HELLO_FROM_SERVER", timeout=10)
     client.expect_exact("[CLIENT] Received: HELLO_FROM_SERVER", timeout=15)
 
+<<<<<<< HEAD
+=======
+    # BLE and Classic up at the same time: BLE must adopt the Bluedroid host that
+    # BluetoothSerial started, and BLE.end() must not tear it down for the SPP
+    # owner (the SPP link has to survive the BLE teardown below).
+    client.expect(r"\[CLIENT\] Coex ble=1 spp=1", timeout=60)
+    server.expect(r"\[SERVER\] Coex ble=1 adv=1 connected=1 spp=1", timeout=60)
+    server.expect_exact("[SERVER] Coex teardown spp=1", timeout=20)
+    client.expect_exact("[CLIENT] Coex teardown spp=1", timeout=20)
+    server.expect(r"\[SERVER\] Coex adopt ble=1 spp=1", timeout=20)
+    client.expect(r"\[CLIENT\] Coex adopt ble=1 spp=1", timeout=20)
+    server.expect_exact("[SERVER] Coex adopt teardown spp=1", timeout=20)
+    client.expect_exact("[CLIENT] Coex adopt teardown spp=1", timeout=20)
+    # end(true) while Classic still owns the host: the shared host must stay up
+    # and the BLE library must be terminally released.
+    server.expect(r"\[SERVER\] Coex endtrue begin=1 keep=1 again=0", timeout=20)
+    client.expect(r"\[CLIENT\] Coex endtrue begin=1 keep=1 again=0", timeout=20)
+
+>>>>>>> refs/remotes/origin/main
     client.expect_exact("[CLIENT] Sent: DISCONNECT_ME", timeout=10)
     # onDisconnect callback may log before disconnect(addr) returns
     server.expect_exact("[SERVER] onDisconnect:", timeout=15)

@@ -1,6 +1,11 @@
 tags:
   - two_duts
 
+<<<<<<< HEAD
+=======
+fqbn_append: PartitionScheme=huge_app
+
+>>>>>>> refs/remotes/origin/main
 multi_device:
   device0: dut0
   device1: dut1

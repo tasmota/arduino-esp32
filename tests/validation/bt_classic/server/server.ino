@@ -6,6 +6,12 @@
 //   4. memory_release   — end(true)
 
 #include <Arduino.h>
+<<<<<<< HEAD
+=======
+#include <BLE.h>
+#include "esp32-hal-bt.h"
+#include "esp_bt_main.h"
+>>>>>>> refs/remotes/origin/main
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include "BluetoothSerial.h"
@@ -79,6 +85,120 @@ void setup() {
   // Phase 1: basic lifecycle
   // -------------------------------------------------------------------------
   waitForPhase(1);
+
+<<<<<<< HEAD
+  BTStatus status = SerialBT.begin(serverName, false);
+  if (!status) {
+    Serial.println("[SERVER] Init FAILED");
+    while (true) {
+      delay(1000);
+    }
+  }
+  Serial.printf("[SERVER] Init OK, addr: %s\n", SerialBT.getAddress().toString().c_str());
+
+  SerialBT.end(false);
+  Serial.println("[SERVER] Deinit OK");
+
+  status = SerialBT.begin(serverName, false);
+  if (!status) {
+    Serial.println("[SERVER] Reinit FAILED");
+    while (true) {
+      delay(1000);
+    }
+  }
+  Serial.println("[SERVER] Reinit OK");
+
+  SerialBT.onConnect([](const BTAddress &addr) {
+    onConnectFired = true;
+    connectedPeer = addr;
+    Serial.printf("[SERVER] onConnect: %s\n", addr.toString().c_str());
+  });
+
+  SerialBT.onDisconnect([](const BTAddress &addr) {
+    Serial.printf("[SERVER] onDisconnect: %s\n", addr.toString().c_str());
+  });
+
+  SerialBT.onPeerData([](const BTAddress &addr, const uint8_t *data, size_t len) {
+    if (len >= 18 && memcmp(data, "SPP_WRITE_TO_PROBE", 18) == 0) {
+      Serial.printf("[SERVER] onPeerData: %s\n", addr.toString().c_str());
+      SerialBT.writeTo(addr, (const uint8_t *)"SPP_WRITE_TO_ACK", 16);
+      writeToProbeDone = true;
+      return;
+    }
+    for (size_t i = 0; i < len; i++) {
+      peerRx += (char)data[i];
+    }
+  });
+
+  // Stay initialized; the SPP server is now accepting connections.
+
+  // -------------------------------------------------------------------------
+  // Phase 2: SPP connect + bidirectional data exchange
+  // -------------------------------------------------------------------------
+  waitForPhase(2);
+
+  Serial.println("[SERVER] Waiting for client...");
+
+  uint32_t deadline = millis() + 60000;
+  while (!SerialBT.connected() && millis() < deadline) {
+    checkSerial();
+    delay(20);
+  }
+  if (!SerialBT.connected()) {
+    Serial.println("[SERVER] Connect timeout");
+    while (true) {
+      delay(1000);
+    }
+  }
+  Serial.println("[SERVER] Client connected");
+  Serial.printf("[SERVER] peerCount=%u\n", SerialBT.peerCount());
+
+  deadline = millis() + 5000;
+  while (!onConnectFired && millis() < deadline) {
+    checkSerial();
+    delay(10);
+  }
+  if (!onConnectFired) {
+    Serial.println("[SERVER] onConnect timeout");
+  }
+
+  {
+    auto peerList = SerialBT.peers();
+    Serial.printf("[SERVER] peers=%u\n", (unsigned)peerList.size());
+    if (!peerList.empty()) {
+      Serial.printf("[SERVER] peerAddr=%s\n", peerList[0].toString().c_str());
+    }
+  }
+
+=======
+  // External host adoption: another component may enable Bluedroid before the
+  // Arduino libraries. The shared manager must adopt it and leave it up when
+  // each library ends; only the external owner may tear it down.
+  if (btStart()) {
+    (void)esp_bluedroid_init();
+    (void)esp_bluedroid_enable();
+  }
+  BTStatus extBle = BLE.begin(serverName + "_ext");
+  BLE.end(false);
+  bool extBleKeep = (esp_bluedroid_get_status() == ESP_BLUEDROID_STATUS_ENABLED);
+  BTStatus extSpp = SerialBT.begin(serverName, false);
+  SerialBT.end(false);
+  bool extSppKeep = (esp_bluedroid_get_status() == ESP_BLUEDROID_STATUS_ENABLED);
+  esp_bluedroid_disable();
+  esp_bluedroid_deinit();
+  btStop();
+  Serial.printf("[SERVER] ExtHost ble=%d bleKeep=%d spp=%d sppKeep=%d\n", (int)(bool)extBle, (int)extBleKeep, (int)(bool)extSpp, (int)extSppKeep);
+
+  // Start BLE before Classic: BLE owns the shared Bluedroid host and
+  // BluetoothSerial adopts it below. The reverse order (Classic owns, BLE
+  // adopts) is exercised again after the SPP exchange.
+  BTStatus bleOwner = BLE.begin(serverName + "_ble");
+  if (!bleOwner) {
+    Serial.println("[SERVER] BLE owner init FAILED");
+    while (true) {
+      delay(1000);
+    }
+  }
 
   BTStatus status = SerialBT.begin(serverName, false);
   if (!status) {
@@ -163,6 +283,7 @@ void setup() {
     }
   }
 
+>>>>>>> refs/remotes/origin/main
   // Wait for writeTo probe handled in onPeerData
   deadline = millis() + 15000;
   while (!writeToProbeDone && millis() < deadline) {
@@ -195,6 +316,53 @@ void setup() {
   SerialBT.print("HELLO_FROM_SERVER");
   Serial.println("[SERVER] Sent: HELLO_FROM_SERVER");
 
+<<<<<<< HEAD
+=======
+  // BLE alongside the live SPP link. BLE started first (phase 1), so it owns
+  // the shared Bluedroid host; ending it must leave the host up for Classic.
+  // The link is latched via onConnect (not polling alone) so a fast
+  // teardown cannot fall between two polls and report connected=0.
+  // The server sends COEX_BLE_SEEN over SPP once observed; the client waits
+  // for it before ending BLE, closing the race deterministically.
+  {
+    BTStatus bs = BLE.begin(serverName + "_ble");
+    BLEServer srv = BLE.createServer();
+    static volatile bool coexBleSeen = false;
+    coexBleSeen = false;
+    srv.onConnect([](BLEServer, const BLEConnInfo &) {
+      coexBleSeen = true;
+    });
+    BLEAdvertising adv = BLE.getAdvertising();
+    adv.setType(BLEAdvType::ConnectableScannable);
+    adv.setName(serverName + "_ble");
+    BTStatus as = adv.start();
+    unsigned long coexDl = millis() + 30000;
+    while (!coexBleSeen && srv.getConnectedCount() == 0 && millis() < coexDl) {
+      checkSerial();
+      delay(20);
+    }
+    bool bleConn = coexBleSeen || srv.getConnectedCount() > 0;
+    Serial.printf("[SERVER] Coex ble=%d adv=%d connected=%d spp=%d\n", (int)(bool)bs, (int)(bool)as, (int)bleConn, (int)SerialBT.hasClient());
+    SerialBT.print("COEX_BLE_SEEN");
+    BLE.end(false);
+    Serial.printf("[SERVER] Coex teardown spp=%d\n", (int)SerialBT.hasClient());
+
+    // Now BLE adopts the Classic-owned host and ends as a non-owner.
+    bs = BLE.begin(serverName + "_ble_adopt");
+    Serial.printf("[SERVER] Coex adopt ble=%d spp=%d\n", (int)(bool)bs, (int)SerialBT.hasClient());
+    BLE.end(false);
+    Serial.printf("[SERVER] Coex adopt teardown spp=%d\n", (int)SerialBT.hasClient());
+
+    // end(true) while Classic still owns the host: record the BLE terminal
+    // contract, leave the host up, and refuse a later BLE begin.
+    bs = BLE.begin(serverName + "_ble_endtrue");
+    BLE.end(true);
+    bool endTrueKeep = SerialBT.hasClient();
+    BTStatus endTrueAgain = BLE.begin(serverName + "_ble_endtrue2");
+    Serial.printf("[SERVER] Coex endtrue begin=%d keep=%d again=%d\n", (int)(bool)bs, (int)endTrueKeep, (int)(bool)endTrueAgain);
+  }
+
+>>>>>>> refs/remotes/origin/main
   // Server-initiated per-peer disconnect
   deadline = millis() + 15000;
   while (millis() < deadline) {
