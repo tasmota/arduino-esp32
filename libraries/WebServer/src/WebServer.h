@@ -113,7 +113,7 @@ enum HTTPAuthMethod {
 // the same entry points. Digest requests are rejected, and a Digest challenge
 // is refused rather than silently downgraded to Basic.
 #ifndef WEBSERVER_DIGEST_AUTH
-#define WEBSERVER_DIGEST_AUTH 1
+#define WEBSERVER_DIGEST_AUTH 0
 #endif
 
 #define CONTENT_LENGTH_UNKNOWN ((size_t) - 1)
