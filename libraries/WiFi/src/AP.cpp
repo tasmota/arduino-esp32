@@ -389,7 +389,10 @@ size_t APClass::printDriverInfo(Print &out) const {
     return bytes;
   }
   bytes += out.print(",");
-  bytes += out.print((const char *)info.ap.ssid);
+  char ssid[33];
+  memcpy(ssid, info.ap.ssid, 32);
+  ssid[32] = 0;
+  bytes += out.print((const char *)ssid);
   bytes += out.print(",CH:");
   bytes += out.print(info.ap.channel);
 
